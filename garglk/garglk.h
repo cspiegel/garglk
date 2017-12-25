@@ -128,7 +128,6 @@ extern int gli_cellh;
 
 typedef struct rect_s rect_t;
 typedef struct picture_s picture_t;
-typedef struct piclist_s piclist_t;
 typedef struct style_s style_t;
 typedef struct mask_s mask_t;
 
@@ -145,13 +144,6 @@ struct picture_s
     unsigned char *rgba;
     unsigned long id;
     int scaled;
-};
-
-struct piclist_s
-{
-    picture_t *picture;
-    picture_t *scaled;
-    struct piclist_s *next;
 };
 
 struct style_s
@@ -738,12 +730,9 @@ picture_t *gli_picture_retrieve(unsigned long id, int scaled);
 picture_t *gli_picture_scale(picture_t *src, int destwidth, int destheight);
 void gli_picture_increment(picture_t *pic);
 void gli_picture_decrement(picture_t *pic);
-piclist_t *gli_piclist_search(unsigned long id);
 void gli_piclist_clear(void);
 void gli_piclist_increment(void);
 void gli_piclist_decrement(void);
-void gli_picture_store_original(picture_t *pic);
-void gli_picture_store_scaled(picture_t *pic);
 
 window_graphics_t *win_graphics_create(window_t *win);
 void win_graphics_destroy(window_graphics_t *cutwin);

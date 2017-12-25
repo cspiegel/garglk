@@ -21,66 +21,58 @@
  *                                                                            *
  *****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
+#include <vector>
 
 #include <png.h>
 #include <jpeglib.h>
 
+extern "C"
+{
 #include "glk.h"
 #include "garglk.h"
 #include "gi_blorb.h"
+}
 
 #define giblorb_ID_JPEG      (giblorb_make_id('J', 'P', 'E', 'G'))
 #define giblorb_ID_PNG       (giblorb_make_id('P', 'N', 'G', ' '))
 
-static void load_image_png(FILE *fl, picture_t *pic);
-static void load_image_jpeg(FILE *fl, picture_t *pic);
+struct pictures
+{
+    picture_t *picture;
+    picture_t *scaled;
+};
 
-static piclist_t *picstore = NULL;	/* cache all loaded pictures */
+static void load_image_png(std::FILE *fl, picture_t *pic);
+static void load_image_jpeg(std::FILE *fl, picture_t *pic);
+
+static std::vector<pictures> picstore;
 static int gli_piclist_refcount = 0;	/* count references to loaded pictures */
 
 static void gli_picture_discard(picture_t *pic);
 
-piclist_t *gli_piclist_search(unsigned long id)
+static pictures *gli_piclist_search(unsigned long id)
 {
-    piclist_t *picptr;
-    picture_t *pic;
+    auto pic = std::find_if(picstore.begin(), picstore.end(),
+                            [&](const pictures &pic){ return pic.picture != nullptr && pic.picture->id == id; });
 
-    picptr = picstore;
-
-    while (picptr != NULL)
-    {
-        pic = picptr->picture;
-
-        if (pic && pic->id == id)
-            return picptr;
-
-        picptr = picptr->next;
-    }
-
-    return NULL;
+    if (pic == picstore.end())
+        return nullptr;
+    else
+        return &*pic;
 }
 
 void gli_piclist_clear(void)
 {
-    piclist_t *picptr, *tmpptr;
-
-    picptr = picstore;
-
-    while (picptr != NULL)
+    for(const auto &pic : picstore)
     {
-        tmpptr = picptr;
-        picptr = picptr->next;
-
-        gli_picture_decrement(tmpptr->picture);
-        gli_picture_decrement(tmpptr->scaled);
-
-        free(tmpptr);
+        gli_picture_decrement(pic.picture);
+        gli_picture_decrement(pic.scaled);
     }
 
-    picstore = NULL;
+    picstore.clear();
 }
 
 void gli_piclist_increment(void)
@@ -111,32 +103,19 @@ void gli_picture_decrement(picture_t *pic)
         gli_picture_discard(pic);
 }
 
-void gli_picture_store_original(picture_t *pic)
+static void gli_picture_store_original(picture_t *pic)
 {
-    piclist_t *newpic = malloc(sizeof(piclist_t));
-    piclist_t *picptr;
+    pictures newpic;
 
-    newpic->picture = pic;
-    newpic->scaled = NULL;
-    newpic->next = NULL;
+    newpic.picture = pic;
+    newpic.scaled = nullptr;
 
-    if (!picstore)
-    {
-        picstore = newpic;
-        return;
-    }
-
-    picptr = picstore;
-
-    while (picptr->next != NULL)
-        picptr = picptr->next;
-
-    picptr->next = newpic;
+    picstore.push_back(newpic);
 }
 
-void gli_picture_store_scaled(picture_t *pic)
+static void gli_picture_store_scaled(picture_t *pic)
 {
-    piclist_t *picptr;
+    pictures *picptr;
 
     picptr = gli_piclist_search(pic->id);
 
@@ -161,25 +140,15 @@ void gli_picture_store(picture_t *pic)
 
 picture_t *gli_picture_retrieve(unsigned long id, int scaled)
 {
-    piclist_t *picptr;
-    picture_t *pic;
-
-    picptr = picstore;
-
-    while (picptr != NULL)
-    {
-        if (!scaled)
-            pic = picptr->picture;
-        else
-            pic = picptr->scaled;
-
-        if (pic && pic->id == id)
-            return pic;
-
-        picptr = picptr->next;
+    for (const auto &pic : picstore) {
+        if (scaled && pic.scaled != nullptr) {
+            return pic.scaled;
+        } else if (!scaled && pic.picture != nullptr) {
+            return pic.picture;
+        }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 static void gli_picture_discard(picture_t *pic)
@@ -187,16 +156,14 @@ static void gli_picture_discard(picture_t *pic)
     if (!pic)
         return;
 
-    if (pic->rgba)
-        free(pic->rgba);
-
-    free(pic);
+    delete [] pic->rgba;
+    delete pic;
 }
 
 picture_t *gli_picture_load(unsigned long id)
 {
     picture_t *pic;
-    FILE *fl;
+    std::FILE *fl;
     int closeafter;
     glui32 chunktype;
 
@@ -210,17 +177,17 @@ picture_t *gli_picture_load(unsigned long id)
         char filename[1024];
         unsigned char buf[8];
 
-        snprintf(filename, sizeof filename, "%s/PIC%lu", gli_workdir, id);
+        std::snprintf(filename, sizeof filename, "%s/PIC%lu", gli_workdir, id);
 
         closeafter = TRUE;
-        fl = fopen(filename, "rb");
+        fl = std::fopen(filename, "rb");
         if (!fl)
             return NULL;
 
-        if (fread(buf, 1, 8, fl) != 8)
+        if (std::fread(buf, 1, 8, fl) != 8)
         {
             /* Can't read the first few bytes. Forget it. */
-            fclose(fl);
+            std::fclose(fl);
             return NULL;
         }
 
@@ -235,11 +202,11 @@ picture_t *gli_picture_load(unsigned long id)
         else
         {
             /* Not a readable file. Forget it. */
-            fclose(fl);
+            std::fclose(fl);
             return NULL;
         }
 
-        fseek(fl, 0, 0);
+        std::fseek(fl, 0, 0);
     }
 
     else
@@ -248,15 +215,15 @@ picture_t *gli_picture_load(unsigned long id)
         giblorb_get_resource(giblorb_ID_Pict, id, &fl, &pos, NULL, &chunktype);
         if (!fl)
             return NULL;
-        fseek(fl, pos, 0);
+        std::fseek(fl, pos, 0);
         closeafter = FALSE;
     }
 
-    pic = malloc(sizeof(picture_t));
+    pic = new picture_t;
     pic->refcount = 1;
     pic->w = 0;
     pic->h = 0;
-    pic->rgba = NULL;
+    pic->rgba = nullptr;
     pic->id = id;
     pic->scaled = FALSE;
 
@@ -267,12 +234,12 @@ picture_t *gli_picture_load(unsigned long id)
         load_image_jpeg(fl, pic);
 
     if (closeafter)
-        fclose(fl);
+        std::fclose(fl);
 
     if (!pic->rgba)
     {
-        free(pic);
-        return NULL;
+        delete pic;
+        return nullptr;
     }
 
     gli_picture_store(pic);
@@ -280,7 +247,7 @@ picture_t *gli_picture_load(unsigned long id)
     return pic;
 }
 
-static void load_image_jpeg(FILE *fl, picture_t *pic)
+static void load_image_jpeg(std::FILE *fl, picture_t *pic)
 {
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -298,10 +265,10 @@ static void load_image_jpeg(FILE *fl, picture_t *pic)
     pic->w = cinfo.output_width;
     pic->h = cinfo.output_height;
     n = cinfo.output_components;
-    pic->rgba = malloc(pic->w * pic->h * 4);
+    pic->rgba = new unsigned char[pic->w * pic->h * 4];
 
     p = pic->rgba;
-    row = malloc(sizeof(JSAMPLE) * pic->w * n);
+    row = new JSAMPLE[pic->w * n];
     rowarray[0] = row;
 
     while (cinfo.output_scanline < cinfo.output_height)
@@ -323,10 +290,10 @@ static void load_image_jpeg(FILE *fl, picture_t *pic)
 
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
-    free(row);
+    delete [] row;
 }
 
-static void load_image_png(FILE *fl, picture_t *pic)
+static void load_image_png(std::FILE *fl, picture_t *pic)
 {
     int ix, x, y;
     int srcrowbytes;
@@ -357,10 +324,8 @@ static void load_image_png(FILE *fl, picture_t *pic)
     {
         /* If we jump here, we had a problem reading the file */
         png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-        if (rowarray)
-            free(rowarray);
-        if (srcdata)
-            free(srcdata);
+        delete [] rowarray;
+        delete [] srcdata;
         return;
     }
 
@@ -382,8 +347,8 @@ static void load_image_png(FILE *fl, picture_t *pic)
 
     assert(srcrowbytes == pic->w * 4 || srcrowbytes == pic->w * 3);
 
-    rowarray = malloc(sizeof(png_bytep) * pic->h);
-    srcdata = malloc(pic->w * pic->h * 4);
+    rowarray = new png_bytep[pic->h];
+    srcdata = new png_byte[pic->w * pic->h * 4];
 
     for (ix=0; ix<pic->h; ix++)
         rowarray[ix] = srcdata + (ix * pic->w * 4);
@@ -392,8 +357,7 @@ static void load_image_png(FILE *fl, picture_t *pic)
     png_read_end(png_ptr, info_ptr);
 
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-    if (rowarray)
-        free(rowarray);
+    delete [] rowarray;
 
     pic->rgba = srcdata;
 
