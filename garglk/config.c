@@ -89,6 +89,17 @@ style_t gli_gstyles[style_NUMSTYLES] =
 style_t gli_tstyles_def[style_NUMSTYLES];
 style_t gli_gstyles_def[style_NUMSTYLES];
 
+void garglk_get_text_buffer_colors(glui32 *fg, glui32 *bg)
+{
+    *fg = (gli_tstyles[0].fg[0] << 16) |
+          (gli_tstyles[0].fg[1] <<  8) |
+          (gli_tstyles[0].fg[2] <<  0);
+
+    *bg = (gli_tstyles[0].bg[0] << 16) |
+          (gli_tstyles[0].bg[1] <<  8) |
+          (gli_tstyles[0].bg[2] <<  0);
+}
+
 static int font2idx(char *font)
 {
     if (!strcmp(font, "monor")) return MONOR;
