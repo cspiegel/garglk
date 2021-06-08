@@ -53,7 +53,7 @@ mkdir -p "$BUNDLE/Resources/Fonts"
 mkdir -p "$BUNDLE/PlugIns"
 
 rm -rf $GARGDIST
-jam "-sUSETTS=yes" "-sBUNDLEFONTS=no" "-sMAC_USEHOMEBREW=${MAC_USEHOMEBREW}" "-j${NUMJOBS}" "-sMACOS_MIN_VER=${MACOS_MIN_VER}" install
+jam "-sUSETTS=yes" "-sMAC_USEHOMEBREW=${MAC_USEHOMEBREW}" "-j${NUMJOBS}" "-sMACOS_MIN_VER=${MACOS_MIN_VER}" install
 
 # Copy the main executable to the MacOS directory;
 cp "$GARGDIST/gargoyle" "$BUNDLE/MacOS/Gargoyle"
@@ -127,10 +127,7 @@ cp garglk/garglk.ini "$BUNDLE/Resources"
 cp garglk/*.icns "$BUNDLE/Resources"
 cp licenses/* "$BUNDLE/Resources"
 
-cp fonts/Go-Mono*.ttf $BUNDLE/Resources/Fonts
-cp fonts/LiberationMono*.ttf $BUNDLE/Resources/Fonts
-cp fonts/LinLibertine*.otf $BUNDLE/Resources/Fonts
-cp fonts/NotoSerif*.ttf $BUNDLE/Resources/Fonts
+cp fonts/Gargoyle*.ttf $BUNDLE/Resources/Fonts
 
 echo "Creating DMG..."
 hdiutil create -fs "HFS+J" -ov -srcfolder Gargoyle.app/ "gargoyle-$GARVERSION-mac.dmg"

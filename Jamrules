@@ -7,7 +7,6 @@ USESDL ?= yes ;
 USEBABEL ?= yes ;
 MAC_USEHOMEBREW ?= no ;
 MACOS_MIN_VER ?= 10.7 ;
-BUNDLEFONTS ?= yes ;
 USETTS ?= no ;
 
 # jam -sGARGLKINI=/usr/local/etc/garglk.ini
@@ -60,8 +59,8 @@ switch $(PLATFORM)
     case MINGW :
         Echo "OS is MINGW (win32) $(CROSS)" ;
         SUFDLL  = .dll ;
-        LINKLIBS = -lcomdlg32 -lgdi32 -lwinmm -lm ;
-        SHRLINKLIBS = -lcomdlg32 -lgdi32 -lwinmm -lm ;
+        LINKLIBS = -lcomdlg32 -lgdi32 -lwinmm -lshlwapi -lm ;
+        SHRLINKLIBS = -lcomdlg32 -lgdi32 -lwinmm -lshlwapi -lm ;
         PACKAGES = "" ;
 
          if $(MINGW_USE_SYSTEM_LIBRARIES) = yes

@@ -40,10 +40,6 @@ title information and display in the window's titlebar
 
 WITH_SDL: If true (the default), use SDL2 for sound support.
 
-WITH_BUNDLED_FONTS: If true (the default), fonts will be bundled into the
-Gargoyle executable and used as fallback fonts.
-Note: This feature will likely be removed in a future release.
-
 WITH_TTS: If true (the default), enable text-to-speech support.
 
 BUILD_SHARED_LIBS: If true (the default), a shared libgarglk will be built.
