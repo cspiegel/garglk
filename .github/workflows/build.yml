@@ -8,9 +8,7 @@ jobs:
   build:
     strategy:
       matrix:
-        sdl: ["ON", "OFF"]
-        tts: ["ON", "OFF"]
-        babel: ["ON", "OFF"]
+        feature: ["SDL=OFF", "TTS=OFF", "BABEL=OFF"]
 
     runs-on: ubuntu-latest
     container:
@@ -44,7 +42,7 @@ jobs:
         run: |
             mkdir build
             cd build
-            cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DWITH_SDL=${{ matrix.sdl }} -DWITH_TTS=${{ matrix.tts }} -DWITH_BABEL=${{ matrix.babel }} -DWITH_INTERPRETERS=OFF -DWITH_LAUNCHER=OFF
+            cmake .. -DCMAKE_INSTALL_PREFIX=/usr -D${{ matrix.feature }} -DWITH_INTERPRETERS=OFF -DWITH_LAUNCHER=OFF
 
       - name: Build
         run: |
