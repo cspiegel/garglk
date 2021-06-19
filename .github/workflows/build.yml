@@ -42,7 +42,7 @@ jobs:
         run: |
             mkdir build
             cd build
-            cmake .. -DCMAKE_INSTALL_PREFIX=/usr -D${{ matrix.feature }} -DWITH_INTERPRETERS=OFF -DWITH_LAUNCHER=OFF
+            cmake .. -DCMAKE_INSTALL_PREFIX=/usr -D$WITH_{{ matrix.feature }} -DWITH_INTERPRETERS=OFF -DWITH_LAUNCHER=OFF
 
       - name: Build
         run: |
