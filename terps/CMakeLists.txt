@@ -129,6 +129,10 @@ elseif(MINGW)
     list(APPEND BOCFEL_MACROS ZTERP_WIN32)
 endif()
 
+if("${SOUND}" STREQUAL "QT" AND (NOT APPLE AND (UNIX OR MINGW)))
+    list(APPEND BOCFEL_MACROS ZTERP_GLK_TICK)
+endif()
+
 if(WITH_BOCFEL)
     terp(bocfel
         SRCS bocfel/blorb.c bocfel/branch.c bocfel/dict.c bocfel/iff.c

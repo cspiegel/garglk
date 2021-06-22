@@ -26,6 +26,7 @@
 #include <QChar>
 #include <QClipboard>
 #include <QCursor>
+#include <QElapsedTimer>
 #include <QFileDialog>
 #include <QGraphicsView>
 #include <QMainWindow>
@@ -65,6 +66,8 @@ static const std::map<FILEFILTERS, std::pair<QString, QString>> filters = {
 
 static QApplication *app;
 static Window *window;
+static QElapsedTimer last_tick;
+#define TICK_PERIOD_MILLIS	10
 
 static void handle_input(const QString &input)
 {
@@ -393,6 +396,7 @@ void wininit(int *, char **)
     static int argc = 1;
     static char *argv[] = { const_cast<char *>("gargoyle"), nullptr };
     app = new QApplication(argc, argv);
+    last_tick.start();
 }
 
 void winopen()
@@ -430,6 +434,15 @@ void wintitle()
 void winrepaint(int x0, int y0, int x1, int y1)
 {
     window->update(x0, y0, x1 - x0, y1 - y0);
+}
+
+void gli_tick()
+{
+    if (last_tick.elapsed() > TICK_PERIOD_MILLIS)
+    {
+        app->processEvents(QEventLoop::ExcludeUserInputEvents);
+        last_tick.start();
+    }
 }
 
 void gli_select(event_t *event, int polled)
