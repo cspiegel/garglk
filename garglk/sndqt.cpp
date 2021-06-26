@@ -55,9 +55,7 @@ extern "C" {
 #define giblorb_ID_AIFF (giblorb_make_id('A', 'I', 'F', 'F'))
 
 /* non-standard types */
-#define giblorb_ID_MP3  (giblorb_make_id('M', 'P', '3', ' '))
 #define giblorb_ID_WAVE (giblorb_make_id('W', 'A', 'V', 'E'))
-#define giblorb_ID_MIDI (giblorb_make_id('M', 'I', 'D', 'I'))
 
 #define GLK_MAXVOLUME 0x10000
 
