@@ -207,14 +207,14 @@ public:
 
         m_format.setSampleRate(m_soundfile.samplerate());
         m_format.setChannelCount(m_soundfile.channels());
-        m_format.setSampleSize(16);
+        m_format.setSampleSize(32);
         m_format.setCodec("audio/pcm");
         m_format.setByteOrder(static_cast<QAudioFormat::Endian>(QSysInfo::Endian::ByteOrder));
-        m_format.setSampleType(QAudioFormat::SignedInt);
+        m_format.setSampleType(QAudioFormat::Float);
     }
 
     qint64 source_read(void *data, qint64 max) override {
-        return 2 * m_soundfile.read(reinterpret_cast<short *>(data), max / 2);
+        return 4 * m_soundfile.read(reinterpret_cast<float *>(data), max/ 4);
     }
 
     void source_rewind() override {
