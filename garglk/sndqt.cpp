@@ -83,6 +83,8 @@ struct glk_schannel_struct
     gidispatch_rock_t disprock;
 };
 
+static std::set<schanid_t> gli_channellist;
+
 gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 {
     return chan->disprock;
@@ -278,8 +280,6 @@ private:
     }
 #undef SOURCE
 };
-
-static std::set<schanid_t> gli_channellist;
 
 void gli_initialize_sound(void)
 {
