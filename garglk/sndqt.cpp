@@ -1,7 +1,8 @@
 /******************************************************************************
  *                                                                            *
  * Copyright (C) 2006-2009 by Tor Andersson, Lorenzo Marcantonio.             *
- * Copyright (C) 2010 by Ben Cressey, Chris Spiegel.                          *
+ * Copyright (C) 2010 by Ben Cressey                                          *
+ * Copyright (C) 2021 by Chris Spiegel.                                       *
  *                                                                            *
  * This file is part of Gargoyle.                                             *
  *                                                                            *
