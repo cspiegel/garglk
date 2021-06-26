@@ -162,7 +162,7 @@ public:
 
 protected:
     qint64 source_read(void *data, qint64 max) override {
-        return 4 * openmpt_module_read_interleaved_stereo(m_mod.get(), 44100, max / 4, reinterpret_cast<int16_t *>(data));
+        return 4 * openmpt_module_read_interleaved_stereo(m_mod.get(), rate(), max / 4, reinterpret_cast<int16_t *>(data));
     }
 
     void source_rewind() override {
