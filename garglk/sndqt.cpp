@@ -649,12 +649,13 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 
             // ID3-tagged MP3s have a magic string, but untaged MP3
             // files don't, as they are just collections of frames, each
-            // with a sync header. All MP3 sync headers start an 11-bit
-            // frame sync which set to all ones. The next 4 bits can be
-            // anything except all zeros, and the bit following that can
-            // be 0 or 1, giving 6 possible values for the first 2 bytes
-            // of the frame. This may well have false positives, but
-            // mpg123 will then simply fail to load the file.
+            // with a sync header. All MP3 sync headers start with an
+            // 11-bit frame sync which is set to all ones. The next 4
+            // bits can be anything except all zeros, and the bit
+            // following that can be 0 or 1, giving 6 possible values
+            // for the first 2 bytes of the frame. This may well have
+            // false positives, but mpg123 will then simply fail to load
+            // the file.
             { Magic(0, "ID3"), giblorb_ID_MP3 },
             { Magic(0, "\xff\xe2"), giblorb_ID_MP3 },
             { Magic(0, "\xff\xe3"), giblorb_ID_MP3 },
