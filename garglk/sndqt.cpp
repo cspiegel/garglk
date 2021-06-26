@@ -157,7 +157,7 @@ public:
         m_mod(openmpt_module_create_from_memory2(buf.data(), buf.size(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr), openmpt_module_destroy)
     {
         if (!m_mod)
-            throw std::runtime_error("cannot parse MOD file");
+            throw std::runtime_error("can't parse MOD file");
     }
 
 protected:
