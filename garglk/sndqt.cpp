@@ -732,56 +732,57 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         default:
             return 0;
         }
+
+        if (!source->open(QIODevice::ReadOnly))
+            throw SoundError("unable to open source");
+
+        QAudioFormat format = source->format();
+        QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
+        if (!info.isFormatSupported(format))
+            throw SoundError("unsupported source format");
+
+        chan->audio = std::make_unique<QAudioOutput>(format, nullptr);
+
+        auto on_change = [&](QAudio::State state) {
+            switch (state)
+            {
+            case QAudio::State::IdleState:
+                gli_event_store(evtype_SoundNotify, nullptr, 0, 1);
+                gli_notification_waiting();
+                break;
+            default:
+                break;
+            }
+        };
+
+        QObject::connect(chan->audio.get(), &QAudioOutput::stateChanged, on_change);
+
+        chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
+
+        // The following might appear slightly odd: QAudioOutput takes
+        // ownership of the passed-in pointer, so this looks like it
+        // should be release() instead of get(); but if start() results
+        // in failure, it does *not* take ownership, so using release()
+        // would result in a leak. Hold onto the pointer just long
+        // enough to verify that start() was successful, then release
+        // it.
+        chan->audio->start(source.get());
+        if (chan->audio->error() != QAudio::NoError)
+            throw SoundError("unable to start sound");
+
+        (void)source.release();
+
+        if (chan->paused)
+            chan->audio->suspend();
+
+        source->set_audio_buffer_size(chan->audio->bufferSize());
+
+        return 1;
     }
     catch (const SoundError &)
     {
         return 0;
     }
-
-    if (!source->open(QIODevice::ReadOnly))
-        return 0;
-
-    QAudioFormat format = source->format();
-    QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
-    if (!info.isFormatSupported(format))
-        return 0;
-
-    chan->audio = std::make_unique<QAudioOutput>(format, nullptr);
-
-    auto on_change = [&](QAudio::State state) {
-        switch (state)
-        {
-        case QAudio::State::IdleState:
-            gli_event_store(evtype_SoundNotify, nullptr, 0, 1);
-            gli_notification_waiting();
-            break;
-        default:
-            break;
-        }
-    };
-
-    QObject::connect(chan->audio.get(), &QAudioOutput::stateChanged, on_change);
-
-    chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
-
-    // The following might appear slightly odd: QAudioOutput takes
-    // ownership of the passed-in pointer, so this looks like it should
-    // be release() instead of get(); but if start() results in failure,
-    // it does *not* take ownership, so using release() would result in
-    // a leak. Hold onto the pointer just long enough to verify that
-    // start() was successful, then release it.
-    chan->audio->start(source.get());
-    if (chan->audio->error() != QAudio::NoError)
-        return 0;
-
-    (void)source.release();
-
-    if (chan->paused)
-        chan->audio->suspend();
-
-    source->set_audio_buffer_size(chan->audio->bufferSize());
-
-    return 1;
 }
 
 void glk_schannel_pause(schanid_t chan)
