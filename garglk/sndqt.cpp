@@ -63,6 +63,12 @@ extern "C" {
 
 #define GLK_MAXVOLUME 0x10000
 
+class SoundError : public std::runtime_error {
+public:
+    SoundError(const QString &msg) : std::runtime_error(msg.toStdString()) {
+    }
+};
+
 struct glk_schannel_struct
 {
     glk_schannel_struct(glui32 volume) :
@@ -179,7 +185,7 @@ public:
         m_mod(openmpt_module_create_from_memory2(buf.data(), buf.size(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr), openmpt_module_destroy)
     {
         if (!m_mod)
-            throw std::runtime_error("can't parse MOD file");
+            throw SoundError("can't parse MOD file");
 
         m_format.setSampleRate(48000);
         m_format.setChannelCount(2);
@@ -216,7 +222,7 @@ public:
         SF_VIRTUAL_IO io = get_io();
         m_soundfile = SndfileHandle(io, this);
         if (!m_soundfile)
-            throw std::runtime_error("can't open with libsndfile");
+            throw SoundError("can't open with libsndfile");
 
         m_format.setSampleRate(m_soundfile.samplerate());
         m_format.setChannelCount(m_soundfile.channels());
@@ -302,7 +308,7 @@ private:
     }
 
     static sf_count_t vio_write(const void *, sf_count_t, void *) {
-        throw std::runtime_error("writing not supported");
+        throw SoundError("writing not supported");
     }
 
     static sf_count_t vio_tell(void *source) {
@@ -319,22 +325,22 @@ public:
         m_buf(buf)
     {
         if (!mp3_initialized)
-            throw std::runtime_error("mpg123 not initialized");
+            throw SoundError("mpg123 not initialized");
 
         mpg123_replace_reader_handle(m_handle.get(), vio_read, vio_lseek, nullptr);
         if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
-            throw std::runtime_error("can't open mp3");
+            throw SoundError("can't open mp3");
 
         mpg123_format_none(m_handle.get());
         if (mpg123_format2(m_handle.get(), 0, MPG123_STEREO | MPG123_MONO, MPG123_ENC_FLOAT_32) != MPG123_OK)
-            throw std::runtime_error("can't set mp3 format");
+            throw SoundError("can't set mp3 format");
 
         int encoding;
         if (mpg123_getformat(m_handle.get(), &m_rate, &m_channels, &encoding) != MPG123_OK)
-            throw std::runtime_error("can't get mp3 format information");
+            throw SoundError("can't get mp3 format information");
 
         if (encoding != MPG123_ENC_FLOAT_32)
-            throw std::runtime_error("can't request floating point samples for mp3");
+            throw SoundError("can't request floating point samples for mp3");
 
         m_format.setSampleRate(m_rate);
         m_format.setChannelCount(m_channels);
@@ -600,7 +606,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 
         QFile file(name);
         if (!file.open(QIODevice::ReadOnly))
-            throw std::runtime_error("can't open SND file");
+            throw SoundError("can't open SND file");
 
         QByteArray data = file.readAll();
 
@@ -664,7 +670,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
                 return std::make_pair(pair.second, data);
         }
 
-        throw std::runtime_error("no matching magic");
+        throw SoundError("no matching magic");
     }
     else
     {
@@ -674,14 +680,14 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 
         giblorb_get_resource(giblorb_ID_Snd, snd, &file, &pos, &len, &type);
         if (file == nullptr)
-            throw std::runtime_error("can't get blorb resource");
+            throw SoundError("can't get blorb resource");
 
         QByteArray data(len, 0);
 
         if (std::fseek(file, pos, SEEK_SET) == -1 ||
             std::fread(data.data(), len, 1, file) != 1)
         {
-            throw std::runtime_error("can't read from blorb file");
+            throw SoundError("can't read from blorb file");
         }
 
         return std::make_pair(type, data);
@@ -701,7 +707,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     if (repeats == 0)
         return 1;
 
-    SoundSource *source;
+    std::unique_ptr<SoundSource> source;
     try
     {
         int type;
@@ -711,22 +717,22 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         switch (type)
         {
         case giblorb_ID_MOD:
-            source = new OpenMPTSource(data, repeats);
+            source.reset(new OpenMPTSource(data, repeats));
             break;
         case giblorb_ID_AIFF:
         case giblorb_ID_FORM:
         case giblorb_ID_OGG:
         case giblorb_ID_WAVE:
-            source = new SndfileSource(data, repeats);
+            source.reset(new SndfileSource(data, repeats));
             break;
         case giblorb_ID_MP3:
-            source = new Mpg123Source(data, repeats);
+            source.reset(new Mpg123Source(data, repeats));
             break;
         default:
             return 0;
         }
     }
-    catch (const std::runtime_error &)
+    catch (const SoundError &)
     {
         return 0;
     }
@@ -757,9 +763,17 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
 
     chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
 
-    chan->audio->start(source);
+    // The following might appear slightly odd: QAudioOutput takes
+    // ownership of the passed-in pointer, so this looks like it should
+    // be release() instead of get(); but if start() results in failure,
+    // it does *not* take ownership, so using release() would result in
+    // a leak. Hold onto the pointer just long enough to verify that
+    // start() was successful, then release it.
+    chan->audio->start(source.get());
     if (chan->audio->error() != QAudio::NoError)
         return 0;
+
+    (void)source.release();
 
     if (chan->paused)
         chan->audio->suspend();
