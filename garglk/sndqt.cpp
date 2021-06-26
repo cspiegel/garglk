@@ -312,31 +312,23 @@ public:
         if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
             throw std::runtime_error("can't open mp3");
 
+        mpg123_format_none(m_handle.get());
+        if (mpg123_format2(m_handle.get(), 0, MPG123_STEREO | MPG123_MONO, MPG123_ENC_FLOAT_32) != MPG123_OK)
+            throw std::runtime_error("can't set mp3 format");
+
         int encoding;
         if (mpg123_getformat(m_handle.get(), &m_rate, &m_channels, &encoding) != MPG123_OK)
             throw std::runtime_error("can't get mp3 format information");
 
+        if (encoding != MPG123_ENC_FLOAT_32)
+            throw std::runtime_error("can't request floating point samples for mp3");
+
         m_format.setSampleRate(m_rate);
         m_format.setChannelCount(m_channels);
+        m_format.setSampleSize(32);
         m_format.setCodec("audio/pcm");
         m_format.setByteOrder(static_cast<QAudioFormat::Endian>(QSysInfo::Endian::ByteOrder));
-
-        // These all imply integer so no need to check for that.
-        if (encoding & MPG123_ENC_8)
-            m_format.setSampleSize(8);
-        else if (encoding & MPG123_ENC_16)
-            m_format.setSampleSize(16);
-        else if (encoding & MPG123_ENC_24)
-            m_format.setSampleSize(24);
-        else if (encoding & MPG123_ENC_32)
-            m_format.setSampleSize(32);
-        else
-            throw std::runtime_error("unsupported mp3 sample size");
-
-        if (encoding & MPG123_ENC_SIGNED)
-            m_format.setSampleType(QAudioFormat::SignedInt);
-        else
-            m_format.setSampleType(QAudioFormat::UnSignedInt);
+        m_format.setSampleType(QAudioFormat::Float);
     }
 
     qint64 source_read(void *data, qint64 max) override {
