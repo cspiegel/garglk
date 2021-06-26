@@ -41,6 +41,7 @@
 #include <QTimer>
 
 #include <libopenmpt/libopenmpt.h>
+#include <mpg123.h>
 #include <sndfile.hh>
 
 extern "C" {
@@ -56,6 +57,7 @@ extern "C" {
 #define giblorb_ID_AIFF (giblorb_make_id('A', 'I', 'F', 'F'))
 
 /* non-standard types */
+#define giblorb_ID_MP3  (giblorb_make_id('M', 'P', '3', ' '))
 #define giblorb_ID_WAVE (giblorb_make_id('W', 'A', 'V', 'E'))
 
 #define GLK_MAXVOLUME 0x10000
@@ -90,6 +92,8 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 {
     return chan->disprock;
 }
+
+static bool mp3_initialized;
 
 class SoundSource : public QIODevice {
 public:
@@ -282,8 +286,114 @@ private:
 #undef SOURCE
 };
 
+class Mpg123Source : public SoundSource {
+public:
+    Mpg123Source(const QByteArray &buf, glui32 plays) :
+        SoundSource(plays),
+        m_handle(mpg123_new(nullptr, nullptr), mpg123_delete),
+        m_buf(buf)
+    {
+        if (!mp3_initialized)
+            throw std::runtime_error("mpg123 not initialized");
+
+        mpg123_replace_reader_handle(m_handle.get(), vio_read, vio_lseek, nullptr);
+        if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
+            throw std::runtime_error("can't open mp3");
+
+        int encoding;
+        if (mpg123_getformat(m_handle.get(), &m_rate, &m_channels, &encoding) != MPG123_OK)
+            throw std::runtime_error("can't get mp3 format information");
+
+        if (encoding != MPG123_ENC_SIGNED_16)
+        {
+            mpg123_close(m_handle.get());
+            throw std::runtime_error("mp3 is not signed 16-bit");
+        }
+    }
+
+    qint64 source_read(void *data, qint64 max) override {
+        int err;
+        size_t done;
+
+        if (m_eof)
+            return 0;
+
+        err = mpg123_read(m_handle.get(), data, max, &done);
+
+        if (err != MPG123_OK && err != MPG123_DONE)
+            return 0;
+
+        return done;
+    }
+
+    void source_rewind() override {
+        m_offset = 0;
+        mpg123_close(m_handle.get());
+        if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
+            m_eof = true;
+    }
+
+    int channels() override {
+        return m_channels;
+    }
+
+    int rate() override {
+        return m_rate;
+    }
+
+private:
+    std::unique_ptr<mpg123_handle, decltype(&mpg123_delete)> m_handle;
+
+    const QByteArray m_buf;
+    ssize_t m_offset = 0;
+    long m_rate;
+    int m_channels;
+    bool m_eof = false;
+
+#define SOURCE (reinterpret_cast<Mpg123Source *>(source))
+    static ssize_t vio_read(void *source, void *ptr, size_t count) {
+        if (SOURCE->m_offset >= SOURCE->m_buf.size())
+            return 0;
+
+        if (SOURCE->m_offset + static_cast<ssize_t>(count) > SOURCE->m_buf.size())
+            count = SOURCE->m_buf.size() - SOURCE->m_offset;
+
+        std::memcpy(ptr, &SOURCE->m_buf.data()[SOURCE->m_offset], count);
+        SOURCE->m_offset += count;
+
+        return count;
+    }
+
+    static off_t vio_lseek(void *source, off_t offset, int whence) {
+        ssize_t orig = SOURCE->m_offset;
+
+        switch(whence)
+        {
+        case SEEK_SET:
+            SOURCE->m_offset = offset;
+            break;
+        case SEEK_CUR:
+            SOURCE->m_offset += offset;
+            break;
+        case SEEK_END:
+            SOURCE->m_offset = SOURCE->m_buf.size() + offset;
+            break;
+        }
+
+        if (SOURCE->m_offset < 0)
+        {
+            SOURCE->m_offset = orig;
+            return -1;
+        }
+
+        return SOURCE->m_offset;
+    }
+#undef SOURCE
+};
+
 void gli_initialize_sound(void)
 {
+    mp3_initialized = mpg123_init() == MPG123_OK;
 }
 
 schanid_t glk_schannel_create(glui32 rock)
@@ -501,6 +611,22 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
             { Magic(1080, "CD81"), giblorb_ID_MOD },
             { Magic(1080, "OKTA"), giblorb_ID_MOD },
             { Magic(1080, "    "), giblorb_ID_MOD },
+
+            // ID3-tagged MP3s have a magic string, but untaged MP3
+            // files don't, as they are just collections of frames, each
+            // with a sync header. All MP3 sync headers start an 11-bit
+            // frame sync which set to all ones. The next 4 bits can be
+            // anything except all zeros, and the bit following that can
+            // be 0 or 1, giving 6 possible values for the first 2 bytes
+            // of the frame. This may well have false positives, but
+            // mpg123 will then simply fail to load the file.
+            { Magic(0, "ID3"), giblorb_ID_MP3 },
+            { Magic(0, "\xff\xe2"), giblorb_ID_MP3 },
+            { Magic(0, "\xff\xe3"), giblorb_ID_MP3 },
+            { Magic(0, "\xff\xf2"), giblorb_ID_MP3 },
+            { Magic(0, "\xff\xf3"), giblorb_ID_MP3 },
+            { Magic(0, "\xff\xfa"), giblorb_ID_MP3 },
+            { Magic(0, "\xff\xfb"), giblorb_ID_MP3 },
         };
 
         for (auto &pair : magics)
@@ -563,6 +689,9 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         case giblorb_ID_OGG:
         case giblorb_ID_WAVE:
             source = new SndfileSource(data, repeats);
+            break;
+        case giblorb_ID_MP3:
+            source = new Mpg123Source(data, repeats);
             break;
         default:
             return 0;
