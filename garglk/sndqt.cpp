@@ -759,7 +759,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
 
     chan->audio->start(source);
     if (chan->audio->error() != QAudio::NoError)
-        return 1;
+        return 0;
 
     if (chan->paused)
         chan->audio->suspend();
