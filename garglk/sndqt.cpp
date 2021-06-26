@@ -108,6 +108,9 @@ public:
     virtual void source_rewind() = 0;
 
     qint64 readData(char *data, qint64 max) override {
+        if (max == 0)
+            return 0;
+
         if (m_plays == 0)
             return 0;
 
