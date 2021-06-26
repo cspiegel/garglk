@@ -757,8 +757,9 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
 
     chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
 
-    if (!chan->paused)
-        chan->audio->start(source);
+    chan->audio->start(source);
+    if (chan->paused)
+        chan->audio->suspend();
 
     source->set_audio_buffer_size(chan->audio->bufferSize());
 
