@@ -584,7 +584,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
 
     QAudioDeviceInfo info(QAudioDeviceInfo::defaultOutputDevice());
     if (!info.isFormatSupported(format))
-        throw std::runtime_error("CAN'T DO IT");
+        return 0;
 
     chan->audio = new QAudioOutput(format, nullptr);
 
