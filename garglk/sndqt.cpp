@@ -572,7 +572,8 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         return 0;
     }
 
-    source->open(QIODevice::ReadOnly);
+    if (!source->open(QIODevice::ReadOnly))
+        return 0;
 
     QAudioFormat format;
     format.setSampleRate(source->rate());
