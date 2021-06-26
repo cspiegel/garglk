@@ -181,17 +181,17 @@ public:
         if (!m_mod)
             throw std::runtime_error("can't parse MOD file");
 
-        m_format.setSampleRate(44100);
+        m_format.setSampleRate(48000);
         m_format.setChannelCount(2);
-        m_format.setSampleSize(16);
+        m_format.setSampleSize(32);
         m_format.setCodec("audio/pcm");
         m_format.setByteOrder(static_cast<QAudioFormat::Endian>(QSysInfo::Endian::ByteOrder));
-        m_format.setSampleType(QAudioFormat::SignedInt);
+        m_format.setSampleType(QAudioFormat::Float);
     }
 
 protected:
     qint64 source_read(void *data, qint64 max) override {
-        return 4 * openmpt_module_read_interleaved_stereo(m_mod.get(), m_format.sampleRate(), max / 4, reinterpret_cast<int16_t *>(data));
+        return 8 * openmpt_module_read_interleaved_float_stereo(m_mod.get(), m_format.sampleRate(), max / 8, reinterpret_cast<float *>(data));
     }
 
     void source_rewind() override {
