@@ -108,6 +108,19 @@ public:
     virtual void source_rewind() = 0;
 
     qint64 readData(char *data, qint64 max) override {
+        // QIODevice buffers data; if its buffer is full enough to
+        // satisfy its current needs, it calls readData with a max
+        // size of 0 (I'm not sure why it doesn't just skip calling it
+        // entirely). This does not preclude further calls with a
+        // positive max value in the future, so short-circuit here to
+        // avoid getting 0 bytes back from the decoder and triggering
+        // the EOF/handle repeat code below.
+        //
+        // The QIODevice docs say that readData "might be called with a
+        // maxSize of 0, which can be used to perform post-reading
+        // operations", but that's misleading as far as I can tell,
+        // given that it might also be called mid-read instead of just
+        // post-read.
         if (max == 0)
             return 0;
 
