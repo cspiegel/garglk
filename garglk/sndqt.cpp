@@ -348,7 +348,6 @@ public:
 
     void source_rewind() override {
         m_offset = 0;
-        mpg123_close(m_handle.get());
         if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
             m_eof = true;
     }
