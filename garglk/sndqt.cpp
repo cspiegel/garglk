@@ -67,7 +67,7 @@ struct glk_schannel_struct
     {
     }
 
-    QAudioOutput *audio = nullptr;
+    std::unique_ptr<QAudioOutput> audio;
 
     QTimer timer;
     double duration = 0;
@@ -322,7 +322,7 @@ schanid_t glk_schannel_create_ext(glui32 rock, glui32 volume)
             chan->timer.stop();
         }
 
-        if (chan->audio != nullptr)
+        if (chan->audio)
             chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
     };
     QObject::connect(&chan->timer, &QTimer::timeout, on_timeout);
@@ -439,7 +439,7 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 glk_volume, glui32 durat
     if (duration == 0)
     {
         chan->current_volume = chan->target_volume;
-        if (chan->audio != nullptr)
+        if (chan->audio)
             chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
     }
     else
@@ -586,7 +586,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     if (!info.isFormatSupported(format))
         return 0;
 
-    chan->audio = new QAudioOutput(format, nullptr);
+    chan->audio = std::make_unique<QAudioOutput>(format, nullptr);
 
     auto on_change = [&](QAudio::State state) {
         switch (state)
@@ -600,7 +600,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         }
     };
 
-    QObject::connect(chan->audio, &QAudioOutput::stateChanged, on_change);
+    QObject::connect(chan->audio.get(), &QAudioOutput::stateChanged, on_change);
 
     chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
 
@@ -622,7 +622,7 @@ void glk_schannel_pause(schanid_t chan)
 
     chan->paused = true;
 
-    if (chan->audio != nullptr)
+    if (chan->audio)
         chan->audio->suspend();
 }
 
@@ -636,7 +636,7 @@ void glk_schannel_unpause(schanid_t chan)
 
     chan->paused = false;
 
-    if (chan->audio != nullptr)
+    if (chan->audio)
         chan->audio->resume();
 }
 
@@ -648,10 +648,9 @@ void glk_schannel_stop(schanid_t chan)
         return;
     }
 
-    if (chan->audio == nullptr)
+    if (!chan->audio)
         return;
 
     chan->audio->stop();
-    delete chan->audio;
-    chan->audio = nullptr;
+    chan->audio.reset(nullptr);
 }
