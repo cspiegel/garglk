@@ -764,18 +764,18 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         // should be release() instead of get(); but if start() results
         // in failure, it does *not* take ownership, so using release()
         // would result in a leak. Hold onto the pointer just long
-        // enough to verify that start() was successful, then release
-        // it.
+        // enough to verify that start() was successful, set the audio
+        // buffer size, then release it.
         chan->audio->start(source.get());
         if (chan->audio->error() != QAudio::NoError)
             throw SoundError("unable to start sound");
+
+        source->set_audio_buffer_size(chan->audio->bufferSize());
 
         (void)source.release();
 
         if (chan->paused)
             chan->audio->suspend();
-
-        source->set_audio_buffer_size(chan->audio->bufferSize());
 
         return 1;
     }
