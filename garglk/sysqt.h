@@ -49,6 +49,10 @@ public:
     bool timed_out() { return m_timed_out; }
     void reset_timeout() { m_timed_out = false; }
     void toggle_menu() {
+        if (menuBar()->isVisible())
+            menuBar()->hide();
+        else
+            menuBar()->show();
     }
 
     const QSettings *settings() { return m_settings; }
