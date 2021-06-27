@@ -310,7 +310,6 @@ public:
         if (!m_handle)
             throw SoundError("can't create mp3 handle");
 
-        puts(mpg123_current_decoder(m_handle.get()));
         mpg123_replace_reader_handle(m_handle.get(), vio_read, vio_lseek, nullptr);
         if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
             throw SoundError("can't open mp3");
