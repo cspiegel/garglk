@@ -458,10 +458,10 @@ schanid_t glk_schannel_create_ext(glui32 rock, glui32 volume)
 
     auto on_timeout = [=]() {
         auto now = std::chrono::steady_clock::now();
-        double diff = std::chrono::duration<double>(now - chan->last_volume_bump).count();
+        double elapsed = std::chrono::duration<double>(now - chan->last_volume_bump).count();
         chan->last_volume_bump = now;
 
-        chan->current_volume += chan->difference * diff / chan->duration;
+        chan->current_volume += chan->difference * elapsed / chan->duration;
 
         if ((chan->difference > 0 && chan->current_volume >= chan->target_volume) ||
             (chan->difference < 0 && chan->current_volume <= chan->target_volume))
