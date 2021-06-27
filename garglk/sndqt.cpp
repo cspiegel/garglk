@@ -64,7 +64,10 @@ extern "C" {
 #define GLK_MAXVOLUME 0x10000
 
 static std::set<schanid_t> gli_channellist;
+
+#if MPG123_API_VERSION < 46
 static bool mp3_initialized;
+#endif
 
 class SoundError : public std::runtime_error {
 public:
@@ -291,11 +294,21 @@ class Mpg123Source : public SoundSource {
 public:
     Mpg123Source(const QByteArray &buf, glui32 plays) :
         SoundSource(plays),
+#if MPG123_API_VERSION >= 45
         m_handle(mpg123_new(nullptr, nullptr), mpg123_delete),
+#else
+        m_handle(nullptr, mpg123_delete),
+#endif
         m_buf(buf)
     {
+#if MPG123_API_VERSION < 46
         if (!mp3_initialized)
             throw SoundError("mpg123 not initialized");
+
+        m_handle.reset(mpg123_new(nullptr, nullptr));
+#endif
+        if (!m_handle)
+            throw SoundError("can't create mp3 handle");
 
         mpg123_replace_reader_handle(m_handle.get(), vio_read, vio_lseek, nullptr);
         if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
@@ -448,7 +461,9 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 
 void gli_initialize_sound(void)
 {
+#if MPG123_API_VERSION < 46
     mp3_initialized = mpg123_init() == MPG123_OK;
+#endif
 }
 
 schanid_t glk_schannel_create(glui32 rock)
