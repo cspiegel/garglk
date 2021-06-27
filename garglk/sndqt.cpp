@@ -640,7 +640,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
             { Magic(0, "RIFF"), giblorb_ID_WAVE },
             { Magic(0, "Extended Module: "), giblorb_ID_MOD },
             { Magic(0, "OggS"), giblorb_ID_OGG },
-            { Magic(0x44, "SCRM"), giblorb_ID_MOD },
+            { Magic(44, "SCRM"), giblorb_ID_MOD },
             { Magic(1080, "4CHN"), giblorb_ID_MOD },
             { Magic(1080, "6CHN"), giblorb_ID_MOD },
             { Magic(1080, "8CHN"), giblorb_ID_MOD },
