@@ -22,6 +22,7 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <QAction>
 #include <QApplication>
 #include <QChar>
 #include <QClipboard>
@@ -34,6 +35,7 @@
 #include <QLabel>
 #include <QList>
 #include <QMainWindow>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QMoveEvent>
 #include <QObject>
@@ -211,10 +213,16 @@ static void winclipreceive(QClipboard::Mode mode)
 
 Window::Window() :
     m_view(new View(this)),
+    m_new_action(new QAction("New", this)),
     m_timer(new QTimer(this)),
     m_settings(new QSettings(GARGOYLE_ORGANIZATION, GARGOYLE_NAME, this))
 {
     connect(m_timer, &QTimer::timeout, this, [&]() { m_timed_out = true; });
+
+    auto file = menuBar()->addMenu("File");
+    file->addAction(m_new_action);
+
+    menuBar()->hide();
 }
 
 void Window::closeEvent(QCloseEvent *)

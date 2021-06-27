@@ -3,6 +3,7 @@
 
 #include <QCloseEvent>
 #include <QKeyEvent>
+#include <QMenuBar>
 #include <QMainWindow>
 #include <QMouseEvent>
 #include <QMoveEvent>
@@ -47,6 +48,8 @@ public:
     void start_timer(long);
     bool timed_out() { return m_timed_out; }
     void reset_timeout() { m_timed_out = false; }
+    void toggle_menu() {
+    }
 
     const QSettings *settings() { return m_settings; }
 
@@ -57,6 +60,7 @@ protected:
 
 private:
     View *m_view;
+    QAction *m_new_action;
     QTimer *m_timer;
     QSettings *m_settings;
     bool m_timed_out = false;
