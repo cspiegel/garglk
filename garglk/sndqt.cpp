@@ -302,7 +302,12 @@ public:
             throw SoundError("can't open mp3");
 
         mpg123_format_none(m_handle.get());
+
+#if MPG123_API_VERSION >= 45
         if (mpg123_format2(m_handle.get(), 0, MPG123_STEREO | MPG123_MONO, MPG123_ENC_FLOAT_32) != MPG123_OK)
+#else
+        if (mpg123_format(m_handle.get(), 44100, MPG123_STEREO | MPG123_MONO, MPG123_ENC_FLOAT_32) != MPG123_OK)
+#endif
             throw SoundError("can't set mp3 format");
 
         int encoding;
@@ -327,7 +332,11 @@ public:
         if (m_eof)
             return 0;
 
+#if MPG123_API_VERSION >= 45
         err = mpg123_read(m_handle.get(), data, max, &done);
+#else
+        err = mpg123_read(m_handle.get(), static_cast<unsigned char *>(data), max, &done);
+#endif
 
         if (err != MPG123_OK && err != MPG123_DONE)
             return 0;
