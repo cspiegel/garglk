@@ -617,13 +617,18 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
         QByteArray data = file.readAll();
 
         struct Magic {
-            Magic(qint64 offset, const QString &string) :
+            virtual ~Magic() { }
+            virtual bool matches(const QByteArray &data) const = 0;
+        };
+
+        struct MagicString : public Magic {
+            MagicString(qint64 offset, const QString &string) :
                 m_offset(offset),
                 m_string(string)
             {
             }
 
-            bool matches(QByteArray data) const {
+            bool matches(const QByteArray &data) const override {
                 QByteArray subarray = data.mid(m_offset, m_string.size());
 
                 return QString(subarray) == m_string;
@@ -634,24 +639,23 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
             const QString m_string;
         };
 
-        std::vector<std::pair<Magic, int>> magics = {
-            { Magic(0, "FORM"), giblorb_ID_FORM },
-            { Magic(0, "WAVE"), giblorb_ID_WAVE },
-            { Magic(0, "RIFF"), giblorb_ID_WAVE },
-            { Magic(0, "Extended Module: "), giblorb_ID_MOD },
-            { Magic(0, "OggS"), giblorb_ID_OGG },
-            { Magic(44, "SCRM"), giblorb_ID_MOD },
-            { Magic(1080, "4CHN"), giblorb_ID_MOD },
-            { Magic(1080, "6CHN"), giblorb_ID_MOD },
-            { Magic(1080, "8CHN"), giblorb_ID_MOD },
-            { Magic(1080, "16CN"), giblorb_ID_MOD },
-            { Magic(1080, "32CN"), giblorb_ID_MOD },
-            { Magic(1080, "M.K."), giblorb_ID_MOD },
-            { Magic(1080, "M!K!"), giblorb_ID_MOD },
-            { Magic(1080, "FLT4"), giblorb_ID_MOD },
-            { Magic(1080, "CD81"), giblorb_ID_MOD },
-            { Magic(1080, "OKTA"), giblorb_ID_MOD },
-            { Magic(1080, "    "), giblorb_ID_MOD },
+        struct MagicMod : public Magic {
+            bool matches(const QByteArray &data) const override {
+                std::size_t size = std::min(openmpt_probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
+
+                return openmpt_probe_file_header(OPENMPT_PROBE_FILE_HEADER_FLAGS_DEFAULT,
+                        data.data(), size, data.size(),
+                        nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) == OPENMPT_PROBE_FILE_HEADER_RESULT_SUCCESS;
+            }
+        };
+
+        std::vector<std::pair<std::shared_ptr<Magic>, int>> magics = {
+            { std::make_shared<MagicString>(0, "FORM"), giblorb_ID_FORM },
+            { std::make_shared<MagicString>(0, "WAVE"), giblorb_ID_WAVE },
+            { std::make_shared<MagicString>(0, "RIFF"), giblorb_ID_WAVE },
+            { std::make_shared<MagicString>(0, "OggS"), giblorb_ID_OGG },
+
+            { std::make_shared<MagicMod>(), giblorb_ID_MOD },
 
             // ID3-tagged MP3s have a magic string, but untaged MP3
             // files don't, as they are just collections of frames, each
@@ -662,18 +666,18 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
             // for the first 2 bytes of the frame. This may well have
             // false positives, but mpg123 will then simply fail to load
             // the file.
-            { Magic(0, "ID3"), giblorb_ID_MP3 },
-            { Magic(0, "\xff\xe2"), giblorb_ID_MP3 },
-            { Magic(0, "\xff\xe3"), giblorb_ID_MP3 },
-            { Magic(0, "\xff\xf2"), giblorb_ID_MP3 },
-            { Magic(0, "\xff\xf3"), giblorb_ID_MP3 },
-            { Magic(0, "\xff\xfa"), giblorb_ID_MP3 },
-            { Magic(0, "\xff\xfb"), giblorb_ID_MP3 },
+            { std::make_shared<MagicString>(0, "ID3"), giblorb_ID_MP3 },
+            { std::make_shared<MagicString>(0, "\xff\xe2"), giblorb_ID_MP3 },
+            { std::make_shared<MagicString>(0, "\xff\xe3"), giblorb_ID_MP3 },
+            { std::make_shared<MagicString>(0, "\xff\xf2"), giblorb_ID_MP3 },
+            { std::make_shared<MagicString>(0, "\xff\xf3"), giblorb_ID_MP3 },
+            { std::make_shared<MagicString>(0, "\xff\xfa"), giblorb_ID_MP3 },
+            { std::make_shared<MagicString>(0, "\xff\xfb"), giblorb_ID_MP3 },
         };
 
-        for (auto &pair : magics)
+        for (const auto &pair : magics)
         {
-            if (pair.first.matches(data))
+            if (pair.first->matches(data))
                 return std::make_pair(pair.second, data);
         }
 
