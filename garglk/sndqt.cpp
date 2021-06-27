@@ -825,5 +825,6 @@ void glk_schannel_stop(schanid_t chan)
         return;
 
     chan->audio->stop();
+    chan->timer.stop();
     chan->audio.reset(nullptr);
 }
