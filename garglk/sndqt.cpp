@@ -294,10 +294,10 @@ class Mpg123Source : public SoundSource {
 public:
     Mpg123Source(const QByteArray &buf, glui32 plays) :
         SoundSource(plays),
-#if MPG123_API_VERSION >= 45
-        m_handle(mpg123_new(nullptr, nullptr), mpg123_delete),
-#else
+#if MPG123_API_VERSION < 46
         m_handle(nullptr, mpg123_delete),
+#else
+        m_handle(mpg123_new(nullptr, nullptr), mpg123_delete),
 #endif
         m_buf(buf)
     {
@@ -310,16 +310,17 @@ public:
         if (!m_handle)
             throw SoundError("can't create mp3 handle");
 
+        puts(mpg123_current_decoder(m_handle.get()));
         mpg123_replace_reader_handle(m_handle.get(), vio_read, vio_lseek, nullptr);
         if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
             throw SoundError("can't open mp3");
 
         mpg123_format_none(m_handle.get());
 
-#if MPG123_API_VERSION >= 45
-        if (mpg123_format2(m_handle.get(), 0, MPG123_STEREO | MPG123_MONO, MPG123_ENC_FLOAT_32) != MPG123_OK)
-#else
+#if MPG123_API_VERSION < 46
         if (mpg123_format(m_handle.get(), 44100, MPG123_STEREO | MPG123_MONO, MPG123_ENC_FLOAT_32) != MPG123_OK)
+#else
+        if (mpg123_format2(m_handle.get(), 0, MPG123_STEREO | MPG123_MONO, MPG123_ENC_FLOAT_32) != MPG123_OK)
 #endif
             throw SoundError("can't set mp3 format");
 
@@ -345,10 +346,10 @@ public:
         if (m_eof)
             return 0;
 
-#if MPG123_API_VERSION >= 45
-        err = mpg123_read(m_handle.get(), data, max, &done);
-#else
+#if MPG123_API_VERSION < 46
         err = mpg123_read(m_handle.get(), static_cast<unsigned char *>(data), max, &done);
+#else
+        err = mpg123_read(m_handle.get(), data, max, &done);
 #endif
 
         if (err != MPG123_OK && err != MPG123_DONE)
