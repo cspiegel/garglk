@@ -63,44 +63,14 @@ extern "C" {
 
 #define GLK_MAXVOLUME 0x10000
 
+static std::set<schanid_t> gli_channellist;
+static bool mp3_initialized;
+
 class SoundError : public std::runtime_error {
 public:
     SoundError(const QString &msg) : std::runtime_error(msg.toStdString()) {
     }
 };
-
-struct glk_schannel_struct
-{
-    glk_schannel_struct(glui32 volume) :
-        current_volume(volume),
-        target_volume(volume)
-    {
-    }
-
-    std::unique_ptr<QAudioOutput> audio;
-
-    QTimer timer;
-    double duration = 0;
-    double difference = 0;
-    std::chrono::steady_clock::time_point last_volume_bump;
-    long current_volume = 0;
-    glui32 target_volume = 0;
-    glui32 volume_notify = 0;
-
-    bool paused = false;
-
-    glui32 rock;
-    gidispatch_rock_t disprock;
-};
-
-static std::set<schanid_t> gli_channellist;
-
-gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
-{
-    return chan->disprock;
-}
-
-static bool mp3_initialized;
 
 class SoundSource : public QIODevice {
 public:
@@ -426,6 +396,42 @@ private:
 #undef SOURCE
 };
 
+struct glk_schannel_struct
+{
+    glk_schannel_struct(glui32 volume) :
+        current_volume(volume),
+        target_volume(volume)
+    {
+    }
+
+    // Source comes first so it's deleted last, since QAudioOutput still
+    // holds a pointer to it. This is a shared_ptr to emphasize that
+    // it's shared with QAudioOutput, but QAudioOutput doesn't use
+    // shared_ptr, so it's really just informative. The real advantage
+    // of a smart pointer here is automatic deletion of the allocated
+    // pointer on deletion of the sound channel.
+    std::shared_ptr<SoundSource> source;
+    std::unique_ptr<QAudioOutput> audio;
+
+    QTimer timer;
+    double duration = 0;
+    double difference = 0;
+    std::chrono::steady_clock::time_point last_volume_bump;
+    long current_volume = 0;
+    glui32 target_volume = 0;
+    glui32 volume_notify = 0;
+
+    bool paused = false;
+
+    glui32 rock;
+    gidispatch_rock_t disprock;
+};
+
+gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
+{
+    return chan->disprock;
+}
+
 void gli_initialize_sound(void)
 {
     mp3_initialized = mpg123_init() == MPG123_OK;
@@ -708,7 +714,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     if (repeats == 0)
         return 1;
 
-    std::unique_ptr<SoundSource> source;
+    std::shared_ptr<SoundSource> source;
     try
     {
         int type;
@@ -742,6 +748,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
             throw SoundError("unsupported source format");
 
         chan->audio = std::make_unique<QAudioOutput>(format, nullptr);
+        chan->source = std::move(source);
 
         auto on_change = [&](QAudio::State state) {
             switch (state)
@@ -759,20 +766,11 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
 
         chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
 
-        // The following might appear slightly odd: QAudioOutput takes
-        // ownership of the passed-in pointer, so this looks like it
-        // should be release() instead of get(); but if start() results
-        // in failure, it does *not* take ownership, so using release()
-        // would result in a leak. Hold onto the pointer just long
-        // enough to verify that start() was successful, set the audio
-        // buffer size, then release it.
-        chan->audio->start(source.get());
+        chan->audio->start(chan->source.get());
         if (chan->audio->error() != QAudio::NoError)
             throw SoundError("unable to start sound");
 
-        source->set_audio_buffer_size(chan->audio->bufferSize());
-
-        (void)source.release();
+        chan->source->set_audio_buffer_size(chan->audio->bufferSize());
 
         if (chan->paused)
             chan->audio->suspend();
