@@ -203,7 +203,7 @@ public:
     }
 
     qint64 source_read(void *data, qint64 max) override {
-        return 4 * m_soundfile.read(reinterpret_cast<float *>(data), max/ 4);
+        return 4 * m_soundfile.read(reinterpret_cast<float *>(data), max / 4);
     }
 
     void source_rewind() override {
