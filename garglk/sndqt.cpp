@@ -404,6 +404,11 @@ struct glk_schannel_struct
     {
     }
 
+    void set_current_volume() {
+        if (audio)
+            audio->setVolume(static_cast<double>(current_volume) / GLK_MAXVOLUME);
+    }
+
     // Source comes first so it's deleted last, since QAudioOutput still
     // holds a pointer to it. This is a shared_ptr to emphasize that
     // it's shared with QAudioOutput, but QAudioOutput doesn't use
@@ -474,8 +479,7 @@ schanid_t glk_schannel_create_ext(glui32 rock, glui32 volume)
             chan->timer.stop();
         }
 
-        if (chan->audio)
-            chan->audio->setVolume(static_cast<double>(chan->current_volume) / GLK_MAXVOLUME);
+        chan->set_current_volume();
     };
     QObject::connect(&chan->timer, &QTimer::timeout, on_timeout);
 
@@ -591,8 +595,7 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 glk_volume, glui32 durat
     if (duration == 0)
     {
         chan->current_volume = chan->target_volume;
-        if (chan->audio)
-            chan->audio->setVolume(static_cast<double>(chan->current_volume) / GLK_MAXVOLUME);
+        chan->set_current_volume();
     }
     else
     {
@@ -767,7 +770,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
 
         QObject::connect(chan->audio.get(), &QAudioOutput::stateChanged, on_change);
 
-        chan->audio->setVolume(static_cast<double>(chan->current_volume) / GLK_MAXVOLUME);
+        chan->set_current_volume();
 
         chan->audio->start(chan->source.get());
         if (chan->audio->error() != QAudio::NoError)
