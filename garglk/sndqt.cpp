@@ -475,7 +475,7 @@ schanid_t glk_schannel_create_ext(glui32 rock, glui32 volume)
         }
 
         if (chan->audio)
-            chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
+            chan->audio->setVolume(static_cast<double>(chan->current_volume) / GLK_MAXVOLUME);
     };
     QObject::connect(&chan->timer, &QTimer::timeout, on_timeout);
 
@@ -592,12 +592,12 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 glk_volume, glui32 durat
     {
         chan->current_volume = chan->target_volume;
         if (chan->audio)
-            chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
+            chan->audio->setVolume(static_cast<double>(chan->current_volume) / GLK_MAXVOLUME);
     }
     else
     {
         chan->duration = duration / 1000.0;
-        chan->difference = (double)chan->target_volume - (double)chan->current_volume;
+        chan->difference = static_cast<double>(chan->target_volume) - chan->current_volume;
         chan->timer.start(100);
     }
 
@@ -767,7 +767,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
 
         QObject::connect(chan->audio.get(), &QAudioOutput::stateChanged, on_change);
 
-        chan->audio->setVolume((double)chan->current_volume / GLK_MAXVOLUME);
+        chan->audio->setVolume(static_cast<double>(chan->current_volume) / GLK_MAXVOLUME);
 
         chan->audio->start(chan->source.get());
         if (chan->audio->error() != QAudio::NoError)
