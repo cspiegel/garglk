@@ -753,7 +753,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         chan->audio = std::make_unique<QAudioOutput>(format, nullptr);
         chan->source = std::move(source);
 
-        auto on_change = [&](QAudio::State state) {
+        auto on_change = [](QAudio::State state) {
             switch (state)
             {
             case QAudio::State::IdleState:
