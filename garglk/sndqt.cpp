@@ -651,7 +651,6 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 
         std::vector<std::pair<std::shared_ptr<Magic>, int>> magics = {
             { std::make_shared<MagicString>(0, "FORM"), giblorb_ID_FORM },
-            { std::make_shared<MagicString>(0, "WAVE"), giblorb_ID_WAVE },
             { std::make_shared<MagicString>(0, "RIFF"), giblorb_ID_WAVE },
             { std::make_shared<MagicString>(0, "OggS"), giblorb_ID_OGG },
 
