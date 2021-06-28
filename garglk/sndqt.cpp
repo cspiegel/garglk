@@ -686,7 +686,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 
             { std::make_shared<MagicMod>(), giblorb_ID_MOD },
 
-            // ID3-tagged MP3s have a magic string, but untaged MP3
+            // ID3-tagged MP3s have a magic string, but untagged MP3
             // files don't, as they are just collections of frames, each
             // with a sync header. All MP3 sync headers start with an
             // 11-bit frame sync which is set to all ones. The next 4
