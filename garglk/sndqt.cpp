@@ -71,7 +71,7 @@ static bool mp3_initialized;
 
 class SoundError : public std::runtime_error {
 public:
-    SoundError(const QString &msg) : std::runtime_error(msg.toStdString()) {
+    explicit SoundError(const QString &msg) : std::runtime_error(msg.toStdString()) {
     }
 };
 
