@@ -340,7 +340,7 @@ public:
 
     qint64 source_read(void *data, qint64 max) override {
         int err;
-        size_t done;
+        std::size_t done;
 
         if (m_eof)
             return 0;
@@ -378,7 +378,7 @@ private:
     bool m_eof = false;
 
 #define SOURCE (reinterpret_cast<Mpg123Source *>(source))
-    static ssize_t vio_read(void *source, void *ptr, size_t count) {
+    static ssize_t vio_read(void *source, void *ptr, std::size_t count) {
         if (SOURCE->m_offset >= SOURCE->m_buf.size())
             return 0;
 
