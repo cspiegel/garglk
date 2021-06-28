@@ -354,13 +354,15 @@ public:
         if (err != MPG123_OK && err != MPG123_DONE)
             return 0;
 
+        if (err == MPG123_DONE)
+            m_eof = true;
+
         return done;
     }
 
     void source_rewind() override {
         m_offset = 0;
-        if (mpg123_open_handle(m_handle.get(), this) != MPG123_OK)
-            m_eof = true;
+        m_eof = mpg123_open_handle(m_handle.get(), this) != MPG123_OK;
     }
 
     QAudioFormat format() override {
