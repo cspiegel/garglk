@@ -420,10 +420,19 @@ private:
 
 struct glk_schannel_struct
 {
-    glk_schannel_struct(glui32 volume) :
+    glk_schannel_struct(glui32 volume, glui32 rock_) :
         current_volume(volume),
-        target_volume(volume)
+        target_volume(volume),
+        rock(rock_),
+        disprock(gli_register_obj != nullptr ?
+                gli_register_obj(this, gidisp_Class_Schannel) :
+                (gidispatch_rock_t){ .ptr = nullptr })
     {
+    }
+
+    ~glk_schannel_struct() {
+        if (gli_unregister_obj != nullptr)
+            gli_unregister_obj(this, gidisp_Class_Schannel, disprock);
     }
 
     void set_current_volume() {
@@ -444,8 +453,8 @@ struct glk_schannel_struct
     double duration = 0;
     double difference = 0;
     std::chrono::steady_clock::time_point last_volume_bump;
-    long current_volume = 0;
-    glui32 target_volume = 0;
+    long current_volume;
+    glui32 target_volume;
     glui32 volume_notify = 0;
 
     bool paused = false;
@@ -478,7 +487,7 @@ schanid_t glk_schannel_create_ext(glui32 rock, glui32 volume)
     if (!gli_conf_sound)
         return nullptr;
 
-    chan = new channel_t(volume);
+    chan = new channel_t(volume, rock);
 
     auto on_timeout = [=]() {
         auto now = std::chrono::steady_clock::now();
@@ -509,11 +518,6 @@ schanid_t glk_schannel_create_ext(glui32 rock, glui32 volume)
 
     gli_channellist.insert(chan);
 
-    if (gli_register_obj)
-        chan->disprock = (*gli_register_obj)(chan, gidisp_Class_Schannel);
-    else
-        chan->disprock.ptr = nullptr;
-
     return chan;
 }
 
@@ -526,9 +530,6 @@ void glk_schannel_destroy(schanid_t chan)
     }
 
     glk_schannel_stop(chan);
-    if (gli_unregister_obj)
-        (*gli_unregister_obj)(chan, gidisp_Class_Schannel, chan->disprock);
-
     gli_channellist.erase(chan);
 
     delete chan;
