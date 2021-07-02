@@ -693,8 +693,8 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
             // bits can be anything except all zeros, and the bit
             // following that can be 0 or 1, giving 6 possible values
             // for the first 2 bytes of the frame. This may well have
-            // false positives, but mpg123 will then simply fail to load
-            // the file.
+            // false positives, but mpg123 will then hopefully fail to
+            // load the file.
             { std::make_shared<MagicString>(0, "ID3"), giblorb_ID_MP3 },
             { std::make_shared<MagicString>(0, "\xff\xe2"), giblorb_ID_MP3 },
             { std::make_shared<MagicString>(0, "\xff\xe3"), giblorb_ID_MP3 },
