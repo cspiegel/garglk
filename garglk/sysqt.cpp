@@ -41,6 +41,7 @@
 #include <cstring>
 #include <ctime>
 #include <iostream>
+#include <utility>
 
 #include "sysqt.h"
 #include "moc_sysqt.cpp"
@@ -53,11 +54,11 @@ extern "C" {
 /* buffer for clipboard text */
 static QString cliptext;
 
-/* filters for file dialogs */
-static const char *filternames[] = {
-    "Saved game files (*.sav)",
-    "Text files (*.txt)",
-    "All files (*)",
+/* filters and extensions for file dialogs */
+static const std::pair<QString, QString> filters[] = {
+    std::make_pair("Saved game files (*.sav);;All files (*)", ".sav"),
+    std::make_pair("Text files (*.txt);;All files (*)", ".txt"),
+    std::make_pair("All files (*)", ""),
 };
 
 static QApplication *app;
@@ -111,15 +112,16 @@ enum class Action { Open, Save };
 static void winchoosefile(const QString &prompt, char *buf, int len, int filter, Action action)
 {
     QString filename;
-    QString dir = "";
-
-    if (buf[0] != 0)
-        dir = QString("./") + buf;
 
     if (action == Action::Open)
-        filename = QFileDialog::getOpenFileName(window, prompt, dir, filternames[filter]);
+    {
+        filename = QFileDialog::getOpenFileName(window, prompt, "", filters[filter].first);
+    }
     else
-        filename = QFileDialog::getSaveFileName(window, prompt, dir, filternames[filter]);
+    {
+        QString dir = QString("./Untitled.%1").arg(filters[filter].second);
+        filename = QFileDialog::getSaveFileName(window, prompt, dir, filters[filter].first);
+    }
 
     std::snprintf(buf, len, "%s", filename.toStdString().c_str());
 }
