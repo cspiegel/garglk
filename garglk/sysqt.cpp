@@ -67,7 +67,7 @@ static const std::map<FILEFILTERS, std::pair<QString, QString>> filters = {
 static QApplication *app;
 static Window *window;
 static QElapsedTimer last_tick;
-#define TICK_PERIOD_MILLIS	10
+#define TICK_PERIOD_MILLIS 10
 
 static void handle_input(const QString &input)
 {
