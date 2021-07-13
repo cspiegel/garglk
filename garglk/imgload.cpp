@@ -259,7 +259,12 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&cinfo);
     jpeg_stdio_src(&cinfo, fl);
-    jpeg_read_header(&cinfo, TRUE);
+    // Some JPEG libraries define boolean as an enum with FALSE and TRUE
+    // as the enum values; but garglk.h defines FALSE and TRUE as 0 and
+    // 1, which are not directly convertible to boolean. Force a
+    // conversion here, although the long-term solution should probably
+    // be to switch Gargoyle over to stdbool.h and false/true.
+    jpeg_read_header(&cinfo, static_cast<boolean>(TRUE));
     jpeg_start_decompress(&cinfo);
 
     pic->w = cinfo.output_width;
