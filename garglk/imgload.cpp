@@ -140,12 +140,17 @@ void gli_picture_store(picture_t *pic)
 
 picture_t *gli_picture_retrieve(unsigned long id, int scaled)
 {
-    for (const auto &pic : picstore) {
-        if (scaled && pic.scaled != nullptr) {
-            return pic.scaled;
-        } else if (!scaled && pic.picture != nullptr) {
-            return pic.picture;
-        }
+    for (const auto &picptr : picstore)
+    {
+        picture_t *pic;
+
+        if (scaled)
+            pic = picptr.scaled;
+        else
+            pic = picptr.picture;
+
+        if (pic != nullptr && pic->id == id)
+            return pic;
     }
 
     return nullptr;
