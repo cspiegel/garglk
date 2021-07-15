@@ -25,14 +25,26 @@ if(UNIX)
     endif()
 endif()
 
-add_subdirectory(garglk)
+if(UNIX)
+    option(GLK_LAYOUT "Install to build/dist in a layout compatible with the \"standard\" Glk build system" OFF)
 
-if(WITH_INTERPRETERS)
-    add_subdirectory(terps)
+    if(GLK_LAYOUT)
+        if(WITH_QT6)
+            message(FATAL_ERROR "GLK_LAYOUT is not currently compatible with Qt6")
+        endif()
+        set(WITH_LAUNCHER OFF)
+        set(WITH_INTERPRETERS OFF)
+    endif()
 endif()
 
 if(WITH_BABEL)
     add_subdirectory(support/babel)
+endif()
+
+add_subdirectory(garglk)
+
+if(WITH_INTERPRETERS)
+    add_subdirectory(terps)
 endif()
 
 include(FeatureSummary)

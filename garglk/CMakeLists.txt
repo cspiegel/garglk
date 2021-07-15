@@ -189,11 +189,47 @@ if(MINGW OR APPLE)
         install(TARGETS garglk DESTINATION "${PROJECT_SOURCE_DIR}/build/dist")
     endif()
 elseif(UNIX)
-    install(TARGETS garglk garglkmain DESTINATION "${CMAKE_INSTALL_LIBDIR}")
-    if(WITH_LAUNCHER)
-        install(TARGETS gargoyle DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    if(GLK_LAYOUT)
+        install(TARGETS garglk garglkmain DESTINATION "${PROJECT_SOURCE_DIR}/build/dist")
+        install(FILES gi_blorb.h gi_dispa.h glk.h glkstart.h DESTINATION "${PROJECT_SOURCE_DIR}/build/dist")
+
+        # If a static library is being used, all of Gargoyle's required
+        # dependencies must be manually linked in, unliked a shared
+        # library, which can contain pointers to its dependencies. While
+        # CMake has all the information on required libraries, it
+        # doesn't appear possible to turn them into linker options, so
+        # for the time being, use pkg-config to gather library
+        # information. This has the side-effect of being incompatible
+        # with Qt6 since it doesn't include pkg-config files, but
+        # instead expects to be found via CMake. Ultimately the best
+        # solution will be to get dependencies from CMake, but that's
+        # not the case for the time being.
+        if(NOT BUILD_SHARED_LIBS)
+            set(PKG_CONFIG_PACKAGES "Qt5Widgets fontconfig freetype2 libjpeg libpng")
+            if(WITH_SDL)
+                set(PKG_CONFIG_PACKAGES "${PKG_CONFIG_PACKAGES} sdl2 SDL2_mixer")
+            endif()
+            if(WITH_TTS)
+                set(PKG_CONFIG_PACKAGES "${PKG_CONFIG_PACKAGES} speech-dispatcher")
+            endif()
+            execute_process(COMMAND "pkg-config" "--libs" ${PKG_CONFIG_PACKAGES} OUTPUT_VARIABLE PKG_CONFIG_LIBS)
+            string(REGEX REPLACE "\n$" "" PKG_CONFIG_LIBS "${PKG_CONFIG_LIBS}")
+
+            if(WITH_BABEL)
+            install(TARGETS babel DESTINATION "${PROJECT_SOURCE_DIR}/build/dist")
+                set(BABEL_LIB "-lbabel")
+            endif()
+        endif()
+
+        configure_file("Make.garglk.in" "${CMAKE_CURRENT_BINARY_DIR}/build/dist/Make.garglk")
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/build/dist/Make.garglk" DESTINATION "${PROJECT_SOURCE_DIR}/build/dist")
+    else()
+        install(TARGETS garglk garglkmain DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+        if(WITH_LAUNCHER)
+            install(TARGETS gargoyle DESTINATION "${CMAKE_INSTALL_BINDIR}")
+        endif()
+        install(FILES gi_blorb.h glk.h glkstart.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/garglk")
+        configure_file("garglk.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/garglk.pc" @ONLY)
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/garglk.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
     endif()
-    install(FILES gi_blorb.h glk.h glkstart.h DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/garglk")
-    configure_file("garglk.pc.in" "${CMAKE_CURRENT_BINARY_DIR}/garglk.pc" @ONLY)
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/garglk.pc" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endif()

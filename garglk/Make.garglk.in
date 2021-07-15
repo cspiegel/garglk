@@ -1,0 +1,2 @@
+LINKLIBS = @PKG_CONFIG_LIBS@
+GLKLIB = -lgarglk -lgarglkmain @BABEL_LIB@
