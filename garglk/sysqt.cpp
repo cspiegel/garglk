@@ -216,6 +216,7 @@ Window::Window() :
 
 void Window::closeEvent(QCloseEvent *)
 {
+    gli_interrupted();
     gli_exit(0);
 }
 

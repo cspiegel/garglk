@@ -79,6 +79,7 @@ static void winhandler(int signal);
 {
     while (!timeouts && !gli_event_waiting) {
         if (!gli_window_alive) {
+            gli_interrupted();
             std::exit(1);
         }
 
@@ -126,6 +127,7 @@ static void winhandler(int signal);
 
 - (void) connectionDied: (NSNotification *) notice
 {
+    gli_interrupted();
     std::exit(1);
 }
 
