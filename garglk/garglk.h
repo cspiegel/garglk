@@ -1070,6 +1070,7 @@ extern void gli_initialize_misc();
 extern void gli_initialize_windows();
 extern void gli_initialize_babel(const std::string &filename);
 
+extern void gli_interrupted();
 extern window_t *gli_window_iterate_treeorder(window_t *win);
 
 extern void gli_window_rearrange(window_t *win, rect_t *box);

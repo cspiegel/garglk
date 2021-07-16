@@ -257,6 +257,7 @@ garglk::Window::Window() :
 
 void garglk::Window::closeEvent(QCloseEvent *)
 {
+    gli_interrupted();
     gli_exit(0);
 }
 

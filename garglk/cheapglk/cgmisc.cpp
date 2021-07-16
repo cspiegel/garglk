@@ -36,6 +36,8 @@
 
 #ifdef GARGLK
 bool gli_terminated = false;
+
+static void (*gli_interrupt_handler)(void) = NULL;
 #endif
 
 static unsigned char char_tolower_table[256];
@@ -133,8 +135,20 @@ void glk_exit()
 
 void glk_set_interrupt_handler(void (*func)(void))
 {
+#ifdef GARGLK
+    gli_interrupt_handler = func;
+#else
     /* This cheap library doesn't understand interrupts. */
+#endif
 }
+
+#ifdef GARGLK
+void gli_interrupted()
+{
+    if (gli_interrupt_handler != nullptr)
+        gli_interrupt_handler();
+}
+#endif
 
 unsigned char glk_char_to_lower(unsigned char ch)
 {
