@@ -227,6 +227,8 @@ typedef struct stream_result_struct {
 #define   stylehint_just_Centered (2)
 #define   stylehint_just_RightFlush (3)
 
+#pragma GCC visibility push(default)
+
 /* glk_main() is the top-level function which you define. The Glk library
     calls it. */
 extern void glk_main(void);
@@ -512,6 +514,8 @@ extern void garglk_set_reversevideo_stream(strid_t str, glui32 reverse);
 #define keycode_MouseWheelDown      (0xffffefff)
 #define keycode_SkipWordLeft        (0xfffff000)
 #define keycode_SkipWordRight       (0xfffff001)
+
+#pragma GCC visibility pop
 
 #ifdef __cplusplus
 }

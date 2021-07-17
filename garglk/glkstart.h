@@ -28,6 +28,8 @@
 extern "C" {
 #endif
 
+#pragma GCC visibility push(default)
+
 /* We define our own TRUE and FALSE and NULL, because ANSI
     is a strange world. */
 #ifndef TRUE
@@ -64,6 +66,8 @@ extern int glkunix_startup_code(glkunix_startup_t *data);
 extern void glkunix_set_base_file(char *filename);
 extern strid_t glkunix_stream_open_pathname(char *pathname, glui32 textmode,
     glui32 rock);
+
+#pragma GCC visibility pop
 
 #ifdef __cplusplus
 }

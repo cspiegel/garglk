@@ -14,6 +14,8 @@ extern "C" {
     distributed under the MIT license; see the "LICENSE" file.
 */
 
+#pragma GCC visibility push(default)
+
 /* Error type and error codes */
 typedef glui32 giblorb_err_t;
 #define giblorb_err_None (0)
@@ -98,6 +100,8 @@ extern giblorb_err_t giblorb_load_image_info(giblorb_map_t *map,
 */
 extern giblorb_err_t giblorb_set_resource_map(strid_t file);
 extern giblorb_map_t *giblorb_get_resource_map(void);
+
+#pragma GCC visibility pop
 
 #ifdef __cplusplus
 }

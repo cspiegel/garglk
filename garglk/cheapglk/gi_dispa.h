@@ -13,6 +13,8 @@ extern "C" {
     distributed under the MIT license; see the "LICENSE" file.
 */
 
+#pragma GCC visibility push(default)
+
 /* These constants define the classes of opaque objects. It's a bit ugly
     to put them in this header file, since more classes may be added in
     the future. But if you find yourself stuck with an obsolete version
@@ -113,6 +115,8 @@ extern gidispatch_function_t *gidispatch_get_function_by_id(glui32 id);
 extern void gidispatch_set_game_id_hook(char *(*hook)(void));
 extern char *gidispatch_get_game_id(void);
 #endif /* GI_DISPA_GAME_ID_AVAILABLE */
+
+#pragma GCC visibility pop
 
 #ifdef __cplusplus
 }

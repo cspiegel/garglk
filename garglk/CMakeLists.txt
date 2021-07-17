@@ -54,6 +54,8 @@ target_include_directories(garglk PRIVATE .)
 c_standard(garglk 11)
 cxx_standard(garglk ${CXX_VERSION})
 warnings(garglk)
+set_target_properties(garglk PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(garglk PROPERTIES C_VISIBILITY_PRESET hidden)
 
 if(UNIX AND NOT APPLE)
     target_compile_definitions(garglk PRIVATE "GARGLKINI=\"${GARGLKINI}\"")

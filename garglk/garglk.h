@@ -62,9 +62,12 @@ struct ConfigFile {
 std::string winopenfile(const char *prompt, enum FILEFILTERS filter);
 std::string winsavefile(const char *prompt, enum FILEFILTERS filter);
 void winabort(const std::string &msg);
+__attribute__((__visibility__("default")))
 std::string downcase(const std::string &string);
 void fontreplace(const std::string &font, int type);
+__attribute__((__visibility__("default")))
 std::vector<ConfigFile> configs(const std::string &exedir, const std::string &gamepath);
+__attribute__((__visibility__("default")))
 void config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, std::function<void(const std::string &cmd, const std::string &arg)> callback);
 std::string user_config();
 void set_lcdfilter(const std::string &filter);
@@ -695,6 +698,7 @@ int gli_string_width_uni(int f, glui32 *text, int len, int spw);
 void gli_draw_caret(int x, int y);
 void gli_draw_picture(picture_t *pic, int x, int y, int x0, int y0, int x1, int y1);
 
+__attribute__((__visibility__("default")))
 void gli_startup(int argc, char *argv[]);
 
 extern void gli_select(event_t *event, int polled);
