@@ -44,7 +44,7 @@ endif()
 # _XOPEN_SOURCE and _POSIX_C_SOURCE should have no effect on conforming
 # implementations, so that is done here to support both MinGW as well as
 # XSI-conforming Unix implementations.
-#target_compile_definitions(garglk PRIVATE "_XOPEN_SOURCE=600" "_POSIX_C_SOURCE=200112L")
+target_compile_definitions(garglk PRIVATE "_XOPEN_SOURCE=600")
 
 # macOS headers apparently don't define NSIG if _POSIX_C_SOURCE is
 # defined unless _DARWIN_C_SOURCE is also defined, which makes sense
@@ -60,7 +60,7 @@ endif()
 if(WITH_LAUNCHER)
     add_executable(gargoyle launcher.cpp)
     target_link_libraries(gargoyle PRIVATE garglk)
-    #    target_compile_definitions(gargoyle PRIVATE "_XOPEN_SOURCE=600" "_POSIX_C_SOURCE=200112L")
+       target_compile_definitions(gargoyle PRIVATE "_XOPEN_SOURCE=600")
     c_standard(gargoyle 11)
     cxx_standard(gargoyle 14)
     warnings(gargoyle)
