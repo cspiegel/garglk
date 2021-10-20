@@ -36,7 +36,7 @@ static std::size_t txtlen;
 
 void gli_initialize_tts()
 {
-    if (gli_conf_speak) {
+    if (gli_conf_speak && voice == nullptr) {
         if (CoInitialize(nullptr) == S_OK) {
             CoCreateInstance(
                     CLSID_SpVoice,		// rclsid
@@ -45,11 +45,10 @@ void gli_initialize_tts()
                     IID_ISpVoice,		// riid
                     reinterpret_cast<void**>(&voice));
         }
-    } else {
-        voice = nullptr;
     }
 
     txtlen = 0;
+    gli_tts_purge();
 }
 
 void gli_tts_flush()
@@ -71,7 +70,7 @@ void gli_tts_purge()
 
 void gli_tts_speak(const glui32 *buf, std::size_t len)
 {
-    if (voice == nullptr) {
+    if (voice == nullptr || !gli_conf_speak) {
         return;
     }
 

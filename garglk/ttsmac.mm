@@ -67,7 +67,7 @@ static NSSpeechSynthesizer *synth = nil;
 
 void gli_initialize_tts()
 {
-    if (gli_conf_speak) {
+    if (gli_conf_speak && synth == nil) {
         // spawn speech synthesizer using the default voice
         synth = [NSSpeechSynthesizer new];
         if (!synth) {
@@ -144,7 +144,7 @@ void gli_tts_purge()
 
 void gli_tts_speak(const glui32 *buf, size_t len)
 {
-    if (!synth) {
+    if (!synth || !gli_conf_speak) {
         return;
     }
 
