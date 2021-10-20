@@ -86,7 +86,7 @@ static std::vector<glui32> txtbuf;
 
 void gli_initialize_tts()
 {
-    if (gli_conf_speak) {
+    if (gli_conf_speak && spd == nullptr) {
 #ifdef GARGLK_CONFIG_DLOPEN_LIBSPEECHD
         void *libspeechd = dlopen("libspeechd.so.2", RTLD_LAZY | RTLD_LOCAL);
 
@@ -132,6 +132,7 @@ void gli_initialize_tts()
     }
 
     txtbuf.clear();
+    gli_tts_purge();
 }
 
 static std::string unicode_to_utf8(const std::vector<glui32> &src)
@@ -178,7 +179,7 @@ void gli_tts_purge()
 
 void gli_tts_speak(const glui32 *buf, std::size_t len)
 {
-    if (spd == nullptr) {
+    if (spd == nullptr || !gli_conf_speak) {
         return;
     }
 
