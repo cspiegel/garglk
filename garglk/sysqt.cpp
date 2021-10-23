@@ -269,6 +269,12 @@ void View::keyPressEvent(QKeyEvent *event)
             case Qt::Key_X: winclipsend(QClipboard::Clipboard); break;
             case Qt::Key_Left: gli_input_handle_key(keycode_SkipWordLeft); break;
             case Qt::Key_Right: gli_input_handle_key(keycode_SkipWordRight); break;
+            case Qt::Key_O: {
+                extern QString winbrowsefile();
+                extern int run(const QString &);
+                run(winbrowsefile());
+                break;
+            }
         }
     }
     else

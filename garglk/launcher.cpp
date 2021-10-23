@@ -67,6 +67,10 @@ struct Launch {
 
 #define MaxBuffer 1024
 
+#ifndef GARGLKPRE
+#define GARGLKPRE ""
+#endif
+
 static bool call_winterp(const char *path, const std::string &interpreter, const std::string &flags, const char *game)
 {
     std::string exe = std::string(GARGLKPRE) + interpreter;

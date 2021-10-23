@@ -80,7 +80,7 @@ void winmsg(const char *fmt, ...)
     QMessageBox::critical(nullptr, "Error", msg);
 }
 
-static QString winbrowsefile()
+QString winbrowsefile()
 {
     const QVector<Filter> filters = {
         Filter("Adrift", {"taf"}),
@@ -145,11 +145,8 @@ int winterp(const char *path, const char *exe, const char *flags, const char *ga
         return proc.exitCode();
 }
 
-int main(int argc, char **argv)
+int run(const QString &story)
 {
-    QApplication app(argc, argv);
-    QString story;
-
     // Find the directory that contains the interpreters. By default
     // this is GARGLK_INTERPRETER_DIR but if that is not set, it is the
     // containing directory of the gargoyle executable.
@@ -169,17 +166,8 @@ int main(int argc, char **argv)
         dir = QCoreApplication::applicationDirPath();
 #endif
 
-    /* get story file */
-    if (argc >= 2)
-        story = argv[1];
-    else
-        story = winbrowsefile();
-
-    if (story.isEmpty())
-        return 1;
-
-    /* run story file */
     std::string dir_string = dir.toStdString();
     std::string story_string = story.toStdString();
+
     return rungame(dir_string.c_str(), story_string.c_str());
 }

@@ -23,7 +23,7 @@ endif()
 add_library(garglk babeldata.c cgblorb.c cgdate.c cgfref.c cggestal.c
     cgmisc.c cgstream.c cgstyle.c cgunicod.c config.cpp draw.cpp event.cpp
     gi_blorb.c gi_dispa.c imgload.c imgscale.c winblank.c window.c
-    wingfx.c wingrid.c winmask.c winpair.c wintext.c)
+    wingfx.c wingrid.c winmask.c winpair.c wintext.c launchqt.cpp launcher.cpp)
 c_standard(garglk 11)
 cxx_standard(garglk 14)
 warnings(garglk)
@@ -63,7 +63,7 @@ if(APPLE)
 endif()
 
 if(WITH_LAUNCHER)
-    add_executable(gargoyle launcher.cpp)
+    add_executable(gargoyle gargoyle.cpp launcher.cpp)
     target_link_libraries(gargoyle PRIVATE garglk)
     target_compile_definitions(gargoyle PRIVATE "_XOPEN_SOURCE=600")
     c_standard(gargoyle 11)
