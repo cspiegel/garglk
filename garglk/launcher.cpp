@@ -71,14 +71,14 @@ struct Launch {
 #define GARGLKPRE ""
 #endif
 
-static bool call_winterp(const char *path, const std::string &interpreter, const std::string &flags, const char *game)
+static bool call_winterp(const char *path, const std::string &interpreter, const std::string &flags, const char *game, bool detach)
 {
     std::string exe = std::string(GARGLKPRE) + interpreter;
 
-    return winterp(path, exe.c_str(), flags.c_str(), game);
+    return winterp(path, exe.c_str(), flags.c_str(), game, detach);
 }
 
-static bool runblorb(const char *path, const char *game, const struct Launch &launch)
+static bool runblorb(const char *path, const char *game, const struct Launch &launch, bool detach)
 {
     class BlorbError : public std::exception {
     public:
@@ -142,7 +142,7 @@ static bool runblorb(const char *path, const char *game, const struct Launch &la
         }
         }
 
-        return call_winterp(path, found_interpreter, launch.flags, game);
+        return call_winterp(path, found_interpreter, launch.flags, game, detach);
     }
     catch (const BlorbError &e)
     {
@@ -214,7 +214,7 @@ static bool equal_strings(const std::string &a, const std::string &b)
             [](char l, char r) { return std::tolower(static_cast<unsigned char>(l)) == std::tolower(static_cast<unsigned char>(r)); });
 }
 
-int rungame(const char *path, const char *game)
+int rungame(const char *path, const char *game, bool detach)
 {
     std::vector<const char *> blorbs = {"blb", "blorb", "glb", "gbl", "gblorb", "zlb", "zbl", "zblorb"};
     std::vector<Interpreter> interpreters = {
@@ -257,11 +257,11 @@ int rungame(const char *path, const char *game)
     if (std::any_of(blorbs.begin(), blorbs.end(),
                     [&ext](const auto &blorb) { return equal_strings(ext, blorb); }))
     {
-        return runblorb(path, game, launch);
+        return runblorb(path, game, launch, detach);
     }
 
     if (!launch.terp.empty())
-        return call_winterp(path, launch.terp, launch.flags, game);
+        return call_winterp(path, launch.terp, launch.flags, game, detach);
 
     // Both Z-machine and AdvSys games claim the .dat extension. In
     // general Gargoyle uses extensions to determine the interpreter to
@@ -278,14 +278,14 @@ int rungame(const char *path, const char *game)
             f.read(reinterpret_cast<char *>(&header[0]), header.size()) &&
             header == advsys_magic)
         {
-            return call_winterp(path, T_ADVSYS, "", game);
+            return call_winterp(path, T_ADVSYS, "", game, detach);
         }
     }
 
     auto interpreter = std::find_if(interpreters.begin(), interpreters.end(),
                                     [&ext](const auto &interpreter) { return equal_strings(ext, interpreter.ext); });
     if (interpreter != interpreters.end())
-        return call_winterp(path, interpreter->interpreter, interpreter->flags, game);
+        return call_winterp(path, interpreter->interpreter, interpreter->flags, game, detach);
 
     winmsg("Unknown file type: \"%s\"\nSorry.", ext.c_str());
 

@@ -116,7 +116,7 @@ QString winbrowsefile()
     return QFileDialog::getOpenFileName(nullptr, AppName, "", filter_string, nullptr, QFileDialog::HideNameFilterDetails);
 }
 
-int winterp(const char *path, const char *exe, const char *flags, const char *game)
+int winterp(const char *path, const char *exe, const char *flags, const char *game, bool detach)
 {
     QString argv0 = QDir(path).absoluteFilePath(exe);
 
@@ -129,23 +129,34 @@ int winterp(const char *path, const char *exe, const char *flags, const char *ga
 
     QProcess proc;
     proc.setProcessChannelMode(QProcess::ForwardedChannels);
-    proc.start(argv0, args);
 
-    if (!proc.waitForStarted(5000))
+    if (detach)
     {
-        winmsg("Could not start interpreter %s", argv0.toStdString().c_str());
-        return 1;
+        if (!proc.startDetached(argv0, args))
+            return 1;
+        else
+            return 0;
     }
-
-    proc.waitForFinished(-1);
-
-    if (proc.exitStatus() != QProcess::NormalExit)
-        return 1;
     else
-        return proc.exitCode();
+    {
+        proc.start(argv0, args);
+
+        if (!proc.waitForStarted(5000))
+        {
+            winmsg("Could not start interpreter %s", argv0.toStdString().c_str());
+            return 1;
+        }
+
+        proc.waitForFinished(-1);
+
+        if (proc.exitStatus() != QProcess::NormalExit)
+            return 1;
+        else
+            return proc.exitCode();
+    }
 }
 
-int run(const QString &story)
+int run(const QString &story, bool detach)
 {
     // Find the directory that contains the interpreters. By default
     // this is GARGLK_INTERPRETER_DIR but if that is not set, it is the
@@ -169,5 +180,5 @@ int run(const QString &story)
     std::string dir_string = dir.toStdString();
     std::string story_string = story.toStdString();
 
-    return rungame(dir_string.c_str(), story_string.c_str());
+    return rungame(dir_string.c_str(), story_string.c_str(), detach);
 }

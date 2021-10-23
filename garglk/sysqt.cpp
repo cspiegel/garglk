@@ -271,8 +271,8 @@ void View::keyPressEvent(QKeyEvent *event)
             case Qt::Key_Right: gli_input_handle_key(keycode_SkipWordRight); break;
             case Qt::Key_O: {
                 extern QString winbrowsefile();
-                extern int run(const QString &);
-                run(winbrowsefile());
+                extern int run(const QString &, bool);
+                run(winbrowsefile(), true);
                 break;
             }
         }
