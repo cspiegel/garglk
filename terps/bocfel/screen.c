@@ -25,6 +25,7 @@
 
 #ifdef ZTERP_GLK
 #include <glk.h>
+#include <gi_blorb.h>
 
 #if defined(ZTERP_WIN32) && !defined(GARGLK)
 // rpcndr.h, eventually included via WinGlk.h, defines a type “byte”
@@ -2831,6 +2832,19 @@ bool create_mainwin(void)
         glk_set_echo_line_event(mainwin->id, 0);
     }
 #endif
+
+    if (giblorb_get_resource_map() != NULL) {
+        int garglk_cover_photo();
+        int cover = garglk_cover_photo();
+        if (cover != -1 && glk_image_draw(mainwin->id, cover, 0, 0)) {
+            glk_request_char_event(mainwin->id);
+            event_t event;
+            do {
+                glk_select(&event);
+            } while (event.type != evtype_CharInput);
+            glk_window_clear(mainwin->id);
+        }
+    }
 
     return true;
 #else

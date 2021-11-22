@@ -33,6 +33,12 @@
 #include "babel_handler.h"
 #include "ifiction.h"
 
+static int cover = -1;
+int garglk_cover_photo(void)
+{
+    return cover;
+}
+
 void gli_initialize_babel(void)
 {
     if (!strlen(gli_workfile))
@@ -51,6 +57,8 @@ void gli_initialize_babel(void)
                 {
                     char *storyTitle = ifiction_get_tag(metaData, "bibliographic", "title", NULL);
                     char *storyAuthor = ifiction_get_tag(metaData, "bibliographic", "author", NULL);
+                    char *format = ifiction_get_tag(metaData, "identification", "format", NULL);
+
                     if (storyTitle && storyAuthor)
                     {
                         char title[256];
@@ -59,6 +67,16 @@ void gli_initialize_babel(void)
                     }
                     free(storyTitle);
                     free(storyAuthor);
+
+                    if (format != NULL)
+                    {
+                        char *coverpicture = ifiction_get_tag(metaData, format, "coverpicture", NULL);
+                        if (coverpicture != NULL)
+                            cover = strtol(coverpicture, NULL, 10);
+
+                        free(format);
+                        free(coverpicture);
+                    }
                 }
                 free(metaData);
             }
