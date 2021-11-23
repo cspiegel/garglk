@@ -2,6 +2,9 @@
 
 set -e
 
+# If set, build with Qt
+QT=on
+
 # Use Homebrew if available. Alternately, you could just set the variable to
 # either yes or no.
 if [ "${MAC_USEHOMEBREW}" == "" ]; then
@@ -15,22 +18,27 @@ else
   HOMEBREW_OR_MACPORTS_LOCATION="$(pushd "$(dirname $(which port))/.." > /dev/null ; pwd -P ; popd > /dev/null)"
 fi
 
-# If building with XCode 10+ (SDK 10.14+ Mojave), the minimum target SDK is
-# 10.9 (Mavericks), due to removal of libstdc++.
-SDK_VERSION=$(xcrun --show-sdk-version)
-echo "SDK_VERSION $SDK_VERSION"
+if [ -n "${QT}" ]
+then
+    MACOS_MIN_VER=10.15
+else
+    # If building with XCode 10+ (SDK 10.14+ Mojave), the minimum target SDK is
+    # 10.9 (Mavericks), due to removal of libstdc++.
+    SDK_VERSION=$(xcrun --show-sdk-version)
+    echo "SDK_VERSION $SDK_VERSION"
 
-case $SDK_VERSION in
-  *10.[7-9]* )
-    MACOS_MIN_VER=10.7
-    ;;
-  *10.1[0-3]* )
-    MACOS_MIN_VER=10.7
-    ;;
-  * )
-    MACOS_MIN_VER=10.9
-    ;;
-esac
+    case $SDK_VERSION in
+    *10.[7-9]* )
+        MACOS_MIN_VER=10.7
+        ;;
+    *10.1[0-3]* )
+        MACOS_MIN_VER=10.7
+        ;;
+    * )
+        MACOS_MIN_VER=10.9
+        ;;
+    esac
+fi
 echo "MACOS_MIN_VER $MACOS_MIN_VER"
 
 # Use as many CPU cores as possible
@@ -51,7 +59,12 @@ mkdir -p "$BUNDLE/PlugIns"
 rm -rf $GARGDIST
 mkdir -p build-osx
 cd build-osx
-cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_MIN_VER} -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST
+if [ -n "${QT}" ]
+then
+    cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_MIN_VER} -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST -DINTERFACE=QT -DWITH_QT6=ON
+else
+    cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_MIN_VER} -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST
+fi
 make -j${NUMJOBS}
 make install
 cd -
