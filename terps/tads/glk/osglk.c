@@ -435,6 +435,18 @@ void os_set_text_attr(int attr)
  */
 void os_set_text_color(os_color_t fg, os_color_t bg)
 {
+    if (os_color_is_param(fg))
+        fg = zcolor_Default;
+
+    if (os_color_is_param(bg))
+    {
+        if (bg == OS_COLOR_P_TRANSPARENT)
+            bg = zcolor_Current;
+        else
+            bg = zcolor_Default;
+    }
+
+    garglk_set_zcolors(fg, bg);
 }
 
 /*
@@ -454,6 +466,10 @@ void os_set_text_color(os_color_t fg, os_color_t bg)
  */
 void os_set_screen_color(os_color_t color)
 {
+    if (os_color_is_param(color))
+        garglk_set_zcolors(zcolor_Current, zcolor_Default);
+    else
+        garglk_set_zcolors(zcolor_Current, color);
 }
 
 /*
