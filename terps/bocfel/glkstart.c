@@ -29,7 +29,8 @@
 static void load_resources(void);
 
 // Both Gargoyle (regardless of platform) and DOSGlk provide a Unix startup.
-#if defined(ZTERP_UNIX) || defined(GARGLK) || defined(ZTERP_DOS)
+//#if defined(ZTERP_UNIX) || defined(GARGLK) || defined(ZTERP_DOS)
+#if 1
 #include <glkstart.h>
 
 glkunix_argumentlist_t glkunix_arguments[] =

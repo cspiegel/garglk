@@ -20,13 +20,10 @@ function(terp target)
 
     add_executable(${target} WIN32 ${TERP_SRCS})
     set_target_properties(${target} PROPERTIES OUTPUT_NAME "${GARGLKPRE}${target}")
-    target_compile_definitions(${target} PRIVATE GARGLK ${TERP_MACROS})
-    target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/garglk" ${TERP_INCLUDE_DIRS})
-    target_link_libraries(${target} PRIVATE garglkmain garglk ${TERP_LIBS})
-
-    if(MINGW)
-        target_sources(${target} PRIVATE "${PROJECT_SOURCE_DIR}/garglk/icons.rc")
-    endif()
+    target_compile_definitions(${target} PRIVATE ${TERP_MACROS})
+    target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/winglk/Include" "${PROJECT_SOURCE_DIR}/glkwrap" ${TERP_INCLUDE_DIRS})
+    target_link_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/winglk")
+    target_link_libraries(${target} PRIVATE Glk glkwrap ${TERP_LIBS})
 
     if(NOT TERP_CXXSTD)
         set(TERP_CXXSTD 98)
@@ -133,7 +130,7 @@ if(WITH_ALAN3)
         alan3/utils.c alan3/word.c alan3/compatibility.c alan3/AltInfo.c
         alan3/Container.c alan3/Location.c alan3/ParameterPosition.c
         alan3/StateStack.c
-        MACROS GLK HAVE_GARGLK BUILD=0
+        MACROS HAVE_GLK BUILD=0
         POSIX)
 endif()
 

@@ -6646,7 +6646,8 @@ glk_main (void)
 /*---------------------------------------------------------------------*/
 /*  Glk linkage relevant only to the UNIX platform                     */
 /*---------------------------------------------------------------------*/
-#if defined(__unix) || defined(GARGLK)
+//#if defined(__unix) || defined(GARGLK)
+#if 1
 
 #include "glkstart.h"
 
