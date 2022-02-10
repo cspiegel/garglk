@@ -35,6 +35,9 @@ protected:
     void mousePressEvent(QMouseEvent *) override;
     void mouseReleaseEvent(QMouseEvent *) override;
     void wheelEvent(QWheelEvent *) override;
+
+private:
+    bool m_fullscreen_from_maximized = false;
 };
 
 class Window : public QMainWindow {

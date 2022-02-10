@@ -459,6 +459,21 @@ void View::keyPressEvent(QKeyEvent *event)
         {{Qt::NoModifier, Qt::Key_F10},       []{ gli_input_handle_key(keycode_Func10); }},
         {{Qt::NoModifier, Qt::Key_F11},       []{ gli_input_handle_key(keycode_Func11); }},
         {{Qt::NoModifier, Qt::Key_F12},       []{ gli_input_handle_key(keycode_Func12); }},
+
+        {{Qt::AltModifier, Qt::Key_Return}, [this]{
+            if (::window->isFullScreen())
+            {
+                if (m_fullscreen_from_maximized)
+                    ::window->showMaximized();
+                else
+                    ::window->showNormal();
+            }
+            else
+            {
+                m_fullscreen_from_maximized = ::window->isMaximized();
+                ::window->showFullScreen();
+            }
+        }},
     };
 
     try {
