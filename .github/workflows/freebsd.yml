@@ -1,0 +1,23 @@
+name: FreeBSD
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-10.15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build
+        uses: vmactions/freebsd-vm@v0.1.5
+        with:
+          prepare: pkg install -y cmake fontconfig freetype2 jpeg-turbo pkgconf png qt5-buildtools qt5-core qt5-qmake qt5-widgets sdl2 sdl2_mixer speech-dispatcher
+          run: |
+            mkdir build
+            cd build
+            cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+            make -j`sysctl -n hw.ncpu`
+            make install DESTDIR=/tmp/gargoyle
