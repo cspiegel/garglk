@@ -225,6 +225,7 @@ void Window::create_menubar()
 {
     auto file = menuBar()->addMenu("File");
     auto open_action = new QAction("Open", this);
+    auto quit_action = new QAction("Quit", this);
 
     connect(open_action, &QAction::triggered, [&]() {
         QString argv0 = std::getenv("GARGLK_LAUNCHER");
@@ -239,6 +240,9 @@ void Window::create_menubar()
         }
     });
     file->addAction(open_action);
+
+    connect(quit_action, &QAction::triggered, []() { std::exit(0); });
+    file->addAction(quit_action);
 
     menuBar()->hide();
 }
