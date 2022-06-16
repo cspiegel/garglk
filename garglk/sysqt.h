@@ -63,8 +63,9 @@ protected:
     void moveEvent(QMoveEvent *) override;
 
 private:
+    void create_menubar();
+
     View *m_view;
-    QAction *m_new_action;
     QTimer *m_timer;
     QSettings *m_settings;
     bool m_timed_out = false;

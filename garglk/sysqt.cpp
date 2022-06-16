@@ -213,15 +213,20 @@ static void winclipreceive(QClipboard::Mode mode)
 
 Window::Window() :
     m_view(new View(this)),
-    m_new_action(new QAction("New", this)),
     m_timer(new QTimer(this)),
     m_settings(new QSettings(GARGOYLE_ORGANIZATION, GARGOYLE_NAME, this))
 {
     connect(m_timer, &QTimer::timeout, this, [&]() { m_timed_out = true; });
 
-    auto file = menuBar()->addMenu("File");
+    create_menubar();
+}
 
-    connect(m_new_action, &QAction::triggered, [&]() {
+void Window::create_menubar()
+{
+    auto file = menuBar()->addMenu("File");
+    auto open_action = new QAction("Open", this);
+
+    connect(open_action, &QAction::triggered, [&]() {
         QString argv0 = std::getenv("GARGLK_LAUNCHER");
         if (argv0.isNull())
         {
@@ -233,7 +238,7 @@ Window::Window() :
             proc.startDetached(argv0, QStringList());
         }
     });
-    file->addAction(m_new_action);
+    file->addAction(open_action);
 
     menuBar()->hide();
 }
