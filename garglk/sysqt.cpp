@@ -26,6 +26,7 @@
 #include <QApplication>
 #include <QChar>
 #include <QClipboard>
+#include <QCoreApplication>
 #include <QCursor>
 #include <QDesktopServices>
 #include <QDir>
@@ -220,6 +221,13 @@ Window::Window() :
     connect(m_timer, &QTimer::timeout, this, [&]() { m_timed_out = true; });
 
     auto file = menuBar()->addMenu("File");
+
+    connect(m_new_action, &QAction::triggered, [&]() {
+        auto argv0 = QCoreApplication::applicationFilePath();
+        QProcess proc;
+        proc.setProgram(argv0);
+        proc.startDetached();
+    });
     file->addAction(m_new_action);
 
     menuBar()->hide();
