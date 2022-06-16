@@ -31,6 +31,7 @@
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFileDialog>
 #include <QList>
@@ -218,6 +219,8 @@ int main(int argc, char **argv)
 #else
         dir = QCoreApplication::applicationDirPath();
 #endif
+
+    setenv("GARGLK_LAUNCHER", QCoreApplication::applicationFilePath().toStdString().c_str(), 1);
 
     /* get story file */
     if (argc >= 2)

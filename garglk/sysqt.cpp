@@ -26,7 +26,6 @@
 #include <QApplication>
 #include <QChar>
 #include <QClipboard>
-#include <QCoreApplication>
 #include <QCursor>
 #include <QDesktopServices>
 #include <QDir>
@@ -223,9 +222,16 @@ Window::Window() :
     auto file = menuBar()->addMenu("File");
 
     connect(m_new_action, &QAction::triggered, [&]() {
-        auto argv0 = QCoreApplication::applicationFilePath();
-        QProcess proc;
-        proc.startDetached(argv0, QStringList());
+        QString argv0 = std::getenv("GARGLK_LAUNCHER");
+        if (argv0.isNull())
+        {
+            QMessageBox::critical(this, "Unable to find launcher", "The main Gargoyle launcher cannot be found. This likely means that you started the interpreter directly instead of through the launcher.");
+        }
+        else
+        {
+            QProcess proc;
+            proc.startDetached(argv0, QStringList());
+        }
     });
     file->addAction(m_new_action);
 
