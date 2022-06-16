@@ -211,6 +211,51 @@ static void winclipreceive(QClipboard::Mode mode)
     handle_input(text);
 }
 
+static void edit_config()
+{
+    try
+    {
+        auto config = garglk::user_config();
+#ifdef __APPLE__
+        // QDesktopServices::openUrl uses the default handler for the
+        // specified file. One possible filename is garglk.ini, meaning
+        // that the handler for INI files will be used. This at least
+        // works by default under Plasma & Gnome on Unix, and on
+        // Windows. But on macOS, INI files aren't associated with a
+        // text editor, so use "open -t" to explicitly request a text
+        // editor. This would actually be the best solution on all
+        // platforms, but Qt doesn't appear to be able to look up the
+        // default program for a specific MIME type, so finding a user's
+        // text editor can't be done easily.
+        QProcess proc;
+        QStringList args;
+        args << "-t" << config.c_str();
+        proc.startDetached("open", args);
+#elif defined(GARGLK_CONFIG_KDE)
+        // If KDE is available, it provides a way to query the user's
+        // preferred text editor, allowing an approximation of the Mac
+        // behavior. Fall back to QDesktopServices::openUrl otherwise.
+        QUrl url(QUrl::fromLocalFile(config.c_str()));
+#ifdef GARGLK_KDE_HAS_APPLICATION_LAUNCHER
+        auto service = KApplicationTrader::preferredService("text/plain");
+        auto job = new KIO::ApplicationLauncherJob(service);
+        job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, window));
+        job->setUrls({url});
+        job->start();
+#else
+        KRun::runUrl(url, "text/plain", window);
+#endif
+#else
+        if (!QDesktopServices::openUrl(QUrl::fromLocalFile(config.c_str())))
+            QMessageBox::warning(nullptr, "Warning", "Unable to find a text editor");
+#endif
+    }
+    catch (std::runtime_error &e)
+    {
+        QMessageBox::warning(nullptr, "Warning", e.what());
+    }
+}
+
 Window::Window() :
     m_view(new View(this)),
     m_timer(new QTimer(this)),
@@ -225,6 +270,7 @@ void Window::create_menubar()
 {
     auto file = menuBar()->addMenu("File");
     auto open_action = new QAction("Open", this);
+    auto prefs_action = new QAction("Preferences", this);
     auto quit_action = new QAction("Quit", this);
 
     connect(open_action, &QAction::triggered, [&]() {
@@ -241,7 +287,10 @@ void Window::create_menubar()
     });
     file->addAction(open_action);
 
-    connect(quit_action, &QAction::triggered, []() { std::exit(0); });
+    connect(prefs_action, &QAction::triggered, edit_config);
+    file->addAction(prefs_action);
+
+    connect(quit_action, &QAction::triggered, []{ std::exit(0); });
     file->addAction(quit_action);
 
     menuBar()->hide();
@@ -331,51 +380,6 @@ void Window::start_timer(long ms)
     {
         m_timer->setInterval(ms);
         m_timer->start();
-    }
-}
-
-static void edit_config()
-{
-    try
-    {
-        auto config = garglk::user_config();
-#ifdef __APPLE__
-        // QDesktopServices::openUrl uses the default handler for the
-        // specified file. One possible filename is garglk.ini, meaning
-        // that the handler for INI files will be used. This at least
-        // works by default under Plasma & Gnome on Unix, and on
-        // Windows. But on macOS, INI files aren't associated with a
-        // text editor, so use "open -t" to explicitly request a text
-        // editor. This would actually be the best solution on all
-        // platforms, but Qt doesn't appear to be able to look up the
-        // default program for a specific MIME type, so finding a user's
-        // text editor can't be done easily.
-        QProcess proc;
-        QStringList args;
-        args << "-t" << config.c_str();
-        proc.startDetached("open", args);
-#elif defined(GARGLK_CONFIG_KDE)
-        // If KDE is available, it provides a way to query the user's
-        // preferred text editor, allowing an approximation of the Mac
-        // behavior. Fall back to QDesktopServices::openUrl otherwise.
-        QUrl url(QUrl::fromLocalFile(config.c_str()));
-#ifdef GARGLK_KDE_HAS_APPLICATION_LAUNCHER
-        auto service = KApplicationTrader::preferredService("text/plain");
-        auto job = new KIO::ApplicationLauncherJob(service);
-        job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, window));
-        job->setUrls({url});
-        job->start();
-#else
-        KRun::runUrl(url, "text/plain", window);
-#endif
-#else
-        if (!QDesktopServices::openUrl(QUrl::fromLocalFile(config.c_str())))
-            QMessageBox::warning(nullptr, "Warning", "Unable to find a text editor");
-#endif
-    }
-    catch (std::runtime_error &e)
-    {
-        QMessageBox::warning(nullptr, "Warning", e.what());
     }
 }
 
