@@ -225,8 +225,7 @@ Window::Window() :
     connect(m_new_action, &QAction::triggered, [&]() {
         auto argv0 = QCoreApplication::applicationFilePath();
         QProcess proc;
-        proc.setProgram(argv0);
-        proc.startDetached();
+        proc.startDetached(argv0, QStringList());
     });
     file->addAction(m_new_action);
 
