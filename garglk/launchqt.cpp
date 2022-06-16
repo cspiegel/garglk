@@ -47,6 +47,10 @@
 #include "garversion.h"
 #include "launcher.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 static const char *AppName = GARGOYLE_NAME " " GARGOYLE_VERSION;
 
 class Filter {
@@ -220,6 +224,9 @@ int main(int argc, char **argv)
         dir = QCoreApplication::applicationDirPath();
 #endif
 
+#ifdef _WIN32
+#define setenv(name, value, overwrite) SetEnvironmentVariable((name), (value))
+#endif
     setenv("GARGLK_LAUNCHER", QCoreApplication::applicationFilePath().toStdString().c_str(), 1);
 
     /* get story file */
