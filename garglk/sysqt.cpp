@@ -273,6 +273,10 @@ void Window::create_menubar()
     auto prefs_action = new QAction("Preferences", this);
     auto quit_action = new QAction("Quit", this);
 
+    open_action->setMenuRole(QAction::MenuRole::ApplicationSpecificRole);
+    prefs_action->setMenuRole(QAction::MenuRole::PreferencesRole);
+    quit_action->setMenuRole(QAction::MenuRole::QuitRole);
+
     connect(open_action, &QAction::triggered, [&]() {
         QString argv0 = std::getenv("GARGLK_LAUNCHER");
         if (argv0.isNull())
