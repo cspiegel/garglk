@@ -70,14 +70,42 @@ if(UNIX AND NOT APPLE)
     target_compile_definitions(garglk PRIVATE "GARGLKINI=\"${GARGLKINI}\"")
 endif()
 
-if(INTERFACE STREQUAL "COCOA")
-    target_sources(garglk PRIVATE sysmac.mm)
-    target_compile_options(garglk PRIVATE "-Wno-deprecated-declarations")
-else()
-    target_sources(garglk PRIVATE sysqt.cpp)
-endif()
-
-target_compile_definitions(garglk PRIVATE $<$<COMPILE_LANGUAGE:C>:_XOPEN_SOURCE=600>)
+# Dependencies in C and C++ on Unix are fraught with peril. Dependencies
+# can provide arbitrary CFLAGS which are merged with Gargoyle's own
+# CFLAGS. This causes massive headaches, because Gargoyle tries to
+# create a predictable environment (it wants POSIX + C11 + C++14,
+# without non-standard functionality being exposed), but such an
+# environment can be destroyed by a dependency's CFLAGS (e.g. if it sets
+# _DEFAULT_SOURCE, which is used by GNU to mean "expose a whole bunch of
+# non-standard stuff").
+#
+# As far as I can tell, in CMake, if you use target_link_libraries(),
+# you can't specify discrete files to apply it to: it's an all or
+# nothing proposition. That means that all files are exposed to all
+# dependencies' CFLAGS, wreaking havoc. Work around this in an
+# extraordinarily hacky and ugly manner, by creating separate (private,
+# static) libraries for each dependency. This allows fine-grained
+# control over which source files are tied to which dependencies,
+# reducing the chances of a rogue CFLAGS entry breaking everything.
+#
+# This is not just a theoretical problem: SDL2_mixer 2.6.0 has an
+# updated pkg-config file which, ultimately, results in ncurses being
+# required, which sets _DEFAULT_SOURCE. This causes the non-standard
+# timegm() function to be exposed, which clashes with cheapglk's own
+# timegm() implementation. This specific issue could be worked around
+# with a simple renaming of the function, but that's just a band-aid. A
+# somewhat more future-proof solution is to reduce the scope of outside
+# intrusion as much as possible, which is done here.
+function(submodule target)
+    add_library(${target} STATIC ${ARGN})
+    c_standard(${target} 11)
+    cxx_standard(${target} ${CXX_VERSION})
+    warnings(${target})
+    set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(${target} PRIVATE cheapglk)
+    target_compile_definitions(${target} PRIVATE $<$<COMPILE_LANGUAGE:C>:_XOPEN_SOURCE=600>)
+    target_link_libraries(garglk PUBLIC ${target})
+endfunction()
 
 if(WITH_LAUNCHER)
     add_executable(gargoyle WIN32 launcher.cpp)
@@ -107,6 +135,34 @@ if(WITH_LAUNCHER)
     endif()
 endif()
 
+if(INTERFACE STREQUAL "COCOA")
+    submodule(ui sysmac.mm)
+    find_library(COCOA_LIBRARY Cocoa REQUIRED)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(ui PUBLIC ${COCOA_LIBRARY} ${OPENGL_LIBRARIES})
+    target_compile_options(ui PRIVATE "-Wno-deprecated-declarations")
+elseif(UNIX OR MINGW)
+    option(WITH_QT6 "Build against Qt6 instead of Qt5" OFF)
+    if(WITH_QT6)
+        set(QT_VERSION "6")
+    else()
+        set(QT_VERSION "5")
+    endif()
+
+    submodule(ui sysqt.cpp)
+    find_package(Qt${QT_VERSION} COMPONENTS Widgets REQUIRED CONFIG)
+    target_link_libraries(ui PRIVATE Qt${QT_VERSION}::Widgets)
+    target_compile_definitions(ui PRIVATE GARGLK_TICK)
+
+    if(WITH_LAUNCHER AND ${INTERFACE} STREQUAL "QT")
+        target_link_libraries(gargoyle PRIVATE Qt${QT_VERSION}::Widgets)
+    endif()
+else()
+    message(FATAL_ERROR "Unsupported platform (${CMAKE_SYSTEM_NAME}).")
+endif()
+
+target_compile_definitions(garglk PRIVATE $<$<COMPILE_LANGUAGE:C>:_XOPEN_SOURCE=600>)
+
 add_library(garglkmain STATIC main.c)
 c_standard(garglkmain 11)
 cxx_standard(garglkmain ${CXX_VERSION})
@@ -124,41 +180,19 @@ if(MATH_LIBRARY)
     target_link_libraries(garglk PRIVATE ${MATH_LIBRARY})
 endif()
 
-if(${INTERFACE} STREQUAL "COCOA")
-    find_library(COCOA_LIBRARY Cocoa REQUIRED)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(garglk PUBLIC ${COCOA_LIBRARY} ${OPENGL_LIBRARIES})
-elseif(UNIX OR MINGW)
-    option(WITH_QT6 "Build against Qt6 instead of Qt5" OFF)
-    if(WITH_QT6)
-        set(QT_VERSION "6")
-    else()
-        set(QT_VERSION "5")
-    endif()
-
-    find_package(Qt${QT_VERSION} COMPONENTS Widgets REQUIRED CONFIG)
-    target_link_libraries(garglk PRIVATE Qt${QT_VERSION}::Widgets)
-
-    if(WITH_LAUNCHER AND ${INTERFACE} STREQUAL "QT")
-        target_link_libraries(gargoyle PRIVATE Qt${QT_VERSION}::Widgets)
-    endif()
-else()
-    message(FATAL_ERROR "Unsupported platform (${CMAKE_SYSTEM_NAME}).")
-endif()
-
 if("${SOUND}" STREQUAL "QT")
     find_package(Qt${QT_VERSION} COMPONENTS Multimedia REQUIRED CONFIG)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SOUND REQUIRED IMPORTED_TARGET sndfile libmpg123 libopenmpt)
-    target_link_libraries(garglk PRIVATE Qt${QT_VERSION}::Multimedia PkgConfig::SOUND)
-    target_sources(garglk PRIVATE sndqt.cpp)
+    submodule(sound sndqt.cpp)
+    target_link_libraries(sound PRIVATE Qt${QT_VERSION}::Multimedia PkgConfig::SOUND)
     target_compile_definitions(garglk PRIVATE GARGLK_TICK)
     set(GARGLK_NEEDS_TICK TRUE CACHE INTERNAL "")
 elseif("${SOUND}" STREQUAL "SDL")
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2 SDL2_mixer)
-    target_link_libraries(garglk PRIVATE PkgConfig::SDL2)
-    target_sources(garglk PRIVATE sndsdl.c)
+    submodule(sound sndsdl.c)
+    target_link_libraries(sound PRIVATE PkgConfig::SDL2)
     target_compile_definitions(garglk PRIVATE GARGLK_USESDL)
 else()
     target_sources(garglk PRIVATE sndnull.c)
@@ -189,8 +223,8 @@ if(WITH_TTS)
             target_link_libraries(garglk PRIVATE ${CMAKE_DL_LIBS})
             target_compile_definitions(garglk PRIVATE "GARGLK_DLOPEN_LIBSPEECHD")
         elseif(SPEECH_DISPATCHER_FOUND)
-            target_sources(garglk PRIVATE ttsspeechd.cpp)
-            target_link_libraries(garglk PRIVATE PkgConfig::SPEECH_DISPATCHER)
+            submodule(speech ttsspeechd.cpp)
+            target_link_libraries(speech PRIVATE PkgConfig::SPEECH_DISPATCHER)
         else()
             target_sources(garglk PRIVATE ttsnull.c)
         endif()
@@ -210,8 +244,8 @@ elseif(UNIX)
     # Fontconfig support isn't included with CMake till 3.14, so use pkg-config.
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
-    target_sources(garglk PRIVATE fontfc.cpp)
-    target_link_libraries(garglk PRIVATE PkgConfig::FONTCONFIG)
+    submodule(font fontfc.cpp)
+    target_link_libraries(sound PRIVATE PkgConfig::FONTCONFIG)
 elseif(MINGW)
     target_sources(garglk PRIVATE fontwin.cpp)
     target_link_libraries(garglk PRIVATE winmm shlwapi)
