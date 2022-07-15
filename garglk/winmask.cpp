@@ -20,6 +20,7 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <algorithm>
 #include <new>
 
 #include <stdbool.h>
@@ -42,59 +43,32 @@ static int last_y = 0;
 
 void gli_resize_mask(unsigned int x, unsigned int y)
 {
-    int i;
-
     gli_mask.initialized = true;
-
-    /* deallocate old storage */
-    for (i = 0; i < gli_mask.hor; i++)
-    {
-        delete [] gli_mask.links[i];
-    }
-
-    delete [] gli_mask.links;
-
     gli_mask.hor = x + 1;
     gli_mask.ver = y + 1;
 
-    /* allocate new storage */
     try
     {
-        gli_mask.links = new glui32*[gli_mask.hor];
-        for (i = 0; i < gli_mask.hor; i++)
-            gli_mask.links[i] = nullptr;
+        gli_mask.links.resize(gli_mask.hor);
+        for (int i = 0; i < gli_mask.hor; i++)
+        {
+            gli_mask.links[i].resize(gli_mask.ver);
+            std::fill(gli_mask.links[i].begin(), gli_mask.links[i].end(), 0);
+        }
     }
     catch (const std::bad_alloc &)
     {
         gli_strict_warning("resize_mask: out of memory");
+        gli_mask.initialized = false;
         gli_mask.hor = 0;
         gli_mask.ver = 0;
         return;
-    }
-
-    for (i = 0; i < gli_mask.hor; i++)
-    {
-        try
-        {
-            gli_mask.links[i] = new glui32[gli_mask.ver];
-            for (int j = 0; j < gli_mask.ver; j++)
-                gli_mask.links[i][j] = 0;
-        }
-        catch (const std::bad_alloc &)
-        {
-            delete [] gli_mask.links;
-            gli_mask.links = nullptr;
-            gli_strict_warning("resize_mask: could not allocate new memory");
-            return;
-        }
     }
 
     gli_mask.select.x0 = 0;
     gli_mask.select.y0 = 0;
     gli_mask.select.x1 = 0;
     gli_mask.select.y1 = 0;
-
-    return;
 }
 
 void gli_put_hyperlink(glui32 linkval, unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1)
@@ -111,10 +85,8 @@ void gli_put_hyperlink(glui32 linkval, unsigned int x0, unsigned int y0, unsigne
         return;
     }
 
-    if (tx0 >= gli_mask.hor
-            || tx1 >= gli_mask.hor
-            || ty0 >= gli_mask.ver  || ty1 >= gli_mask.ver
-            || !gli_mask.links[tx0] || !gli_mask.links[tx1])
+    if (tx0 >= gli_mask.hor || tx1 >= gli_mask.hor ||
+        ty0 >= gli_mask.ver  || ty1 >= gli_mask.ver)
     {
         gli_strict_warning("set_hyperlink: invalid range given");
         return;
@@ -137,9 +109,7 @@ glui32 gli_get_hyperlink(unsigned int x, unsigned int y)
         return 0;
     }
 
-    if (x >= gli_mask.hor
-            || y >= gli_mask.ver
-            || !gli_mask.links[x])
+    if (x >= gli_mask.hor || y >= gli_mask.ver)
     {
         gli_strict_warning("get_hyperlink: invalid range given");
         return 0;

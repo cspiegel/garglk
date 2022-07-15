@@ -241,7 +241,7 @@ struct mask_s
     bool initialized = false;
     int hor = 0;
     int ver = 0;
-    glui32 **links = nullptr;
+    std::vector<std::vector<glui32>> links;
     rect_t select;
 };
 #else
