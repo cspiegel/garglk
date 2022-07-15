@@ -266,11 +266,13 @@ extern unsigned char *gli_image_rgb;
 extern char gli_workdir[];
 extern char gli_workfile[];
 
-extern style_t gli_tstyles[style_NUMSTYLES];
-extern style_t gli_gstyles[style_NUMSTYLES];
+#ifdef __cplusplus
+extern std::array<style_t, style_NUMSTYLES> gli_tstyles;
+extern std::array<style_t, style_NUMSTYLES> gli_gstyles;
 
-extern style_t gli_tstyles_def[style_NUMSTYLES];
-extern style_t gli_gstyles_def[style_NUMSTYLES];
+extern std::array<style_t, style_NUMSTYLES> gli_tstyles_def;
+extern std::array<style_t, style_NUMSTYLES> gli_gstyles_def;
+#endif
 
 extern unsigned char gli_window_color[3];
 extern unsigned char gli_border_color[3];
@@ -577,7 +579,7 @@ struct window_textgrid_s
     std::vector<glui32> line_terminators;
 
     /* style hints and settings */
-    style_t styles[style_NUMSTYLES];
+    std::array<style_t, style_NUMSTYLES> styles;
 };
 
 struct tbline_t
@@ -635,7 +637,7 @@ struct window_textbuffer_s
     std::vector<glui32> line_terminators;
 
     /* style hints and settings */
-    style_t styles[style_NUMSTYLES];
+    std::array<style_t, style_NUMSTYLES> styles;
 
     /* for copy selection */
     glui32 *copybuf;

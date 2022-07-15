@@ -67,8 +67,7 @@ std::string gli_conf_propfont = "Gargoyle Serif";
 float gli_conf_monosize = 12.6;	/* good size for Gargoyle Mono */
 float gli_conf_propsize = 14.7;	/* good size for Gargoyle Serif */
 
-style_t gli_tstyles[style_NUMSTYLES] =
-{
+std::array<style_t, style_NUMSTYLES> gli_tstyles{{
     {PROPR, {0xff,0xff,0xff}, {0x00,0x00,0x00}, false}, /* Normal */
     {PROPI, {0xff,0xff,0xff}, {0x00,0x00,0x00}, false}, /* Emphasized */
     {MONOR, {0xff,0xff,0xff}, {0x00,0x00,0x00}, false}, /* Preformatted */
@@ -80,10 +79,9 @@ style_t gli_tstyles[style_NUMSTYLES] =
     {PROPB, {0xff,0xff,0xff}, {0x00,0x00,0x00}, false}, /* Input */
     {PROPR, {0xff,0xff,0xff}, {0x00,0x00,0x00}, false}, /* User1 */
     {PROPR, {0xff,0xff,0xff}, {0x00,0x00,0x00}, false}, /* User2 */
-};
+}};
 
-style_t gli_gstyles[style_NUMSTYLES] =
-{
+std::array<style_t, style_NUMSTYLES> gli_gstyles{{
     {MONOR, {0xff,0xff,0xff}, {0x60,0x60,0x60}, false}, /* Normal */
     {MONOI, {0xff,0xff,0xff}, {0x60,0x60,0x60}, false}, /* Emphasized */
     {MONOR, {0xff,0xff,0xff}, {0x60,0x60,0x60}, false}, /* Preformatted */
@@ -95,10 +93,10 @@ style_t gli_gstyles[style_NUMSTYLES] =
     {MONOB, {0xff,0xff,0xff}, {0x60,0x60,0x60}, false}, /* Input */
     {MONOR, {0xff,0xff,0xff}, {0x60,0x60,0x60}, false}, /* User1 */
     {MONOR, {0xff,0xff,0xff}, {0x60,0x60,0x60}, false}, /* User2 */
-};
+}};
 
-style_t gli_tstyles_def[style_NUMSTYLES];
-style_t gli_gstyles_def[style_NUMSTYLES];
+std::array<style_t, style_NUMSTYLES> gli_tstyles_def;
+std::array<style_t, style_NUMSTYLES> gli_gstyles_def;
 
 std::vector<garglk::ConfigFile> garglk::all_configs;
 
@@ -624,7 +622,7 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
 
             if (argstream >> style >> fg >> bg)
             {
-                style_t *styles = cmd[0] == 't' ? gli_tstyles : gli_gstyles;
+                style_t *styles = cmd[0] == 't' ? gli_tstyles.data() : gli_gstyles.data();
 
                 if (style == "*")
                 {
@@ -743,8 +741,8 @@ void gli_startup(int argc, char *argv[])
     gli_more_prompt.resize(base_more_prompt.size() + 1);
     gli_more_prompt_len = gli_parse_utf8(reinterpret_cast<const unsigned char *>(base_more_prompt.data()), base_more_prompt.size(), gli_more_prompt.data(), base_more_prompt.size());
 
-    std::memcpy(gli_tstyles_def, gli_tstyles, sizeof(gli_tstyles_def));
-    std::memcpy(gli_gstyles_def, gli_gstyles, sizeof(gli_gstyles_def));
+    gli_tstyles_def = gli_tstyles;
+    gli_gstyles_def = gli_gstyles;
 
     if (gli_baseline == 0)
         gli_baseline = std::round(gli_conf_propsize);
