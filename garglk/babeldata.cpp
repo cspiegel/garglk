@@ -22,7 +22,7 @@
 
 #ifdef BABEL_HANDLER
 
-#include <memory>
+#include <vector>
 
 #include "glk.h"
 #include "garglk.h"
@@ -42,13 +42,13 @@ void gli_initialize_babel()
         int metaSize = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, nullptr, 0, ctx);
         if (metaSize > 0)
         {
-            auto metaData = std::make_unique<char[]>(metaSize);
-            if (metaData)
+            try
             {
-                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metaData.get(), metaSize, ctx) > 0)
+                std::vector<char> metaData(metaSize);
+                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metaData.data(), metaData.size(), ctx) > 0)
                 {
-                    char *storyTitle = ifiction_get_tag(metaData.get(), const_cast<char *>("bibliographic"), const_cast<char *>("title"), nullptr);
-                    char *storyAuthor = ifiction_get_tag(metaData.get(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr);
+                    char *storyTitle = ifiction_get_tag(metaData.data(), const_cast<char *>("bibliographic"), const_cast<char *>("title"), nullptr);
+                    char *storyAuthor = ifiction_get_tag(metaData.data(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr);
                     if (storyTitle && storyAuthor)
                     {
                         std::string title;
@@ -58,6 +58,9 @@ void gli_initialize_babel()
                     free(storyTitle);
                     free(storyAuthor);
                 }
+            }
+            catch (const std::bad_alloc &)
+            {
             }
         }
     }
