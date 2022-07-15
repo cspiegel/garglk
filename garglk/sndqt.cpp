@@ -494,7 +494,7 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
     return chan->disprock;
 }
 
-void gli_initialize_sound(void)
+void gli_initialize_sound()
 {
 #if MPG123_API_VERSION < 46
     mp3_initialized = mpg123_init() == MPG123_OK;

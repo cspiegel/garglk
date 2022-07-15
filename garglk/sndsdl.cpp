@@ -104,7 +104,7 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
     return chan->disprock;
 }
 
-void gli_initialize_sound(void)
+void gli_initialize_sound()
 {
     if (gli_conf_sound == 1)
     {

@@ -162,7 +162,7 @@ void gli_move_selection(int x, int y)
     return;
 }
 
-void gli_clear_selection(void)
+void gli_clear_selection()
 {
     if (!gli_mask.initialized)
     {

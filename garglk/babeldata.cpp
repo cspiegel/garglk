@@ -31,7 +31,7 @@
 #include "babel_handler.h"
 #include "ifiction.h"
 
-void gli_initialize_babel(void)
+void gli_initialize_babel()
 {
     if (gli_workfile.empty())
         return;
@@ -67,7 +67,7 @@ void gli_initialize_babel(void)
 
 #else
 
-void gli_initialize_babel(void)
+void gli_initialize_babel()
 {
 }
 

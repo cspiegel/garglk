@@ -180,12 +180,12 @@ void garglk::fontreplace(const std::string &font, int type)
     }
 }
 
-void fontload(void)
+void fontload()
 {
     initialized = FcInit();
 }
 
-void fontunload(void)
+void fontunload()
 {
     if (initialized)
         FcFini();

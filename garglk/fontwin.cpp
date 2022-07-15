@@ -204,10 +204,10 @@ void garglk::fontreplace(const std::string &font, int type)
     ReleaseDC(0, hdc);
 }
 
-void fontload(void)
+void fontload()
 {
 }
 
-void fontunload(void)
+void fontunload()
 {
 }

@@ -49,7 +49,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 
     picture_t *dst;
 
-    dst = gli_picture_retrieve(src->id, 1);
+    dst = gli_picture_retrieve(src->id, true);
 
     if (dst && dst->w == newcols && dst->h == newrows)
         return dst;

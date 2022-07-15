@@ -26,7 +26,7 @@
 /* The whole sound-channel situation is very simple for us;
    we don't support it. */
 
-void gli_initialize_sound(void)
+void gli_initialize_sound()
 {
 }
 
