@@ -23,10 +23,12 @@
 
 #include <cassert>
 #include <cstdio>
+#include <map>
 #include <memory>
+#include <stdexcept>
 
-#include <png.h>
 #include <jpeglib.h>
+#include <png.h>
 
 #include "glk.h"
 #include "garglk.h"
@@ -38,49 +40,25 @@
 static void load_image_png(FILE *fl, picture_t *pic);
 static void load_image_jpeg(FILE *fl, picture_t *pic);
 
-static piclist_t *picstore = nullptr;	/* cache all loaded pictures */
+struct PicturePair
+{
+    picture_t *picture;
+    picture_t *scaled;
+};
+
+std::map<unsigned long, PicturePair> picstore;
+
 static int gli_piclist_refcount = 0;	/* count references to loaded pictures */
 
-static void gli_picture_discard(picture_t *pic);
-
-piclist_t *gli_piclist_search(unsigned long id)
+static void gli_piclist_clear()
 {
-    piclist_t *picptr;
-    picture_t *pic;
-
-    picptr = picstore;
-
-    while (picptr != nullptr)
+    for (const auto &pair : picstore)
     {
-        pic = picptr->picture;
-
-        if (pic && pic->id == id)
-            return picptr;
-
-        picptr = picptr->next;
+        gli_picture_decrement(pair.second.picture);
+        gli_picture_decrement(pair.second.scaled);
     }
 
-    return nullptr;
-}
-
-void gli_piclist_clear()
-{
-    piclist_t *picptr, *tmpptr;
-
-    picptr = picstore;
-
-    while (picptr != nullptr)
-    {
-        tmpptr = picptr;
-        picptr = picptr->next;
-
-        gli_picture_decrement(tmpptr->picture);
-        gli_picture_decrement(tmpptr->scaled);
-
-        delete tmpptr;
-    }
-
-    picstore = nullptr;
+    picstore.clear();
 }
 
 void gli_piclist_increment()
@@ -108,44 +86,28 @@ void gli_picture_decrement(picture_t *pic)
         return;
 
     if (pic->refcount > 0 && --pic->refcount == 0)
-        gli_picture_discard(pic);
-}
-
-void gli_picture_store_original(picture_t *pic)
-{
-    piclist_t *newpic = new piclist_t;
-    piclist_t *picptr;
-
-    newpic->picture = pic;
-    newpic->scaled = nullptr;
-    newpic->next = nullptr;
-
-    if (!picstore)
     {
-        picstore = newpic;
-        return;
+        delete [] pic->rgba;
+        delete pic;
     }
-
-    picptr = picstore;
-
-    while (picptr->next != nullptr)
-        picptr = picptr->next;
-
-    picptr->next = newpic;
 }
 
-void gli_picture_store_scaled(picture_t *pic)
+static void gli_picture_store_original(picture_t *pic)
 {
-    piclist_t *picptr;
+    picstore[pic->id] = PicturePair{pic, nullptr};
+}
 
-    picptr = gli_piclist_search(pic->id);
-
-    if (!picptr)
-        return;
-
-    gli_picture_decrement(picptr->scaled);
-
-    picptr->scaled = pic;
+static void gli_picture_store_scaled(picture_t *pic)
+{
+    try
+    {
+        auto &picpair = picstore.at(pic->id);
+        gli_picture_decrement(picpair.scaled);
+        picpair.scaled = pic;
+    }
+    catch (const std::out_of_range &)
+    {
+    }
 }
 
 void gli_picture_store(picture_t *pic)
@@ -161,34 +123,16 @@ void gli_picture_store(picture_t *pic)
 
 picture_t *gli_picture_retrieve(unsigned long id, bool scaled)
 {
-    piclist_t *picptr;
-    picture_t *pic;
-
-    picptr = picstore;
-
-    while (picptr != nullptr)
+    try
     {
-        if (!scaled)
-            pic = picptr->picture;
-        else
-            pic = picptr->scaled;
+        const auto &picpair = picstore.at(id);
 
-        if (pic && pic->id == id)
-            return pic;
-
-        picptr = picptr->next;
+        return scaled ? picpair.scaled : picpair.picture;
     }
-
-    return nullptr;
-}
-
-static void gli_picture_discard(picture_t *pic)
-{
-    if (!pic)
-        return;
-
-    delete [] pic->rgba;
-    delete pic;
+    catch (const std::out_of_range &)
+    {
+        return nullptr;
+    }
 }
 
 picture_t *gli_picture_load(unsigned long id)
