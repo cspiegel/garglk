@@ -177,11 +177,8 @@ void gli_delete_window(window_t *win)
         win->str = nullptr;
     }
 
-    if (win->line_terminators)
-    {
-        free(win->line_terminators);
-        win->line_terminators = nullptr;
-    }
+    delete [] win->line_terminators;
+    win->line_terminators = nullptr;
 
     prev = win->prev;
     next = win->next;

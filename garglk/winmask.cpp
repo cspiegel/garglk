@@ -20,6 +20,8 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <new>
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,31 +45,27 @@ void gli_resize_mask(unsigned int x, unsigned int y)
     int i;
 
     if (!gli_mask)
-    {
-        gli_mask = (mask_t*) calloc(1, sizeof(mask_t));
-        if (!gli_mask)
-        {
-            gli_strict_warning("resize_mask: out of memory");
-            return;
-        }
-    }
+        gli_mask = new mask_t;
 
     /* deallocate old storage */
     for (i = 0; i < gli_mask->hor; i++)
     {
-        if (gli_mask->links[i])
-            free(gli_mask->links[i]);
+        delete [] gli_mask->links[i];
     }
 
-    if (gli_mask->links)
-        free(gli_mask->links);
+    delete [] gli_mask->links;
 
     gli_mask->hor = x + 1;
     gli_mask->ver = y + 1;
 
     /* allocate new storage */
-    gli_mask->links = (glui32**) calloc(gli_mask->hor, sizeof(glui32*));
-    if (!gli_mask->links)
+    try
+    {
+        gli_mask->links = new glui32*[gli_mask->hor];
+        for (i = 0; i < gli_mask->hor; i++)
+            gli_mask->links[i] = nullptr;
+    }
+    catch (const std::bad_alloc &)
     {
         gli_strict_warning("resize_mask: out of memory");
         gli_mask->hor = 0;
@@ -77,9 +75,16 @@ void gli_resize_mask(unsigned int x, unsigned int y)
 
     for (i = 0; i < gli_mask->hor; i++)
     {
-        gli_mask->links[i] = (glui32*) calloc(gli_mask->ver, sizeof(glui32));
-        if (!gli_mask->links[i])
+        try
         {
+            gli_mask->links[i] = new glui32[gli_mask->ver];
+            for (int j = 0; j < gli_mask->ver; j++)
+                gli_mask->links[i][j] = 0;
+        }
+        catch (const std::bad_alloc &)
+        {
+            delete [] gli_mask->links;
+            gli_mask->links = nullptr;
             gli_strict_warning("resize_mask: could not allocate new memory");
             return;
         }

@@ -235,6 +235,15 @@ struct style_s
     bool reverse;
 };
 
+#ifdef __cplusplus
+struct mask_s
+{
+    int hor = 0;
+    int ver = 0;
+    glui32 **links = nullptr;
+    rect_t select;
+};
+#else
 struct mask_s
 {
     int hor;
@@ -242,6 +251,7 @@ struct mask_s
     glui32 **links;
     rect_t select;
 };
+#endif
 
 extern int gli_image_s;	/* stride */
 extern int gli_image_w;
