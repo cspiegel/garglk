@@ -1512,7 +1512,7 @@ void attrclear(attr_t *attr)
     attr->style = 0;
 }
 
-int attrfont(style_t *styles, attr_t *attr)
+int attrfont(const style_t *styles, const attr_t *attr)
 {
     return styles[attr->style].font;
 }
@@ -1630,7 +1630,7 @@ unsigned char *attrfg(style_t *styles, attr_t *attr)
     }
 }
 
-bool attrequal(attr_t *a1, attr_t *a2)
+bool attrequal(const attr_t *a1, const attr_t *a2)
 {
     if (a1->style != a2->style)
         return false;

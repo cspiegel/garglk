@@ -458,7 +458,19 @@ struct glk_fileref_struct
 // files which include windows.h will not cause build failures.
 #undef hyper
 
-typedef struct attr_s
+#ifdef __cplusplus
+struct attr_t
+{
+    bool fgset = false;
+    bool bgset = false;
+    bool reverse = false;
+    glui32 style = 0;
+    glui32 fgcolor = 0;
+    glui32 bgcolor = 0;
+    glui32 hyper = 0;
+};
+#else
+typedef struct
 {
     bool fgset;
     bool bgset;
@@ -468,6 +480,7 @@ typedef struct attr_s
     glui32 bgcolor;
     glui32 hyper;
 } attr_t;
+#endif
 
 #ifdef __cplusplus
 struct WinImpl
@@ -535,21 +548,21 @@ struct window_pair_s
     glui32 wborder;  /* winMethod_Border, NoBorder */
 };
 
+#ifdef __cplusplus
 /* One line of the grid window. */
-typedef struct tgline_s
+struct tgline_t
 {
     int dirty;
-    glui32 chars[256];
-    attr_t attrs[256];
-} tgline_t;
+    std::array<glui32, 256> chars;
+    std::array<attr_t, 256> attrs;
+};
 
-#ifdef __cplusplus
 struct window_textgrid_s
 {
     window_t *owner;
 
     int width, height;
-    tgline_t lines[256];
+    std::array<tgline_t, 256> lines;
 
     int curx, cury; /* the window cursor position */
 
@@ -567,16 +580,16 @@ struct window_textgrid_s
     style_t styles[style_NUMSTYLES];
 };
 
-typedef struct tbline_s
+struct tbline_t
 {
     int len;
     bool newline, dirty, repaint;
     picture_t *lpic, *rpic;
     glui32 lhyper, rhyper;
     int lm, rm;
-    glui32 chars[TBLINELEN];
-    attr_t attrs[TBLINELEN];
-} tbline_t;
+    std::array<glui32, TBLINELEN> chars;
+    std::array<attr_t, TBLINELEN> attrs;
+};
 
 struct window_textbuffer_s
 {
@@ -742,7 +755,7 @@ void gli_draw_pixel_lcd(int x, int y, const unsigned char *alpha, const unsigned
 void gli_draw_clear(const unsigned char *rgb);
 void gli_draw_rect(int x, int y, int w, int h, const unsigned char *rgb);
 int gli_draw_string_uni(int x, int y, int f, const unsigned char *rgb, glui32 *text, int len, int spacewidth);
-int gli_string_width_uni(int f, glui32 *text, int len, int spw);
+int gli_string_width_uni(int fidx, const glui32 *text, int len, int spw);
 void gli_draw_caret(int x, int y);
 void gli_draw_picture(picture_t *pic, int x, int y, int x0, int y0, int x1, int y1);
 
@@ -832,10 +845,10 @@ void gli_notification_waiting(void);
 
 void attrset(attr_t *attr, glui32 style);
 void attrclear(attr_t *attr);
-bool attrequal(attr_t *a1, attr_t *a2);
+bool attrequal(const attr_t *a1, const attr_t *a2);
 unsigned char *attrfg(style_t *styles, attr_t *attr);
 unsigned char *attrbg(style_t *styles, attr_t *attr);
-int attrfont(style_t *styles, attr_t *attr);
+int attrfont(const style_t *styles, const attr_t *attr);
 
 /* A macro which reads and decodes one character of UTF-8. Needs no
    explanation, I'm sure.
