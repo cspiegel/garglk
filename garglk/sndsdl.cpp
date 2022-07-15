@@ -190,11 +190,10 @@ static void cleanup_channel(schanid_t chan)
         SDL_FreeRW(chan->sdl_rwops);
         chan->sdl_rwops = nullptr;
     }
-    if (chan->sdl_memory)
-    {
-        free(chan->sdl_memory);
-        chan->sdl_memory = nullptr;
-    }
+
+    delete [] chan->sdl_memory;
+    chan->sdl_memory = nullptr;
+
     switch (chan->status)
     {
         case CHANNEL_SOUND:

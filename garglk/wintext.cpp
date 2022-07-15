@@ -1308,11 +1308,8 @@ void win_textbuffer_cancel_line(window_t *win, event_t *ev)
 
     win->line_request = false;
     win->line_request_uni = false;
-    if (dwin->line_terminators)
-    {
-        free(dwin->line_terminators);
-        dwin->line_terminators = nullptr;
-    }
+    delete [] dwin->line_terminators;
+    dwin->line_terminators = nullptr;
     dwin->inbuf = nullptr;
     dwin->inmax = 0;
 
@@ -1524,7 +1521,7 @@ static void acceptline(window_t *win, glui32 keycode)
         if (val2 == keycode_Return)
             val2 = 0;
         gli_event_store(evtype_LineInput, win, len, val2);
-        free(dwin->line_terminators);
+        delete [] dwin->line_terminators;
         dwin->line_terminators = nullptr;
     }
     else

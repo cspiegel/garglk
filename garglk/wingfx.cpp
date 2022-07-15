@@ -95,8 +95,7 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
     {
         dwin->w = 0;
         dwin->h = 0;
-        if (dwin->rgb)
-            free(dwin->rgb);
+        delete [] dwin->rgb;
         dwin->rgb = nullptr;
         return;
     }
