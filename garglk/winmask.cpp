@@ -100,7 +100,7 @@ void gli_put_hyperlink(glui32 linkval, unsigned int x0, unsigned int y0, unsigne
     return;
 }
 
-glui32 gli_get_hyperlink(unsigned int x, unsigned int y)
+glui32 gli_get_hyperlink(int x, int y)
 {
     if (!gli_mask.initialized || !gli_mask.hor || !gli_mask.ver)
     {

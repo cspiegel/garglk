@@ -831,7 +831,7 @@ glui32 gli_parse_utf8(const unsigned char *buf, glui32 buflen, glui32 *out, glui
 glui32 gli_strlen_uni(const glui32 *s);
 
 void gli_put_hyperlink(glui32 linkval, unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1);
-glui32 gli_get_hyperlink(unsigned int x, unsigned int y);
+glui32 gli_get_hyperlink(int x, int y);
 void gli_clear_selection(void);
 bool gli_check_selection(int x0, int y0, int x1, int y1);
 bool gli_get_selection(int x0, int y0, int x1, int y1, int *rx0, int *rx1);
