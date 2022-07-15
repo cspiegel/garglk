@@ -238,6 +238,7 @@ struct style_s
 #ifdef __cplusplus
 struct mask_s
 {
+    bool initialized = false;
     int hor = 0;
     int ver = 0;
     glui32 **links = nullptr;
