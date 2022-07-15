@@ -37,8 +37,8 @@
 #define giblorb_ID_JPEG      (giblorb_make_id('J', 'P', 'E', 'G'))
 #define giblorb_ID_PNG       (giblorb_make_id('P', 'N', 'G', ' '))
 
-static void load_image_png(FILE *fl, picture_t *pic);
-static void load_image_jpeg(FILE *fl, picture_t *pic);
+static void load_image_png(std::FILE *fl, picture_t *pic);
+static void load_image_jpeg(std::FILE *fl, picture_t *pic);
 
 struct PicturePair
 {
