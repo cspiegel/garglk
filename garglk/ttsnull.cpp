@@ -23,15 +23,15 @@
 #include "glk.h"
 #include "garglk.h"
 
-void gli_initialize_tts(void)
+void gli_initialize_tts()
 {
 }
 
-void gli_tts_flush(void)
+void gli_tts_flush()
 {
 }
 
-void gli_tts_purge(void)
+void gli_tts_purge()
 {
 }
 
@@ -39,6 +39,6 @@ void gli_tts_speak(const glui32 *buf, size_t len)
 {
 }
 
-void gli_free_tts(void)
+void gli_free_tts()
 {
 }

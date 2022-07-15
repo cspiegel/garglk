@@ -63,7 +63,7 @@ piclist_t *gli_piclist_search(unsigned long id)
     return nullptr;
 }
 
-void gli_piclist_clear(void)
+void gli_piclist_clear()
 {
     piclist_t *picptr, *tmpptr;
 
@@ -83,12 +83,12 @@ void gli_piclist_clear(void)
     picstore = nullptr;
 }
 
-void gli_piclist_increment(void)
+void gli_piclist_increment()
 {
     gli_piclist_refcount++;
 }
 
-void gli_piclist_decrement(void)
+void gli_piclist_decrement()
 {
     if (gli_piclist_refcount > 0 && --gli_piclist_refcount == 0)
         gli_piclist_clear();

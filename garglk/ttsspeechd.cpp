@@ -85,7 +85,7 @@ LIBSPEECHD_FUNCS
 static SPDConnection *spd;
 static std::vector<glui32> txtbuf;
 
-void gli_initialize_tts(void)
+void gli_initialize_tts()
 {
     if (gli_conf_speak)
     {
@@ -174,7 +174,7 @@ static std::string unicode_to_utf8(const std::vector<glui32> &src)
     return dst;
 }
 
-void gli_tts_flush(void)
+void gli_tts_flush()
 {
     if (spd != nullptr && !txtbuf.empty())
     {
@@ -185,7 +185,7 @@ void gli_tts_flush(void)
     txtbuf.clear();
 }
 
-void gli_tts_purge(void)
+void gli_tts_purge()
 {
     if (spd != nullptr)
         spd_cancel(spd);
