@@ -634,7 +634,7 @@ struct window_textbuffer_s
     std::array<style_t, style_NUMSTYLES> styles;
 
     /* for copy selection */
-    glui32 *copybuf;
+    std::vector<glui32> copybuf;
     int copypos;
 };
 #endif

@@ -112,7 +112,6 @@ window_textbuffer_t *win_textbuffer_create(window_t *win)
 
     dwin->styles = gli_tstyles;
 
-    dwin->copybuf = nullptr;
     dwin->copypos = 0;
 
     return dwin;
@@ -133,8 +132,6 @@ void win_textbuffer_destroy(window_textbuffer_t *dwin)
     }
 
     dwin->owner = nullptr;
-
-    delete [] dwin->copybuf;
 
     for (i = 0; i < dwin->scrollback; i++) {
         gli_picture_decrement(dwin->lines[i].lpic);
@@ -274,7 +271,6 @@ void win_textbuffer_rearrange(window_t *win, rect_t *box)
     window_textbuffer_t *dwin = win->window.textbuffer;
     int newwid, newhgt;
     int rnd;
-    int i;
 
     dwin->owner->bbox = *box;
 
@@ -308,12 +304,8 @@ void win_textbuffer_rearrange(window_t *win, rect_t *box)
         touchscroll(dwin);
 
         /* allocate copy buffer */
-        delete [] dwin->copybuf;
-
-        dwin->copybuf = new glui32[dwin->height * TBLINELEN];
-
-        for (i = 0; i < (dwin->height * TBLINELEN); i++)
-            dwin->copybuf[i] = 0;
+        dwin->copybuf.resize(dwin->height * TBLINELEN);
+        std::fill(dwin->copybuf.begin(), dwin->copybuf.end(), 0);
 
         dwin->copypos = 0;
     }
@@ -772,7 +764,7 @@ void win_textbuffer_redraw(window_t *win)
     if (selbuf && dwin->copypos)
     {
         gli_claimselect = true;
-        gli_clipboard_copy(dwin->copybuf, dwin->copypos);
+        gli_clipboard_copy(dwin->copybuf.data(), dwin->copypos);
         for (i = 0; i < dwin->copypos; i++)
             dwin->copybuf[i] = 0;
         dwin->copypos = 0;
