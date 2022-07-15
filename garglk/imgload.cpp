@@ -207,13 +207,11 @@ picture_t *gli_picture_load(unsigned long id)
 
     if (giblorb_get_resource_map() == nullptr)
     {
-        char filename[1024];
         unsigned char buf[8];
-
-        snprintf(filename, sizeof filename, "%s/PIC%lu", gli_workdir, id);
+        std::string filename = gli_workdir + "/PIC" + std::to_string(id);
 
         closeafter = true;
-        fl = fopen(filename, "rb");
+        fl = fopen(filename.c_str(), "rb");
         if (!fl)
             return nullptr;
 

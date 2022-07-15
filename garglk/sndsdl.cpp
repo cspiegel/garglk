@@ -477,11 +477,11 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
     if (giblorb_get_resource_map() == nullptr)
     {
         FILE *file;
-        char name[1024];
+        std::string name;
 
-        snprintf(name, sizeof name, "%s/SND%ld", gli_workdir, static_cast<long>(snd));
+        name = gli_workdir + "/SND" + std::to_string(snd);
 
-        file = fopen(name, "rb");
+        file = fopen(name.c_str(), "rb");
         if (!file)
             return 0;
 

@@ -24,10 +24,6 @@
 
 #include <memory>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "glk.h"
 #include "garglk.h"
 
@@ -37,11 +33,11 @@
 
 void gli_initialize_babel(void)
 {
-    if (!strlen(gli_workfile))
+    if (gli_workfile.empty())
         return;
 
     void *ctx = get_babel_ctx();
-    if (babel_init_ctx(gli_workfile, ctx))
+    if (babel_init_ctx(const_cast<char *>(gli_workfile.c_str()), ctx))
     {
         int metaSize = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, nullptr, 0, ctx);
         if (metaSize > 0)
@@ -55,9 +51,9 @@ void gli_initialize_babel(void)
                     char *storyAuthor = ifiction_get_tag(metaData.get(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr);
                     if (storyTitle && storyAuthor)
                     {
-                        char title[256];
-                        snprintf(title, sizeof title, "%s - %s", storyTitle, storyAuthor);
-                        garglk_set_story_title(title);
+                        std::string title;
+                        title = std::string(storyTitle) + " - " + storyAuthor;
+                        garglk_set_story_title(title.c_str());
                     }
                     free(storyTitle);
                     free(storyAuthor);

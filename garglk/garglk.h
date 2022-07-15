@@ -254,10 +254,10 @@ extern unsigned char *gli_image_rgb;
  * Config globals
  */
 
-extern char gli_workdir[];
-extern char gli_workfile[];
-
 #ifdef __cplusplus
+extern std::string gli_workdir;
+extern std::string gli_workfile;
+
 extern std::array<style_t, style_NUMSTYLES> gli_tstyles;
 extern std::array<style_t, style_NUMSTYLES> gli_gstyles;
 
