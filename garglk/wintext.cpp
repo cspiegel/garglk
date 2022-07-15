@@ -90,8 +90,8 @@ window_textbuffer_t *win_textbuffer_create(window_t *win)
     dwin->ladjn = dwin->radjn = 0;
 
     dwin->numchars = 0;
-    dwin->chars = dwin->lines[0].chars;
-    dwin->attrs = dwin->lines[0].attrs;
+    dwin->chars = dwin->lines[0].chars.data();
+    dwin->attrs = dwin->lines[0].attrs.data();
 
     dwin->spaced = 0;
     dwin->dashed = 0;
@@ -108,8 +108,8 @@ window_textbuffer_t *win_textbuffer_create(window_t *win)
         dwin->lines[i].rhyper = 0;
         dwin->lines[i].len = 0;
         dwin->lines[i].newline = false;
-        memset(dwin->lines[i].chars, ' ', sizeof dwin->lines[i].chars);
-        memset(dwin->lines[i].attrs,   0, sizeof dwin->lines[i].attrs);
+        dwin->lines[i].chars.fill(' ');
+        dwin->lines[i].attrs.fill(attr_t{});
     }
 
     memcpy(dwin->styles, gli_tstyles, sizeof gli_tstyles);
@@ -322,7 +322,7 @@ void win_textbuffer_rearrange(window_t *win, rect_t *box)
 }
 
 static int calcwidth(window_textbuffer_t *dwin,
-    glui32 *chars, attr_t *attrs,
+    const glui32 *chars, const attr_t *attrs,
     int startchar, int numchars, int spw)
 {
     int w = 0;
@@ -343,6 +343,13 @@ static int calcwidth(window_textbuffer_t *dwin,
             chars + a, b - a, spw);
 
     return w;
+}
+
+static int calcwidth(window_textbuffer_t *dwin,
+    const std::array<glui32, TBLINELEN> &chars, const std::array<attr_t, TBLINELEN> attrs,
+    int startchar, int numchars, int spw)
+{
+    return calcwidth(dwin, chars.data(), attrs.data(), startchar, numchars, spw);
 }
 
 void win_textbuffer_redraw(window_t *win)
@@ -555,7 +562,7 @@ void win_textbuffer_redraw(window_t *win)
                 link = ln.attrs[a].hyper;
                 font = attrfont(dwin->styles, &ln.attrs[a]);
                 color = attrbg(dwin->styles, &ln.attrs[a]);
-                w = gli_string_width_uni(font, ln.chars + a, b - a, spw);
+                w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
                 gli_draw_rect(x/GLI_SUBPIX, y,
                         w/GLI_SUBPIX, gli_leading,
                         color);
@@ -575,7 +582,7 @@ void win_textbuffer_redraw(window_t *win)
         link = ln.attrs[a].hyper;
         font = attrfont(dwin->styles, &ln.attrs[a]);
         color = attrbg(dwin->styles, &ln.attrs[a]);
-        w = gli_string_width_uni(font, ln.chars + a, b - a, spw);
+        w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
         gli_draw_rect(x/GLI_SUBPIX, y, w/GLI_SUBPIX,
                 gli_leading, color);
         if (link)
@@ -619,7 +626,7 @@ void win_textbuffer_redraw(window_t *win)
                 font = attrfont(dwin->styles, &ln.attrs[a]);
                 color = link ? gli_link_color : attrfg(dwin->styles, &ln.attrs[a]);
                 x = gli_draw_string_uni(x, y + gli_baseline,
-                        font, color, ln.chars + a, b - a, spw);
+                        font, color, &ln.chars[a], b - a, spw);
                 a = b;
             }
         }
@@ -627,7 +634,7 @@ void win_textbuffer_redraw(window_t *win)
         font = attrfont(dwin->styles, &ln.attrs[a]);
         color = link ? gli_link_color : attrfg(dwin->styles, &ln.attrs[a]);
         gli_draw_string_uni(x, y + gli_baseline,
-                font, color, ln.chars + a, linelen - a, spw);
+                font, color, &ln.chars[a], linelen - a, spw);
     }
 
     /*
@@ -784,8 +791,8 @@ static void scrollresize(window_textbuffer_t *dwin)
 
     dwin->lines.resize(dwin->scrollback + SCROLLBACK);
 
-    dwin->chars = dwin->lines[0].chars;
-    dwin->attrs = dwin->lines[0].attrs;
+    dwin->chars = dwin->lines[0].chars.data();
+    dwin->attrs = dwin->lines[0].attrs.data();
 
     for (i = dwin->scrollback; i < (dwin->scrollback + SCROLLBACK); i++)
     {
@@ -799,8 +806,8 @@ static void scrollresize(window_textbuffer_t *dwin)
         dwin->lines[i].rhyper = 0;
         dwin->lines[i].len = 0;
         dwin->lines[i].newline = false;
-        memset(dwin->lines[i].chars, ' ', sizeof dwin->lines[i].chars);
-        memset(dwin->lines[i].attrs,   0, sizeof dwin->lines[i].attrs);
+        dwin->lines[i].chars.fill(' ');
+        dwin->lines[i].attrs.fill(attr_t{});
     }
 
     dwin->scrollback += SCROLLBACK;
@@ -857,8 +864,8 @@ static void scrolloneline(window_textbuffer_t *dwin, bool forced)
     dwin->lines[0].rpic = nullptr;
     dwin->lines[0].lhyper = 0;
     dwin->lines[0].rhyper = 0;
-    memset(dwin->chars, ' ', TBLINELEN * 4);
-    memset(dwin->attrs, 0, TBLINELEN * sizeof(attr_t));
+    dwin->lines[0].chars.fill(' ');
+    dwin->lines[0].attrs.fill(attr_t{});
 
     dwin->numchars = 0;
 

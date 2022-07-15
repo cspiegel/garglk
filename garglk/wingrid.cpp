@@ -82,7 +82,7 @@ void win_textgrid_destroy(window_textgrid_t *dwin)
 void win_textgrid_rearrange(window_t *win, rect_t *box)
 {
     int newwid, newhgt;
-    int k, i;
+    int k;
     window_textgrid_t *dwin = static_cast<window_textgrid_t *>(win->data);
     dwin->owner->bbox = *box;
 
@@ -94,9 +94,8 @@ void win_textgrid_rearrange(window_t *win, rect_t *box)
 
     for (k = dwin->height; k < newhgt; k++)
     {
-        for (i = 0; i < sizeof(dwin->lines[k].chars) / sizeof(glui32); i++)
-            dwin->lines[k].chars[i] = ' ';
-        memset(dwin->lines[k].attrs, 0, sizeof dwin->lines[k].attrs);
+        dwin->lines[k].chars.fill(' ');
+        dwin->lines[k].attrs.fill(attr_t{});
     }
 
     attrclear(&dwin->owner->attr);
@@ -106,11 +105,9 @@ void win_textgrid_rearrange(window_t *win, rect_t *box)
     for (k = 0; k < dwin->height; k++)
     {
         touch(dwin, k);
-        for (i = dwin->width; i < sizeof(dwin->lines[0].chars) / sizeof(glui32); i++)
-        {
-            dwin->lines[k].chars[i] = ' ';
-            attrclear(&dwin->lines[k].attrs[i]);
-        }
+        dwin->lines[k].chars.fill(' ');
+        for (auto &attr : dwin->lines[k].attrs)
+            attrclear(&attr);
     }
 }
 
@@ -130,7 +127,7 @@ void win_textgrid_redraw(window_t *win)
 
     for (i = 0; i < dwin->height; i++)
     {
-        ln = dwin->lines + i;
+        ln = &dwin->lines[i];
         if (ln->dirty || gli_force_redraw)
         {
             ln->dirty = 0;
@@ -157,7 +154,7 @@ void win_textgrid_redraw(window_t *win)
                     {
                         gli_draw_string_uni(o * GLI_SUBPIX,
                                 y + gli_baseline, font, fgcolor,
-                                ln->chars + k, 1, -1);
+                                &ln->chars[k], 1, -1);
                         o += gli_cellw;
                     }
                     if (link)
@@ -182,7 +179,7 @@ void win_textgrid_redraw(window_t *win)
             {
                 gli_draw_string_uni(o * GLI_SUBPIX,
                                     y + gli_baseline, font, fgcolor,
-                                    ln->chars + k, 1, -1);
+                                    &ln->chars[k], 1, -1);
                 o += gli_cellw;
             }
             if (link)
@@ -288,7 +285,7 @@ bool win_textgrid_unputchar_uni(window_t *win, glui32 ch)
 void win_textgrid_clear(window_t *win)
 {
     window_textgrid_t *dwin = static_cast<window_textgrid_t *>(win->data);
-    int k, j;
+    int k;
 
     win->attr.fgset = gli_override_fg_set;
     win->attr.bgset = gli_override_bg_set;
@@ -299,9 +296,8 @@ void win_textgrid_clear(window_t *win)
     for (k = 0; k < dwin->height; k++)
     {
         touch(dwin, k);
-        for (j = 0; j < (sizeof dwin->lines[k].chars / sizeof *dwin->lines[k].chars); j++)
-            dwin->lines[k].chars[j] = ' ';
-        memset(dwin->lines[k].attrs, 0, sizeof dwin->lines[k].attrs);
+        dwin->lines[k].chars.fill(' ');
+        dwin->lines[k].attrs.fill(attr_t{});
     }
 
     dwin->curx = 0;

@@ -604,7 +604,7 @@ static const std::vector<std::pair<std::vector<glui32>, glui32>> ligatures = {
     {{'f', 'l'}, UNI_LIG_FL},
 };
 
-static int gli_string_impl(int x, int fidx, glui32 *s, size_t n, int spw, std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> callback)
+static int gli_string_impl(int x, int fidx, const glui32 *s, size_t n, int spw, std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> callback)
 {
     auto &f = gfont_table.at(fidx);
     bool dolig = !FT_IS_FIXED_WIDTH(f.face);
@@ -675,7 +675,7 @@ int gli_draw_string_uni(int x, int y, int fidx, const unsigned char *rgb,
     });
 }
 
-int gli_string_width_uni(int fidx, glui32 *s, int n, int spw)
+int gli_string_width_uni(int fidx, const glui32 *s, int n, int spw)
 {
     return gli_string_impl(0, fidx, s, n, spw, [](int, const std::array<Bitmap, GLI_SUBPIX> &) {});
 }
