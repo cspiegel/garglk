@@ -290,10 +290,9 @@ glui32 glk_schannel_play(schanid_t chan, glui32 snd)
 glui32 glk_schannel_play_multi(schanid_t *chanarray, glui32 chancount,
         glui32 *sndarray, glui32 soundcount, glui32 notify)
 {
-    int i;
     int successes = 0;
 
-    for (i = 0; i < chancount; i++)
+    for (glui32 i = 0; i < chancount; i++)
     {
         successes += glk_schannel_play_ext(chanarray[i], sndarray[i], 1, notify);
     }
@@ -500,7 +499,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         }
 
         rewind(file);
-        if (fread(*buf, 1, *len, file) != *len && !feof(file))
+        if (fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file))
         {
             fclose(file);
             return 0;
@@ -577,7 +576,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         }
 
         fseek(file, pos, SEEK_SET);
-        if (fread(*buf, 1, *len, file) != *len && !feof(file)) return 0;
+        if (fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file)) return 0;
         return type;
     }
 }
