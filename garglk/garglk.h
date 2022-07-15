@@ -497,6 +497,9 @@ typedef struct
 #endif
 
 #ifdef __cplusplus
+// glk_window_struct needs to be visible to cheapglk, which is C, so it
+// stores a pointer to WinImpl for any C++ members; the equivalent C
+// struct is empty.
 struct WinImpl
 {
     std::vector<glui32> line_terminators;
