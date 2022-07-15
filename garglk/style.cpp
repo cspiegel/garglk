@@ -66,9 +66,9 @@ void glk_stylehint_set(glui32 wintype, glui32 style, glui32 hint, glsi32 val)
     }
 
     if (wintype == wintype_TextGrid)
-        styles = gli_gstyles;
+        styles = gli_gstyles.data();
     else if (wintype == wintype_TextBuffer)
-        styles = gli_tstyles;
+        styles = gli_tstyles.data();
     else
         return;
 
@@ -148,13 +148,13 @@ void glk_stylehint_clear(glui32 wintype, glui32 style, glui32 hint)
 
     if (wintype == wintype_TextGrid)
     {
-        styles = gli_gstyles;
-        defaults = gli_gstyles_def;
+        styles = gli_gstyles.data();
+        defaults = gli_gstyles_def.data();
     }
     else if (wintype == wintype_TextBuffer)
     {
-        styles = gli_tstyles;
-        defaults = gli_tstyles_def;
+        styles = gli_tstyles.data();
+        defaults = gli_tstyles_def.data();
     }
     else
     {
@@ -195,12 +195,12 @@ glui32 glk_style_distinguish(winid_t win, glui32 styl1, glui32 styl2)
     if (win->type == wintype_TextGrid)
     {
         window_textgrid_t *dwin = static_cast<window_textgrid_t *>(win->data);
-        return memcmp(dwin->styles+styl1, dwin->styles+styl2, sizeof(style_t));
+        return memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
     }
     if (win->type == wintype_TextBuffer)
     {
         window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
-        return memcmp(dwin->styles+styl1, dwin->styles+styl2, sizeof(style_t));
+        return memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
     }
     return 0;
 }
@@ -210,9 +210,9 @@ glui32 glk_style_measure(winid_t win, glui32 style, glui32 hint, glui32 *result)
     style_t *styles;
 
     if (win->type == wintype_TextGrid)
-        styles = (static_cast<window_textgrid_t*>(win->data))->styles;
+        styles = (static_cast<window_textgrid_t*>(win->data))->styles.data();
     else if (win->type == wintype_TextBuffer)
-        styles = (static_cast<window_textbuffer_t*>(win->data))->styles;
+        styles = (static_cast<window_textbuffer_t*>(win->data))->styles.data();
     else
         return false;
 
