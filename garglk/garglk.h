@@ -360,7 +360,9 @@ extern float gli_conf_monosize;
 extern float gli_conf_propaspect;
 extern float gli_conf_monoaspect;
 
-extern glui32 *gli_more_prompt;
+#ifdef __cplusplus
+extern std::vector<glui32> gli_more_prompt;
+#endif
 extern glui32 gli_more_prompt_len;
 extern int gli_more_align;
 extern int gli_more_font;

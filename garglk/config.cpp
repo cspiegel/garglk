@@ -136,7 +136,7 @@ glui32 gli_override_bg_val = 0;
 bool gli_override_reverse = false;
 
 static std::string base_more_prompt = "— more —";
-glui32 *gli_more_prompt;
+std::vector<glui32> gli_more_prompt;
 glui32 gli_more_prompt_len;
 int gli_more_align = 0;
 int gli_more_font = PROPB;
@@ -725,8 +725,8 @@ void gli_startup(int argc, char *argv[])
 
     gli_read_config(argc, argv);
 
-    gli_more_prompt = new glui32[1 + base_more_prompt.size()];
-    gli_more_prompt_len = gli_parse_utf8(reinterpret_cast<const unsigned char *>(base_more_prompt.data()), base_more_prompt.size(), gli_more_prompt, base_more_prompt.size());
+    gli_more_prompt.resize(base_more_prompt.size() + 1);
+    gli_more_prompt_len = gli_parse_utf8(reinterpret_cast<const unsigned char *>(base_more_prompt.data()), base_more_prompt.size(), gli_more_prompt.data(), base_more_prompt.size());
 
     std::memcpy(gli_tstyles_def, gli_tstyles, sizeof(gli_tstyles_def));
     std::memcpy(gli_gstyles_def, gli_gstyles, sizeof(gli_gstyles_def));
