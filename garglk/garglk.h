@@ -201,6 +201,10 @@ typedef struct piclist_s piclist_t;
 typedef struct style_s style_t;
 typedef struct mask_s mask_t;
 
+enum FACES { MONOR, MONOB, MONOI, MONOZ, PROPR, PROPB, PROPI, PROPZ };
+enum TYPES { MONOF, PROPF };
+enum STYLES { FONTR, FONTB, FONTI, FONTZ };
+
 struct rect_s
 {
     int x0, y0;
@@ -225,7 +229,7 @@ struct piclist_s
 
 struct style_s
 {
-    int font;
+    enum FACES font;
     unsigned char bg[3];
     unsigned char fg[3];
     bool reverse;
@@ -331,10 +335,6 @@ extern int gli_scroll_width;
 
 extern int gli_baseline;
 extern int gli_leading;
-
-enum FACES { MONOR, MONOB, MONOI, MONOZ, PROPR, PROPB, PROPI, PROPZ };
-enum TYPES { MONOF, PROPF };
-enum STYLES { FONTR, FONTB, FONTI, FONTZ };
 
 #ifdef __cplusplus
 struct gli_font_files {
@@ -562,7 +562,9 @@ struct window_textbuffer_s
     int spaced;
     int dashed;
 
-    tbline_t *lines;
+#ifdef __cplusplus
+    std::vector<tbline_t> lines;
+#endif
     int scrollback;
 
     int numchars;		/* number of chars in last line: lines[0] */

@@ -102,7 +102,7 @@ style_t gli_gstyles_def[style_NUMSTYLES];
 
 std::vector<garglk::ConfigFile> garglk::all_configs;
 
-static int font2idx(const std::string &font)
+static FACES font2idx(const std::string &font)
 {
     if (font == "monor") return MONOR;
     if (font == "monob") return MONOB;

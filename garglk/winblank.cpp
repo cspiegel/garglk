@@ -1,6 +1,6 @@
 /******************************************************************************
  *                                                                            *
- * Copyright (C) 2011 by Ben Cressey.                                         *
+ * Copyright (C) 2006-2009 by Tor Andersson.                                  *
  *                                                                            *
  * This file is part of Gargoyle.                                             *
  *                                                                            *
@@ -20,58 +20,31 @@
  *                                                                            *
  *****************************************************************************/
 
-#ifdef BABEL_HANDLER
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-
 #include "glk.h"
 #include "garglk.h"
 
-#include "treaty.h"
-#include "babel_handler.h"
-#include "ifiction.h"
+/* This code is just as simple as you think. A blank window does *nothing*. */
 
-void gli_initialize_babel(void)
+window_blank_t *win_blank_create(window_t *win)
 {
-    if (!strlen(gli_workfile))
-        return;
-
-    void *ctx = get_babel_ctx();
-    if (babel_init_ctx(gli_workfile, ctx))
-    {
-        int metaSize = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, NULL, 0, ctx);
-        if (metaSize > 0)
-        {
-            char *metaData = malloc(metaSize);
-            if (metaData)
-            {
-                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metaData, metaSize, ctx) > 0)
-                {
-                    char *storyTitle = ifiction_get_tag(metaData, "bibliographic", "title", NULL);
-                    char *storyAuthor = ifiction_get_tag(metaData, "bibliographic", "author", NULL);
-                    if (storyTitle && storyAuthor)
-                    {
-                        char title[256];
-                        snprintf(title, sizeof title, "%s - %s", storyTitle, storyAuthor);
-                        garglk_set_story_title(title);
-                    }
-                    free(storyTitle);
-                    free(storyAuthor);
-                }
-                free(metaData);
-            }
-        }
-    }
-    babel_release_ctx(ctx);
-    release_babel_ctx(ctx);
+    window_blank_t *dwin = new window_blank_t;
+    dwin->owner = win;
+    return dwin;
 }
 
-#else
-
-void gli_initialize_babel(void)
+void win_blank_destroy(window_blank_t *dwin)
 {
+    delete dwin;
 }
 
-#endif /* BABEL_HANDLER */
+void win_blank_rearrange(window_t *win, rect_t *box)
+{
+    window_blank_t *dwin = static_cast<window_blank_t *>(win->data);
+    dwin->owner->bbox = *box;
+}
+
+void win_blank_redraw(window_t *win)
+{
+}

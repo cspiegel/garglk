@@ -82,27 +82,27 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 
     /* Allocate destination image and scratch space */
 
-    dst = malloc(sizeof(picture_t));
+    dst = new picture_t;
     dst->refcount = 1;
     dst->w = newcols;
     dst->h = newrows;
-    dst->rgba = malloc(newcols * newrows * 4);
+    dst->rgba = new unsigned char[newcols * newrows * 4];
     dst->id = src->id;
     dst->scaled = true;
 
     xelrow = src->rgba;
     newxelrow = dst->rgba;
 
-    tempxelrow = malloc(cols * 4);
-    rs = malloc((cols + 1) * sizeof(long));
-    gs = malloc((cols + 1) * sizeof(long));
-    bs = malloc((cols + 1) * sizeof(long));
-    as = malloc((cols + 1) * sizeof(long));
+    tempxelrow = new unsigned char[cols * 4];
+    rs = new long[cols + 1];
+    gs = new long[cols + 1];
+    bs = new long[cols + 1];
+    as = new long[cols + 1];
 
     /* Compute all sizes and scales. */
 
-    xscale = (float) newcols / (float) cols;
-    yscale = (float) newrows / (float) rows;
+    xscale = static_cast<float>(newcols) / static_cast<float>(cols);
+    yscale = static_cast<float>(newrows) / static_cast<float>(rows);
     sxscale = xscale * SCALE;
     syscale = yscale * SCALE;
 
@@ -299,11 +299,11 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
         }
     }
 
-    free(as);
-    free(bs);
-    free(gs);
-    free(rs);
-    free(tempxelrow);
+    delete [] as;
+    delete [] bs;
+    delete [] gs;
+    delete [] rs;
+    delete [] tempxelrow;
 
     gli_picture_store(dst);
 
