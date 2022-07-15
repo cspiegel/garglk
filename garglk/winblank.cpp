@@ -39,8 +39,7 @@ void win_blank_destroy(window_blank_t *dwin)
 
 void win_blank_rearrange(window_t *win, rect_t *box)
 {
-    window_blank_t *dwin = static_cast<window_blank_t *>(win->data);
-    dwin->owner->bbox = *box;
+    win->window.blank->owner->bbox = *box;
 }
 
 void win_blank_redraw(window_t *win)

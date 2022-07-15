@@ -146,7 +146,7 @@ void win_textbuffer_destroy(window_textbuffer_t *dwin)
 
 static void reflow(window_t *win)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     int inputbyte = -1;
     attr_t curattr;
     attr_t oldattr;
@@ -271,7 +271,7 @@ static void reflow(window_t *win)
 
 void win_textbuffer_rearrange(window_t *win, rect_t *box)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     int newwid, newhgt;
     int rnd;
     int i;
@@ -352,7 +352,7 @@ static int calcwidth(window_textbuffer_t *dwin,
 
 void win_textbuffer_redraw(window_t *win)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     tbline_t ln;
     int linelen;
     int nsp, spw, pw;
@@ -970,7 +970,7 @@ static bool leftquote(uint32_t c)
 
 void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     glui32 bchars[TBLINELEN];
     attr_t battrs[TBLINELEN];
     int pw;
@@ -1142,7 +1142,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
 
 bool win_textbuffer_unputchar_uni(window_t *win, glui32 ch)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     if (dwin->numchars > 0 && glk_char_to_upper(dwin->chars[dwin->numchars - 1]) == glk_char_to_upper(ch))
     {
         dwin->numchars--;
@@ -1154,7 +1154,7 @@ bool win_textbuffer_unputchar_uni(window_t *win, glui32 ch)
 
 void win_textbuffer_clear(window_t *win)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     int i;
 
     win->attr.fgset = gli_override_fg_set;
@@ -1200,7 +1200,7 @@ void win_textbuffer_clear(window_t *win)
 /* Prepare the window for line input. */
 static void win_textbuffer_init_impl(window_t *win, void *buf, int maxlen, int initlen, bool unicode)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     int pw;
 
     gli_tts_flush();
@@ -1256,7 +1256,7 @@ void win_textbuffer_init_line_uni(window_t *win, glui32 *buf, int maxlen, int in
 /* Abort line input, storing whatever's been typed so far. */
 void win_textbuffer_cancel_line(window_t *win, event_t *ev)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     gidispatch_rock_t inarrayrock;
     int ix;
     int len;
@@ -1329,7 +1329,7 @@ void win_textbuffer_cancel_line(window_t *win, event_t *ev)
 /* Any key, when text buffer is scrolled. */
 bool gcmd_accept_scroll(window_t *win, glui32 arg)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     int pageht = dwin->height - 2;        /* 1 for prompt, 1 for overlap */
     bool startpos = dwin->scrollpos != 0;
 
@@ -1377,7 +1377,7 @@ bool gcmd_accept_scroll(window_t *win, glui32 arg)
 /* Any key, during character input. Ends character input. */
 void gcmd_buffer_accept_readchar(window_t *win, glui32 arg)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     glui32 key;
 
     if (dwin->height < 2)
@@ -1425,7 +1425,7 @@ static void acceptline(window_t *win, glui32 keycode)
     glui32 *s, *o;
     int inmax, inunicode;
     gidispatch_rock_t inarrayrock;
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
 
     if (!dwin->inbuf)
         return;
@@ -1546,7 +1546,7 @@ static void acceptline(window_t *win, glui32 keycode)
 /* Any key, during line input. */
 void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
 {
-    window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+    window_textbuffer_t *dwin = win->window.textbuffer;
     glui32 *cx;
     int len;
 

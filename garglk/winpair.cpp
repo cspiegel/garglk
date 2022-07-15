@@ -51,7 +51,7 @@ void win_pair_destroy(window_pair_t *dwin)
 
 void win_pair_rearrange(window_t *win, rect_t *box)
 {
-    window_pair_t *dwin = static_cast<window_pair_t *>(win->data);
+    window_pair_t *dwin = win->window.pair;
     rect_t box1, box2;
     int min, diff, split, splitwid, max;
     window_t *key;
@@ -186,7 +186,7 @@ void win_pair_redraw(window_t *win)
     if (!win)
         return;
 
-    dwin = static_cast<window_pair_t *>(win->data);
+    dwin = win->window.pair;
 
     gli_window_redraw(dwin->child1);
     gli_window_redraw(dwin->child2);

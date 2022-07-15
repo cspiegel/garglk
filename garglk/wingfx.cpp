@@ -75,7 +75,7 @@ void win_graphics_destroy(window_graphics_t *dwin)
 
 void win_graphics_rearrange(window_t *win, rect_t *box)
 {
-    window_graphics_t *dwin = static_cast<window_graphics_t *>(win->data);
+    window_graphics_t *dwin = win->window.graphics;
     int newwid, newhgt;
     int bothwid, bothhgt;
     int oldw, oldh;
@@ -132,14 +132,14 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
 
 void win_graphics_get_size(window_t *win, glui32 *width, glui32 *height)
 {
-    window_graphics_t *dwin = static_cast<window_graphics_t *>(win->data);
+    window_graphics_t *dwin = win->window.graphics;
     *width = dwin->w;
     *height = dwin->h;
 }
 
 void win_graphics_redraw(window_t *win)
 {
-    window_graphics_t *dwin = static_cast<window_graphics_t *>(win->data);
+    window_graphics_t *dwin = win->window.graphics;
     int x, y;
 
     int x0 = win->bbox.x0;
