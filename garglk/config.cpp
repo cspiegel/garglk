@@ -22,6 +22,7 @@
  *****************************************************************************/
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cerrno>
 #include <cmath>
@@ -147,7 +148,7 @@ int gli_caret_shape = 2;
 int gli_link_style = 1;
 
 bool gli_conf_lcd = true;
-unsigned char gli_conf_lcd_weights[5] = {28, 56, 85, 56, 28};
+std::array<unsigned char, 5> gli_conf_lcd_weights = {28, 56, 85, 56, 28};
 
 int gli_wmarginx = 20;
 int gli_wmarginy = 20;
@@ -574,8 +575,8 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
             while (argstream >> weight)
                 weights.push_back(weight);
 
-            if (weights.size() == 5)
-                std::memcpy(gli_conf_lcd_weights, &weights[0], sizeof gli_conf_lcd_weights);
+            if (weights.size() == gli_conf_lcd_weights.size())
+                std::copy(weights.begin(), weights.end(), gli_conf_lcd_weights.begin());
         } else if (cmd == "caretshape") {
             gli_caret_shape = clamp(std::stoi(arg), 0, 4);
         } else if (cmd == "linkstyle") {

@@ -301,7 +301,9 @@ extern float gli_backingscalefactor;
 extern float gli_zoom;
 
 extern bool gli_conf_lcd;
-extern unsigned char gli_conf_lcd_weights[5];
+#ifdef __cplusplus
+extern std::array<unsigned char, 5> gli_conf_lcd_weights;
+#endif
 
 extern bool gli_conf_graphics;
 extern bool gli_conf_sound;

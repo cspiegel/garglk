@@ -186,7 +186,7 @@ const FontEntry &Font::getglyph(glui32 cid)
                 if (use_freetype_preset_filter)
                     FT_Library_SetLcdFilter(ftlib, freetype_preset_filter);
                 else
-                    FT_Library_SetLcdFilterWeights(ftlib, gli_conf_lcd_weights);
+                    FT_Library_SetLcdFilterWeights(ftlib, gli_conf_lcd_weights.data());
 
                 err = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_LCD);
             }
