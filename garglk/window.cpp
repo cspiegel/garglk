@@ -22,6 +22,7 @@
  *****************************************************************************/
 
 #include <array>
+#include <new>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,8 +115,8 @@ static void gli_windows_rearrange()
 window_t *gli_new_window(glui32 type, glui32 rock)
 {
     window_t *win = new window_t;
-    if (!win)
-        return nullptr;
+
+    win->impl = new WinImpl;
 
     win->magicnum = MAGIC_WINDOW_NUM;
     win->rock = rock;
@@ -136,8 +137,6 @@ window_t *gli_new_window(glui32 type, glui32 rock)
     win->image_loaded = false;
 
     win->echo_line_input = true;
-    win->line_terminators = nullptr;
-    win->termct = 0;
 
     attrclear(&win->attr);
     memcpy(win->bgcolor, gli_window_color, 3);
@@ -173,9 +172,6 @@ void gli_delete_window(window_t *win)
         gli_delete_stream(win->str);
         win->str = nullptr;
     }
-
-    delete [] win->line_terminators;
-    win->line_terminators = nullptr;
 
     prev = win->prev;
     next = win->next;
@@ -1099,21 +1095,17 @@ void glk_set_terminators_line_event(winid_t win, glui32 *keycodes, glui32 count)
             return;
     }
 
-    delete [] win->line_terminators;
+    win->impl->line_terminators.clear();
 
-    if (!keycodes || count == 0)
+    if (keycodes != nullptr && count != 0)
     {
-        win->line_terminators = nullptr;
-        win->termct = 0;
-    }
-    else
-    {
-        win->line_terminators = new glui32[count + 1];
-        if (win->line_terminators)
+        try
         {
-            memcpy(win->line_terminators, keycodes, count * sizeof(glui32));
-            win->line_terminators[count] = 0;
-            win->termct = count;
+            win->impl->line_terminators.resize(count);
+            std::copy(&keycodes[0], &keycodes[count], win->impl->line_terminators.begin());
+        }
+        catch (const std::bad_alloc &)
+        {
         }
     }
 }
