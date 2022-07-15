@@ -567,6 +567,7 @@ typedef struct tbline_s
     attr_t attrs[TBLINELEN];
 } tbline_t;
 
+#ifdef __cplusplus
 struct window_textbuffer_s
 {
     window_t *owner;
@@ -575,9 +576,7 @@ struct window_textbuffer_s
     int spaced;
     int dashed;
 
-#ifdef __cplusplus
     std::vector<tbline_t> lines;
-#endif
     int scrollback;
 
     int numchars;		/* number of chars in last line: lines[0] */
@@ -619,6 +618,7 @@ struct window_textbuffer_s
     glui32 *copybuf;
     int copypos;
 };
+#endif
 
 struct window_graphics_s
 {
