@@ -21,6 +21,7 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <algorithm>
 #include <new>
 
 #include <stdio.h>
@@ -83,7 +84,6 @@ window_textbuffer_t *win_textbuffer_create(window_t *win)
 
     dwin->inbuf = nullptr;
     dwin->inunicode = false;
-    dwin->line_terminators = nullptr;
     dwin->echo_line_input = true;
 
     dwin->ladjw = dwin->radjw = 0;
@@ -137,7 +137,6 @@ void win_textbuffer_destroy(window_textbuffer_t *dwin)
     dwin->owner = nullptr;
 
     delete [] dwin->copybuf;
-    delete [] dwin->line_terminators;
 
     for (i = 0; i < dwin->scrollback; i++) {
         gli_picture_decrement(dwin->lines[i].lpic);
@@ -1233,14 +1232,7 @@ static void win_textbuffer_init_impl(window_t *win, void *buf, int maxlen, int i
     }
 
     dwin->echo_line_input = win->echo_line_input;
-
-    if (win->line_terminators && win->termct)
-    {
-        dwin->line_terminators = new glui32[win->termct + 1];
-
-        memcpy(dwin->line_terminators, win->line_terminators, win->termct * sizeof(glui32));
-        dwin->line_terminators[win->termct] = 0;
-    }
+    dwin->line_terminators = win->impl->line_terminators;
 
     if (gli_register_arr)
         dwin->inarrayrock = (*gli_register_arr)(dwin->inbuf, maxlen, const_cast<char *>(unicode ? "&+#!Iu" : "&+#!Cn"));
@@ -1306,8 +1298,7 @@ void win_textbuffer_cancel_line(window_t *win, event_t *ev)
 
     win->line_request = false;
     win->line_request_uni = false;
-    delete [] dwin->line_terminators;
-    dwin->line_terminators = nullptr;
+    win->impl->line_terminators.clear();
     dwin->inbuf = nullptr;
     dwin->inmax = 0;
 
@@ -1513,14 +1504,13 @@ static void acceptline(window_t *win, glui32 keycode)
 
     win->attr = dwin->origattr;
 
-    if (dwin->line_terminators)
+    if (!dwin->line_terminators.empty())
     {
         glui32 val2 = keycode;
         if (val2 == keycode_Return)
             val2 = 0;
         gli_event_store(evtype_LineInput, win, len, val2);
-        delete [] dwin->line_terminators;
-        dwin->line_terminators = nullptr;
+        dwin->line_terminators.clear();
     }
     else
     {
@@ -1569,15 +1559,12 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
     if (!dwin->inbuf)
         return;
 
-    if (dwin->line_terminators && gli_window_check_terminator(arg))
+    if (!dwin->line_terminators.empty() && gli_window_check_terminator(arg))
     {
-        for (cx = dwin->line_terminators; *cx; cx++)
+        if (std::find(dwin->line_terminators.begin(), dwin->line_terminators.end(), arg) != dwin->line_terminators.end())
         {
-            if (*cx == arg)
-            {
-                acceptline(win, arg);
-                return;
-            }
+            acceptline(win, arg);
+            return;
         }
     }
 

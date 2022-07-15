@@ -481,6 +481,17 @@ typedef struct attr_s
     glui32 hyper;
 } attr_t;
 
+#ifdef __cplusplus
+struct WinImpl
+{
+    std::vector<glui32> line_terminators;
+};
+#else
+struct WinImpl
+{
+};
+#endif
+
 struct glk_window_struct
 {
     glui32 magicnum;
@@ -506,8 +517,7 @@ struct glk_window_struct
     bool image_loaded;
 
     bool echo_line_input;
-    glui32 *line_terminators;
-    glui32 termct;
+    struct WinImpl *impl;
 
     attr_t attr;
     unsigned char bgcolor[3];
@@ -545,6 +555,7 @@ typedef struct tgline_s
     attr_t attrs[256];
 } tgline_t;
 
+#ifdef __cplusplus
 struct window_textgrid_s
 {
     window_t *owner;
@@ -562,7 +573,7 @@ struct window_textgrid_s
     int incurs, inlen;
     attr_t origattr;
     gidispatch_rock_t inarrayrock;
-    glui32 *line_terminators;
+    std::vector<glui32> line_terminators;
 
     /* style hints and settings */
     style_t styles[style_NUMSTYLES];
@@ -579,7 +590,6 @@ typedef struct tbline_s
     attr_t attrs[TBLINELEN];
 } tbline_t;
 
-#ifdef __cplusplus
 struct window_textbuffer_s
 {
     window_t *owner;
@@ -621,7 +631,7 @@ struct window_textbuffer_s
     gidispatch_rock_t inarrayrock;
 
     bool echo_line_input;
-    glui32 *line_terminators;
+    std::vector<glui32> line_terminators;
 
     /* style hints and settings */
     style_t styles[style_NUMSTYLES];
