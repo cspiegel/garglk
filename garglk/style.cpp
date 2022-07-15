@@ -194,12 +194,12 @@ glui32 glk_style_distinguish(winid_t win, glui32 styl1, glui32 styl2)
 {
     if (win->type == wintype_TextGrid)
     {
-        window_textgrid_t *dwin = static_cast<window_textgrid_t *>(win->data);
+        window_textgrid_t *dwin = win->window.textgrid;
         return std::memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
     }
     if (win->type == wintype_TextBuffer)
     {
-        window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+        window_textbuffer_t *dwin = win->window.textbuffer;
         return std::memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
     }
     return 0;
@@ -210,9 +210,9 @@ glui32 glk_style_measure(winid_t win, glui32 style, glui32 hint, glui32 *result)
     style_t *styles;
 
     if (win->type == wintype_TextGrid)
-        styles = (static_cast<window_textgrid_t*>(win->data))->styles.data();
+        styles = win->window.textgrid->styles.data();
     else if (win->type == wintype_TextBuffer)
-        styles = (static_cast<window_textbuffer_t*>(win->data))->styles.data();
+        styles = win->window.textbuffer->styles.data();
     else
         return false;
 

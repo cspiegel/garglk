@@ -492,7 +492,13 @@ struct glk_window_struct
     window_t *parent; /* pair window which contains this one */
     rect_t bbox;
     int yadj;
-    void *data; /* one of the window_*_t structures */
+    union {
+        window_textgrid_t *textgrid;
+        window_textbuffer_t *textbuffer;
+        window_graphics_t *graphics;
+        window_blank_t *blank;
+        window_pair_t *pair;
+    } window;
 
     stream_t *str; /* the window stream. */
     stream_t *echostr; /* the window's echo stream, if any. */

@@ -121,7 +121,6 @@ window_t *gli_new_window(glui32 type, glui32 rock)
     win->type = type;
 
     win->parent = nullptr; /* for now */
-    win->data = nullptr; /* for now */
     win->yadj = 0;
 
     win->char_request = false;
@@ -249,16 +248,16 @@ winid_t glk_window_open(winid_t splitwin,
     switch (wintype)
     {
         case wintype_Blank:
-            newwin->data = win_blank_create(newwin);
+            newwin->window.blank = win_blank_create(newwin);
             break;
         case wintype_TextGrid:
-            newwin->data = win_textgrid_create(newwin);
+            newwin->window.textgrid = win_textgrid_create(newwin);
             break;
         case wintype_TextBuffer:
-            newwin->data = win_textbuffer_create(newwin);
+            newwin->window.textbuffer = win_textbuffer_create(newwin);
             break;
         case wintype_Graphics:
-            newwin->data = win_graphics_create(newwin);
+            newwin->window.graphics = win_graphics_create(newwin);
             break;
         case wintype_Pair:
             gli_strict_warning("window_open: cannot open pair window directly");
@@ -271,12 +270,6 @@ winid_t glk_window_open(winid_t splitwin,
             return nullptr;
     }
 
-    if (!newwin->data)
-    {
-        gli_strict_warning("window_open: unable to create window");
-        return nullptr;
-    }
-
     if (!splitwin)
     {
         gli_rootwin = newwin;
@@ -286,7 +279,7 @@ winid_t glk_window_open(winid_t splitwin,
         /* create pairwin, with newwin as the key */
         pairwin = gli_new_window(wintype_Pair, 0);
         dpairwin = win_pair_create(pairwin, method, newwin, size);
-        pairwin->data = dpairwin;
+        pairwin->window.pair = dpairwin;
 
         dpairwin->child1 = splitwin;
         dpairwin->child2 = newwin;
@@ -297,7 +290,7 @@ winid_t glk_window_open(winid_t splitwin,
 
         if (oldparent)
         {
-            window_pair_t *dparentwin = static_cast<window_pair_t *>(oldparent->data);
+            window_pair_t *dparentwin = oldparent->window.pair;
             if (dparentwin->child1 == splitwin)
                 dparentwin->child1 = pairwin;
             else
@@ -325,7 +318,7 @@ static void gli_window_close(window_t *win, bool recurse)
     {
         if (wx->type == wintype_Pair)
         {
-            window_pair_t *dwx = static_cast<window_pair_t *>(wx->data);
+            window_pair_t *dwx = wx->window.pair;
             if (dwx->key == win)
             {
                 dwx->key = nullptr;
@@ -341,13 +334,13 @@ static void gli_window_close(window_t *win, bool recurse)
     {
         case wintype_Blank:
         {
-            window_blank_t *dwin = static_cast<window_blank_t *>(win->data);
+            window_blank_t *dwin = win->window.blank;
             win_blank_destroy(dwin);
         }
         break;
         case wintype_Pair:
         {
-            window_pair_t *dwin = static_cast<window_pair_t *>(win->data);
+            window_pair_t *dwin = win->window.pair;
             if (recurse)
             {
                 if (dwin->child1)
@@ -360,19 +353,19 @@ static void gli_window_close(window_t *win, bool recurse)
         break;
         case wintype_TextBuffer:
         {
-            window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
+            window_textbuffer_t *dwin = win->window.textbuffer;
             win_textbuffer_destroy(dwin);
         }
         break;
         case wintype_TextGrid:
         {
-            window_textgrid_t *dwin = static_cast<window_textgrid_t *>(win->data);
+            window_textgrid_t *dwin = win->window.textgrid;
             win_textgrid_destroy(dwin);
         }
         break;
         case wintype_Graphics:
         {
-            window_graphics_t *dwin = static_cast<window_graphics_t *>(win->data);
+            window_graphics_t *dwin = win->window.graphics;
             win_graphics_destroy(dwin);
         }
         break;
@@ -410,7 +403,7 @@ void glk_window_close(window_t *win, stream_result_t *result)
         window_pair_t *dpairwin, *dgrandparwin;
 
         pairwin = win->parent;
-        dpairwin = static_cast<window_pair_t *>(pairwin->data);
+        dpairwin = pairwin->window.pair;
         if (win == dpairwin->child1)
         {
             sibwin = dpairwin->child2;
@@ -433,7 +426,7 @@ void glk_window_close(window_t *win, stream_result_t *result)
         }
         else
         {
-            dgrandparwin = static_cast<window_pair_t *>(grandparwin->data);
+            dgrandparwin = grandparwin->window.pair;
             if (dgrandparwin->child1 == pairwin)
                 dgrandparwin->child1 = sibwin;
             else
@@ -482,7 +475,7 @@ void glk_window_get_arrangement(window_t *win, glui32 *method, glui32 *size,
         return;
     }
 
-    dwin = static_cast<window_pair_t *>(win->data);
+    dwin = win->window.pair;
 
     val = dwin->dir | dwin->division;
     if (!dwin->wborder)
@@ -545,7 +538,7 @@ void glk_window_set_arrangement(window_t *win, glui32 method, glui32 size, winid
         }
     }
 
-    dwin = static_cast<window_pair_t *>(win->data);
+    dwin = win->window.pair;
 
     newdir = method & winmethod_DirMask;
     newvertical = (newdir == winmethod_Left || newdir == winmethod_Right);
@@ -640,7 +633,7 @@ void gli_calc_padding(window_t *win, int *x, int *y)
         return;
     if (win->type == wintype_Pair)
     {
-        wp = static_cast<window_pair_t *>(win->data);
+        wp = win->window.pair;
         if (wp->vertical)
             *x += gli_wpaddingx;
         else
@@ -680,7 +673,7 @@ window_t *gli_window_iterate_treeorder(window_t *win)
 
     if (win->type == wintype_Pair)
     {
-        window_pair_t *dwin = static_cast<window_pair_t *>(win->data);
+        window_pair_t *dwin = win->window.pair;
         if (!dwin->backward)
             return dwin->child1;
         else
@@ -694,7 +687,7 @@ window_t *gli_window_iterate_treeorder(window_t *win)
         while (win->parent)
         {
             parwin = win->parent;
-            dwin = static_cast<window_pair_t *>(parwin->data);
+            dwin = parwin->window.pair;
             if (!dwin->backward)
             {
                 if (win == dwin->child1)
@@ -755,7 +748,7 @@ winid_t glk_window_get_sibling(window_t *win)
     if (!win->parent)
         return nullptr;
 
-    dparwin = static_cast<window_pair_t *>(win->parent->data);
+    dparwin = win->parent->window.pair;
     if (dparwin->child1 == win)
         return dparwin->child2;
     else if (dparwin->child2 == win)
@@ -1257,16 +1250,16 @@ void gli_window_click(window_t *win, int x, int y)
     switch (win->type)
     {
         case wintype_Pair:
-            win_pair_click(static_cast<window_pair_t *>(win->data), x, y);
+            win_pair_click(win->window.pair, x, y);
             break;
         case wintype_TextBuffer:
-            win_textbuffer_click(static_cast<window_textbuffer_t *>(win->data), x, y);
+            win_textbuffer_click(win->window.textbuffer, x, y);
             break;
         case wintype_TextGrid:
-            win_textgrid_click(static_cast<window_textgrid_t *>(win->data), x, y);
+            win_textgrid_click(win->window.textgrid, x, y);
             break;
         case wintype_Graphics:
-            win_graphics_click(static_cast<window_graphics_t *>(win->data), x, y);
+            win_graphics_click(win->window.graphics, x, y);
             break;
     }
 }
@@ -1332,7 +1325,7 @@ void glk_window_clear(window_t *win)
             win_textgrid_clear(win);
             break;
         case wintype_Graphics:
-            win_graphics_erase_rect(static_cast<window_graphics_t *>(win->data), true, 0, 0, 0, 0);
+            win_graphics_erase_rect(win->window.graphics, true, 0, 0, 0, 0);
             break;
     }
 }
@@ -1374,10 +1367,10 @@ glui32 glk_image_draw(winid_t win, glui32 image, glsi32 val1, glsi32 val2)
     switch (win->type)
     {
         case wintype_TextBuffer:
-            return win_textbuffer_draw_picture(static_cast<window_textbuffer_t *>(win->data), image, val1,
+            return win_textbuffer_draw_picture(win->window.textbuffer, image, val1,
                     false, 0, 0);
         case wintype_Graphics:
-            return win_graphics_draw_picture(static_cast<window_graphics_t *>(win->data), image, val1, val2,
+            return win_graphics_draw_picture(win->window.graphics, image, val1, val2,
                     false, 0, 0);
     }
     return false;
@@ -1398,10 +1391,10 @@ glui32 glk_image_draw_scaled(winid_t win, glui32 image,
     switch (win->type)
     {
         case wintype_TextBuffer:
-            return win_textbuffer_draw_picture(static_cast<window_textbuffer_t *>(win->data), image, val1,
+            return win_textbuffer_draw_picture(win->window.textbuffer, image, val1,
                     true, width, height);
         case wintype_Graphics:
-            return win_graphics_draw_picture(static_cast<window_graphics_t *>(win->data), image, val1, val2,
+            return win_graphics_draw_picture(win->window.graphics, image, val1, val2,
                     true, width, height);
     }
 
@@ -1439,7 +1432,7 @@ void glk_window_flow_break(winid_t win)
         gli_strict_warning("window_flow_break: not a text buffer window");
         return;
     }
-    win_textbuffer_flow_break(static_cast<window_textbuffer_t *>(win->data));
+    win_textbuffer_flow_break(win->window.textbuffer);
 }
 
 void glk_window_erase_rect(winid_t win,
@@ -1455,7 +1448,7 @@ void glk_window_erase_rect(winid_t win,
         gli_strict_warning("window_erase_rect: not a graphics window");
         return;
     }
-    win_graphics_erase_rect(static_cast<window_graphics_t *>(win->data), false, left, top, width, height);
+    win_graphics_erase_rect(win->window.graphics, false, left, top, width, height);
 }
 
 void glk_window_fill_rect(winid_t win, glui32 color,
@@ -1471,7 +1464,7 @@ void glk_window_fill_rect(winid_t win, glui32 color,
         gli_strict_warning("window_fill_rect: not a graphics window");
         return;
     }
-    win_graphics_fill_rect(static_cast<window_graphics_t *>(win->data), color, left, top, width, height);
+    win_graphics_fill_rect(win->window.graphics, color, left, top, width, height);
 }
 
 void glk_window_set_background_color(winid_t win, glui32 color)
@@ -1486,7 +1479,7 @@ void glk_window_set_background_color(winid_t win, glui32 color)
         gli_strict_warning("window_set_background_color: not a graphics window");
         return;
     }
-    win_graphics_set_background_color(static_cast<window_graphics_t *>(win->data), color);
+    win_graphics_set_background_color(win->window.graphics, color);
 }
 
 void attrset(attr_t *attr, glui32 style)
