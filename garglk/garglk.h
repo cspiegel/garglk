@@ -199,7 +199,6 @@ typedef struct rect_s rect_t;
 typedef struct picture_s picture_t;
 typedef struct piclist_s piclist_t;
 typedef struct style_s style_t;
-typedef struct mask_s mask_t;
 
 enum FACES { MONOR, MONOB, MONOI, MONOZ, PROPR, PROPB, PROPI, PROPZ };
 enum TYPES { MONOF, PROPF };
@@ -236,20 +235,12 @@ struct style_s
 };
 
 #ifdef __cplusplus
-struct mask_s
+struct mask_t
 {
     bool initialized = false;
     int hor = 0;
     int ver = 0;
     std::vector<std::vector<glui32>> links;
-    rect_t select;
-};
-#else
-struct mask_s
-{
-    int hor;
-    int ver;
-    glui32 **links;
     rect_t select;
 };
 #endif
