@@ -21,11 +21,9 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <cassert>
+#include <cstdio>
 #include <memory>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
 
 #include <png.h>
 #include <jpeglib.h>
@@ -196,7 +194,7 @@ static void gli_picture_discard(picture_t *pic)
 picture_t *gli_picture_load(unsigned long id)
 {
     picture_t *pic;
-    FILE *fl;
+    std::FILE *fl;
     bool closeafter;
     glui32 chunktype;
 
@@ -211,14 +209,14 @@ picture_t *gli_picture_load(unsigned long id)
         std::string filename = gli_workdir + "/PIC" + std::to_string(id);
 
         closeafter = true;
-        fl = fopen(filename.c_str(), "rb");
+        fl = std::fopen(filename.c_str(), "rb");
         if (!fl)
             return nullptr;
 
-        if (fread(buf, 1, 8, fl) != 8)
+        if (std::fread(buf, 1, 8, fl) != 8)
         {
             /* Can't read the first few bytes. Forget it. */
-            fclose(fl);
+            std::fclose(fl);
             return nullptr;
         }
 
@@ -233,11 +231,11 @@ picture_t *gli_picture_load(unsigned long id)
         else
         {
             /* Not a readable file. Forget it. */
-            fclose(fl);
+            std::fclose(fl);
             return nullptr;
         }
 
-        rewind(fl);
+        std::rewind(fl);
     }
 
     else
@@ -246,7 +244,7 @@ picture_t *gli_picture_load(unsigned long id)
         giblorb_get_resource(giblorb_ID_Pict, id, &fl, &pos, nullptr, &chunktype);
         if (!fl)
             return nullptr;
-        fseek(fl, pos, SEEK_SET);
+        std::fseek(fl, pos, SEEK_SET);
         closeafter = false;
     }
 
@@ -278,7 +276,7 @@ picture_t *gli_picture_load(unsigned long id)
     return pic;
 }
 
-static void load_image_jpeg(FILE *fl, picture_t *pic)
+static void load_image_jpeg(std::FILE *fl, picture_t *pic)
 {
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -322,7 +320,7 @@ static void load_image_jpeg(FILE *fl, picture_t *pic)
     jpeg_destroy_decompress(&cinfo);
 }
 
-static void load_image_png(FILE *fl, picture_t *pic)
+static void load_image_png(std::FILE *fl, picture_t *pic)
 {
     int ix, x, y;
     int srcrowbytes;

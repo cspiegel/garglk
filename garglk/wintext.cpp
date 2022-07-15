@@ -22,11 +22,9 @@
  *****************************************************************************/
 
 #include <algorithm>
+#include <cstring>
 #include <new>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "glk.h"
 #include "garglk.h"
 
@@ -882,10 +880,10 @@ static void put_text(window_textbuffer_t *dwin, char *buf, int len, int pos, int
 
     if (diff != 0 && pos + oldlen < dwin->numchars)
     {
-        memmove(dwin->chars + pos + len,
+        std::memmove(dwin->chars + pos + len,
                 dwin->chars + pos + oldlen,
                 (dwin->numchars - (pos + oldlen)) * 4);
-        memmove(dwin->attrs + pos + len,
+        std::memmove(dwin->attrs + pos + len,
                 dwin->attrs + pos + oldlen,
                 (dwin->numchars - (pos + oldlen)) * sizeof(attr_t));
     }
@@ -920,17 +918,17 @@ static void put_text_uni(window_textbuffer_t *dwin, glui32 *buf, int len, int po
 
     if (diff != 0 && pos + oldlen < dwin->numchars)
     {
-        memmove(dwin->chars + pos + len,
+        std::memmove(dwin->chars + pos + len,
                 dwin->chars + pos + oldlen,
                 (dwin->numchars - (pos + oldlen)) * 4);
-        memmove(dwin->attrs + pos + len,
+        std::memmove(dwin->attrs + pos + len,
                 dwin->attrs + pos + oldlen,
                 (dwin->numchars - (pos + oldlen)) * sizeof(attr_t));
     }
     if (len > 0)
     {
         int i;
-        memmove(dwin->chars + pos, buf, len * 4);
+        std::memmove(dwin->chars + pos, buf, len * 4);
         for (i = 0; i < len; i++)
             attrset(&dwin->attrs[pos+i], style_Input);
     }
@@ -1068,7 +1066,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     }
 
     if (gli_conf_spaces && win->attr.style != style_Preformatted
-        && memcmp(dwin->styles[win->attr.style].bg, color, sizeof dwin->styles[win->attr.style].bg) == 0
+        && std::memcmp(dwin->styles[win->attr.style].bg, color, sizeof dwin->styles[win->attr.style].bg) == 0
         && !dwin->styles[win->attr.style].reverse)
     {
         /* turn (period space space) into (period space) */
@@ -1128,14 +1126,14 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
 
         saved = dwin->numchars - bpoint;
 
-        memcpy(bchars, dwin->chars + bpoint, saved * 4);
-        memcpy(battrs, dwin->attrs + bpoint, saved * sizeof(attr_t));
+        std::memcpy(bchars, dwin->chars + bpoint, saved * 4);
+        std::memcpy(battrs, dwin->attrs + bpoint, saved * sizeof(attr_t));
         dwin->numchars = bpoint;
 
         scrolloneline(dwin, false);
 
-        memcpy(dwin->chars, bchars, saved * 4);
-        memcpy(dwin->attrs, battrs, saved * sizeof(attr_t));
+        std::memcpy(dwin->chars, bchars, saved * 4);
+        std::memcpy(dwin->attrs, battrs, saved * sizeof(attr_t));
         dwin->numchars = saved;
     }
 
@@ -1458,7 +1456,7 @@ static void acceptline(window_t *win, glui32 keycode)
     if (len)
     {
         s = new glui32[len + 1];
-        memcpy(s, dwin->chars + dwin->infence, len * sizeof(glui32));
+        std::memcpy(s, dwin->chars + dwin->infence, len * sizeof(glui32));
         s[len] = 0;
 
         delete [] dwin->history[dwin->historypresent];
@@ -1467,7 +1465,7 @@ static void acceptline(window_t *win, glui32 keycode)
         o = dwin->history[(dwin->historypresent == 0 ? HISTORYLEN : dwin->historypresent) - 1];
         olen = o ? gli_strlen_uni(o) : 0;
 
-        if (len != olen || memcmp(s, o, olen * sizeof(glui32)))
+        if (len != olen || std::memcmp(s, o, olen * sizeof(glui32)))
         {
             dwin->history[dwin->historypresent] = s;
 
@@ -1589,7 +1587,7 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
                 if (len > 0)
                 {
                     cx = new glui32[len + 1];
-                    memcpy(cx, &(dwin->chars[dwin->infence]), len * 4);
+                    std::memcpy(cx, &(dwin->chars[dwin->infence]), len * 4);
                     cx[len] = 0;
                 }
                 else

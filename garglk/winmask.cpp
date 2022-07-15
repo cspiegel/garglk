@@ -23,9 +23,6 @@
 #include <algorithm>
 #include <new>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "glk.h"
 #include "garglk.h"
 

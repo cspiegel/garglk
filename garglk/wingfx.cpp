@@ -21,9 +21,8 @@
  *                                                                            *
  *****************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstring>
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -111,7 +110,7 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
     if (bothwid && bothhgt)
     {
         for (y = 0; y < bothhgt; y++)
-            memcpy(newrgb + y * newwid * 3,
+            std::memcpy(newrgb + y * newwid * 3,
                     dwin->rgb + y * oldw * 3,
                     bothwid * 3);
     }
