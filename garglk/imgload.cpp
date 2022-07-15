@@ -231,7 +231,7 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
     cinfo.err = jpeg_std_error(&jerr);
     jpeg_create_decompress(&cinfo);
     jpeg_stdio_src(&cinfo, fl);
-    jpeg_read_header(&cinfo, true);
+    jpeg_read_header(&cinfo, TRUE);
     jpeg_start_decompress(&cinfo);
 
     pic->w = cinfo.output_width;
