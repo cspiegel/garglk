@@ -158,22 +158,22 @@ static void reflow(window_t *win)
 
     dwin->lines[0].len = dwin->numchars;
 
-    std::unique_ptr<attr_t[]> attrbuf;
-    std::unique_ptr<glui32[]> charbuf;
-    std::unique_ptr<int[]> alignbuf;
-    std::unique_ptr<picture_t *[]>     pictbuf;
-    std::unique_ptr<glui32[]> hyperbuf;
-    std::unique_ptr<int[]> offsetbuf;
+    std::vector<attr_t> attrbuf;
+    std::vector<glui32> charbuf;
+    std::vector<int> alignbuf;
+    std::vector<picture_t *>     pictbuf;
+    std::vector<glui32> hyperbuf;
+    std::vector<int> offsetbuf;
 
     /* allocate temp buffers */
     try
     {
-        attrbuf = std::make_unique<attr_t[]>(SCROLLBACK * TBLINELEN);
-        charbuf = std::make_unique<glui32[]>(SCROLLBACK * TBLINELEN);
-        alignbuf = std::make_unique<int[]>(SCROLLBACK);
-        pictbuf = std::make_unique<picture_t *[]>(SCROLLBACK);
-        hyperbuf = std::make_unique<glui32[]>(SCROLLBACK);
-        offsetbuf = std::make_unique<int[]>(SCROLLBACK);
+        attrbuf.resize(SCROLLBACK * TBLINELEN);
+        charbuf.resize(SCROLLBACK * TBLINELEN);
+        alignbuf.resize(SCROLLBACK);
+        pictbuf.resize(SCROLLBACK);
+        hyperbuf.resize(SCROLLBACK);
+        offsetbuf.resize(SCROLLBACK);
     }
     catch (const std::bad_alloc &)
     {
@@ -260,7 +260,7 @@ static void reflow(window_t *win)
     if (inputbyte != -1)
     {
         dwin->infence = dwin->numchars;
-        put_text_uni(dwin, charbuf.get() + inputbyte, p - inputbyte, dwin->numchars, 0);
+        put_text_uni(dwin, charbuf.data() + inputbyte, p - inputbyte, dwin->numchars, 0);
         dwin->incurs = dwin->numchars;
     }
 

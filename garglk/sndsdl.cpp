@@ -654,10 +654,10 @@ static glui32 play_mod(schanid_t chan, long len)
     }
 
     /* allocate size of string tempdir + "XXXXXX' + terminator */
-    auto tn = std::make_unique<char[]>(strlen(tempdir) + 7);
-    std::sprintf(tn.get(), "%sXXXXXX", tempdir);
+    std::vector<char> tn(strlen(tempdir) + 7);
+    std::sprintf(tn.data(), "%sXXXXXX", tempdir);
     int fd;
-    fd = mkstemp(tn.get());
+    fd = mkstemp(tn.data());
     if (fd == -1)
     {
         gli_strict_warning("play mod failed: could not create temp file");
@@ -666,8 +666,8 @@ static glui32 play_mod(schanid_t chan, long len)
     file = fdopen(fd, "wb");
     std::fwrite(chan->sdl_memory, 1, len, file);
     std::fclose(file);
-    chan->music = Mix_LoadMUS(tn.get());
-    std::remove(tn.get());
+    chan->music = Mix_LoadMUS(tn.data());
+    std::remove(tn.data());
     if (chan->music)
     {
         SDL_LockAudio();

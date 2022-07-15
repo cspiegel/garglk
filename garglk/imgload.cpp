@@ -240,8 +240,8 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
     pic->rgba = new unsigned char[pic->w * pic->h * 4];
 
     p = pic->rgba;
-    auto row = std::make_unique<JSAMPLE[]>(pic->w * n);
-    rowarray[0] = row.get();
+    std::vector<JSAMPLE> row(pic->w * n);
+    rowarray[0] = row.data();
 
     while (cinfo.output_scanline < cinfo.output_height)
     {

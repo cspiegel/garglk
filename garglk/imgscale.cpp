@@ -25,6 +25,8 @@
  * Image scaling, based on pnmscale.c...
  */
 
+#include <vector>
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -55,7 +57,6 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
         return dst;
 
     unsigned char *xelrow;
-    unsigned char *tempxelrow;
     unsigned char *newxelrow;
     unsigned char *xP;
     unsigned char *nxP;
@@ -70,10 +71,6 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     long sxscale, syscale;
 
     long fracrowtofill, fracrowleft;
-    long *rs;
-    long *gs;
-    long *bs;
-    long *as;
 
     /* Allocate destination image and scratch space */
 
@@ -88,11 +85,11 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     xelrow = src->rgba;
     newxelrow = dst->rgba;
 
-    tempxelrow = new unsigned char[cols * 4];
-    rs = new long[cols + 1];
-    gs = new long[cols + 1];
-    bs = new long[cols + 1];
-    as = new long[cols + 1];
+    std::vector<unsigned char> tempxelrow(cols * 4);
+    std::vector<long> rs(cols + 1);
+    std::vector<long> gs(cols + 1);
+    std::vector<long> bs(cols + 1);
+    std::vector<long> as(cols + 1);
 
     /* Compute all sizes and scales. */
 
@@ -145,7 +142,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                     needtoreadrow = 0;
                 }
 
-            for ( col = 0, xP = xelrow, nxP = tempxelrow;
+            for ( col = 0, xP = xelrow, nxP = tempxelrow.data();
                     col < cols; ++col, xP += 4, nxP += 4)
             {
                 long r, g, b, a;
@@ -197,7 +194,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
             r = g = b = a = HALFSCALE;
             needcol = 0;
 
-            for ( col = 0, xP = tempxelrow; col < cols; ++col, xP += 4 )
+            for ( col = 0, xP = tempxelrow.data(); col < cols; ++col, xP += 4 )
             {
                 fraccolleft = sxscale;
                 while ( fraccolleft >= fraccoltofill )
@@ -293,12 +290,6 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
             newxelrow += dst->w * 4;
         }
     }
-
-    delete [] as;
-    delete [] bs;
-    delete [] gs;
-    delete [] rs;
-    delete [] tempxelrow;
 
     gli_picture_store(dst);
 
