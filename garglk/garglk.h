@@ -649,7 +649,6 @@ struct window_textbuffer_s
     std::vector<glui32> copybuf;
     int copypos;
 };
-#endif
 
 struct window_graphics_s
 {
@@ -659,6 +658,7 @@ struct window_graphics_s
     int w, h;
     unsigned char *rgb;
 };
+#endif
 
 /* ---------------------------------------------------------------------- */
 
