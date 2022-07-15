@@ -22,6 +22,8 @@
 
 #ifdef BABEL_HANDLER
 
+#include <memory>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,16 +43,16 @@ void gli_initialize_babel(void)
     void *ctx = get_babel_ctx();
     if (babel_init_ctx(gli_workfile, ctx))
     {
-        int metaSize = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, NULL, 0, ctx);
+        int metaSize = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, nullptr, 0, ctx);
         if (metaSize > 0)
         {
-            char *metaData = malloc(metaSize);
+            auto metaData = std::make_unique<char[]>(metaSize);
             if (metaData)
             {
-                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metaData, metaSize, ctx) > 0)
+                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metaData.get(), metaSize, ctx) > 0)
                 {
-                    char *storyTitle = ifiction_get_tag(metaData, "bibliographic", "title", NULL);
-                    char *storyAuthor = ifiction_get_tag(metaData, "bibliographic", "author", NULL);
+                    char *storyTitle = ifiction_get_tag(metaData.get(), const_cast<char *>("bibliographic"), const_cast<char *>("title"), nullptr);
+                    char *storyAuthor = ifiction_get_tag(metaData.get(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr);
                     if (storyTitle && storyAuthor)
                     {
                         char title[256];
@@ -60,7 +62,6 @@ void gli_initialize_babel(void)
                     free(storyTitle);
                     free(storyAuthor);
                 }
-                free(metaData);
             }
         }
         babel_release_ctx(ctx);

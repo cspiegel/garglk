@@ -28,7 +28,7 @@
 
 window_pair_t *win_pair_create(window_t *win, glui32 method, window_t *key, glui32 size)
 {
-    window_pair_t *dwin = (window_pair_t *)malloc(sizeof(window_pair_t));
+    window_pair_t *dwin = new window_pair_t;
     dwin->owner = win;
 
     dwin->dir = method & winmethod_DirMask;
@@ -41,26 +41,20 @@ window_pair_t *win_pair_create(window_t *win, glui32 method, window_t *key, glui
     dwin->vertical = (dwin->dir == winmethod_Left || dwin->dir == winmethod_Right);
     dwin->backward = (dwin->dir == winmethod_Left || dwin->dir == winmethod_Above);
 
-    dwin->child1 = NULL;
-    dwin->child2 = NULL;
+    dwin->child1 = nullptr;
+    dwin->child2 = nullptr;
 
     return dwin;
 }
 
 void win_pair_destroy(window_pair_t *dwin)
 {
-    dwin->owner = NULL;
-    /* We leave the children untouched, because gli_window_close takes care
-        of that if it's desired. */
-    dwin->child1 = NULL;
-    dwin->child2 = NULL;
-    dwin->key = NULL;
-    free(dwin);
+    delete dwin;
 }
 
 void win_pair_rearrange(window_t *win, rect_t *box)
 {
-    window_pair_t *dwin = win->data;
+    window_pair_t *dwin = static_cast<window_pair_t *>(win->data);
     rect_t box1, box2;
     int min, diff, split, splitwid, max;
     window_t *key;
@@ -195,7 +189,7 @@ void win_pair_redraw(window_t *win)
     if (!win)
         return;
 
-    dwin = win->data;
+    dwin = static_cast<window_pair_t *>(win->data);
 
     gli_window_redraw(dwin->child1);
     gli_window_redraw(dwin->child2);

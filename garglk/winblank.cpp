@@ -29,20 +29,19 @@
 
 window_blank_t *win_blank_create(window_t *win)
 {
-    window_blank_t *dwin = (window_blank_t *)malloc(sizeof(window_blank_t));
+    window_blank_t *dwin = new window_blank_t;
     dwin->owner = win;
     return dwin;
 }
 
 void win_blank_destroy(window_blank_t *dwin)
 {
-    dwin->owner = NULL;
-    free(dwin);
+    delete dwin;
 }
 
 void win_blank_rearrange(window_t *win, rect_t *box)
 {
-    window_blank_t *dwin = win->data;
+    window_blank_t *dwin = static_cast<window_blank_t *>(win->data);
     dwin->owner->bbox = *box;
 }
 

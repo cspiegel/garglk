@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 
     glkunix_startup_t startdata;
     startdata.argc = argc;
-    startdata.argv = malloc(argc * sizeof(char*));
+    startdata.argv = new char*[argc];
     memcpy(startdata.argv, argv, argc * sizeof(char*));
 
     gli_startup(argc, argv);

@@ -49,11 +49,9 @@ window_graphics_t *win_graphics_create(window_t *win)
     window_graphics_t *res;
 
     if (!gli_conf_graphics)
-        return NULL;
+        return nullptr;
 
-    res = malloc(sizeof(window_graphics_t));
-    if (!res)
-        return NULL;
+    res = new window_graphics_t;
 
     res->owner = win;
     res->bgnd[0] = win->bgcolor[0];
@@ -62,7 +60,7 @@ window_graphics_t *win_graphics_create(window_t *win)
 
     res->w = 0;
     res->h = 0;
-    res->rgb = NULL;
+    res->rgb = nullptr;
 
     res->dirty = 0;
 
@@ -71,15 +69,15 @@ window_graphics_t *win_graphics_create(window_t *win)
 
 void win_graphics_destroy(window_graphics_t *dwin)
 {
-    dwin->owner = NULL;
     if (dwin->rgb)
-        free(dwin->rgb);
-    free(dwin);
+        delete [] dwin->rgb;
+
+    delete dwin;
 }
 
 void win_graphics_rearrange(window_t *win, rect_t *box)
 {
-    window_graphics_t *dwin = win->data;
+    window_graphics_t *dwin = static_cast<window_graphics_t *>(win->data);
     int newwid, newhgt;
     int bothwid, bothhgt;
     int oldw, oldh;
@@ -99,7 +97,7 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
         dwin->h = 0;
         if (dwin->rgb)
             free(dwin->rgb);
-        dwin->rgb = NULL;
+        dwin->rgb = nullptr;
         return;
     }
 
@@ -110,9 +108,9 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
     if (newhgt < bothhgt)
         bothhgt = newhgt;
 
-    newrgb = malloc(newwid * newhgt * 3);
+    newrgb = new unsigned char[newwid * newhgt * 3];
 
-    if (dwin->rgb && bothwid && bothhgt)
+    if (bothwid && bothhgt)
     {
         for (y = 0; y < bothhgt; y++)
             memcpy(newrgb + y * newwid * 3,
@@ -120,11 +118,8 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
                     bothwid * 3);
     }
 
-    if (dwin->rgb)
-    {
-        free(dwin->rgb);
-        dwin->rgb = 0;
-    }
+    delete [] dwin->rgb;
+    dwin->rgb = nullptr;
 
     dwin->rgb = newrgb;
     dwin->w = newwid;
@@ -140,14 +135,14 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
 
 void win_graphics_get_size(window_t *win, glui32 *width, glui32 *height)
 {
-    window_graphics_t *dwin = win->data;
+    window_graphics_t *dwin = static_cast<window_graphics_t *>(win->data);
     *width = dwin->w;
     *height = dwin->h;
 }
 
 void win_graphics_redraw(window_t *win)
 {
-    window_graphics_t *dwin = win->data;
+    window_graphics_t *dwin = static_cast<window_graphics_t *>(win->data);
     int x, y;
 
     int x0 = win->bbox.x0;

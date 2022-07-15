@@ -21,6 +21,8 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <memory>
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +41,7 @@
 static void load_image_png(FILE *fl, picture_t *pic);
 static void load_image_jpeg(FILE *fl, picture_t *pic);
 
-static piclist_t *picstore = NULL;	/* cache all loaded pictures */
+static piclist_t *picstore = nullptr;	/* cache all loaded pictures */
 static int gli_piclist_refcount = 0;	/* count references to loaded pictures */
 
 static void gli_picture_discard(picture_t *pic);
@@ -51,7 +53,7 @@ piclist_t *gli_piclist_search(unsigned long id)
 
     picptr = picstore;
 
-    while (picptr != NULL)
+    while (picptr != nullptr)
     {
         pic = picptr->picture;
 
@@ -61,7 +63,7 @@ piclist_t *gli_piclist_search(unsigned long id)
         picptr = picptr->next;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void gli_piclist_clear(void)
@@ -70,7 +72,7 @@ void gli_piclist_clear(void)
 
     picptr = picstore;
 
-    while (picptr != NULL)
+    while (picptr != nullptr)
     {
         tmpptr = picptr;
         picptr = picptr->next;
@@ -78,10 +80,10 @@ void gli_piclist_clear(void)
         gli_picture_decrement(tmpptr->picture);
         gli_picture_decrement(tmpptr->scaled);
 
-        free(tmpptr);
+        delete tmpptr;
     }
 
-    picstore = NULL;
+    picstore = nullptr;
 }
 
 void gli_piclist_increment(void)
@@ -114,12 +116,12 @@ void gli_picture_decrement(picture_t *pic)
 
 void gli_picture_store_original(picture_t *pic)
 {
-    piclist_t *newpic = malloc(sizeof(piclist_t));
+    piclist_t *newpic = new piclist_t;
     piclist_t *picptr;
 
     newpic->picture = pic;
-    newpic->scaled = NULL;
-    newpic->next = NULL;
+    newpic->scaled = nullptr;
+    newpic->next = nullptr;
 
     if (!picstore)
     {
@@ -129,7 +131,7 @@ void gli_picture_store_original(picture_t *pic)
 
     picptr = picstore;
 
-    while (picptr->next != NULL)
+    while (picptr->next != nullptr)
         picptr = picptr->next;
 
     picptr->next = newpic;
@@ -167,7 +169,7 @@ picture_t *gli_picture_retrieve(unsigned long id, bool scaled)
 
     picptr = picstore;
 
-    while (picptr != NULL)
+    while (picptr != nullptr)
     {
         if (!scaled)
             pic = picptr->picture;
@@ -180,7 +182,7 @@ picture_t *gli_picture_retrieve(unsigned long id, bool scaled)
         picptr = picptr->next;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 static void gli_picture_discard(picture_t *pic)
@@ -188,10 +190,8 @@ static void gli_picture_discard(picture_t *pic)
     if (!pic)
         return;
 
-    if (pic->rgba)
-        free(pic->rgba);
-
-    free(pic);
+    delete [] pic->rgba;
+    delete pic;
 }
 
 picture_t *gli_picture_load(unsigned long id)
@@ -201,12 +201,12 @@ picture_t *gli_picture_load(unsigned long id)
     bool closeafter;
     glui32 chunktype;
 
-    pic = gli_picture_retrieve(id, 0);
+    pic = gli_picture_retrieve(id, false);
 
     if (pic)
         return pic;
 
-    if (giblorb_get_resource_map() == NULL)
+    if (giblorb_get_resource_map() == nullptr)
     {
         char filename[1024];
         unsigned char buf[8];
@@ -216,13 +216,13 @@ picture_t *gli_picture_load(unsigned long id)
         closeafter = true;
         fl = fopen(filename, "rb");
         if (!fl)
-            return NULL;
+            return nullptr;
 
         if (fread(buf, 1, 8, fl) != 8)
         {
             /* Can't read the first few bytes. Forget it. */
             fclose(fl);
-            return NULL;
+            return nullptr;
         }
 
         if (!png_sig_cmp(buf, 0, 8))
@@ -237,7 +237,7 @@ picture_t *gli_picture_load(unsigned long id)
         {
             /* Not a readable file. Forget it. */
             fclose(fl);
-            return NULL;
+            return nullptr;
         }
 
         rewind(fl);
@@ -246,18 +246,18 @@ picture_t *gli_picture_load(unsigned long id)
     else
     {
         long pos;
-        giblorb_get_resource(giblorb_ID_Pict, id, &fl, &pos, NULL, &chunktype);
+        giblorb_get_resource(giblorb_ID_Pict, id, &fl, &pos, nullptr, &chunktype);
         if (!fl)
-            return NULL;
+            return nullptr;
         fseek(fl, pos, SEEK_SET);
         closeafter = false;
     }
 
-    pic = malloc(sizeof(picture_t));
+    pic = new picture_t;
     pic->refcount = 1;
     pic->w = 0;
     pic->h = 0;
-    pic->rgba = NULL;
+    pic->rgba = nullptr;
     pic->id = id;
     pic->scaled = false;
 
@@ -272,8 +272,8 @@ picture_t *gli_picture_load(unsigned long id)
 
     if (!pic->rgba)
     {
-        free(pic);
-        return NULL;
+        delete pic;
+        return nullptr;
     }
 
     gli_picture_store(pic);
@@ -286,7 +286,6 @@ static void load_image_jpeg(FILE *fl, picture_t *pic)
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
     JSAMPROW rowarray[1];
-    JSAMPLE *row;
     unsigned char *p;
     int n, i;
 
@@ -299,11 +298,11 @@ static void load_image_jpeg(FILE *fl, picture_t *pic)
     pic->w = cinfo.output_width;
     pic->h = cinfo.output_height;
     n = cinfo.output_components;
-    pic->rgba = malloc(pic->w * pic->h * 4);
+    pic->rgba = new unsigned char[pic->w * pic->h * 4];
 
     p = pic->rgba;
-    row = malloc(sizeof(JSAMPLE) * pic->w * n);
-    rowarray[0] = row;
+    auto row = std::make_unique<JSAMPLE[]>(pic->w * n);
+    rowarray[0] = row.get();
 
     while (cinfo.output_scanline < cinfo.output_height)
     {
@@ -324,15 +323,14 @@ static void load_image_jpeg(FILE *fl, picture_t *pic)
 
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
-    free(row);
 }
 
 static void load_image_png(FILE *fl, picture_t *pic)
 {
     int ix, x, y;
     int srcrowbytes;
-    png_structp png_ptr = NULL;
-    png_infop info_ptr = NULL;
+    png_structp png_ptr = nullptr;
+    png_infop info_ptr = nullptr;
 
     /* These are static so that the setjmp/longjmp error-handling of
        libpng doesn't mangle them. Horribly thread-unsafe, but we
@@ -340,28 +338,26 @@ static void load_image_png(FILE *fl, picture_t *pic)
     static png_bytep *rowarray;
     static png_bytep srcdata;
 
-    rowarray = NULL;
-    srcdata = NULL;
+    rowarray = nullptr;
+    srcdata = nullptr;
 
-    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     if (!png_ptr)
         return;
 
     info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr)
     {
-        png_destroy_read_struct(&png_ptr, NULL, NULL);
+        png_destroy_read_struct(&png_ptr, nullptr, nullptr);
         return;
     }
 
     if (setjmp(png_jmpbuf(png_ptr)))
     {
         /* If we jump here, we had a problem reading the file */
-        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-        if (rowarray)
-            free(rowarray);
-        if (srcdata)
-            free(srcdata);
+        png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+        delete [] rowarray;
+        delete [] srcdata;
         return;
     }
 
@@ -383,8 +379,8 @@ static void load_image_png(FILE *fl, picture_t *pic)
 
     assert(srcrowbytes == pic->w * 4 || srcrowbytes == pic->w * 3);
 
-    rowarray = malloc(sizeof(png_bytep) * pic->h);
-    srcdata = malloc(pic->w * pic->h * 4);
+    rowarray = new png_bytep[pic->h];
+    srcdata = new png_byte[pic->w * pic->h * 4];
 
     for (ix=0; ix<pic->h; ix++)
         rowarray[ix] = srcdata + (ix * pic->w * 4);
@@ -392,9 +388,8 @@ static void load_image_png(FILE *fl, picture_t *pic)
     png_read_image(png_ptr, rowarray);
     png_read_end(png_ptr, info_ptr);
 
-    png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-    if (rowarray)
-        free(rowarray);
+    png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+    delete [] rowarray;
 
     pic->rgba = srcdata;
 
