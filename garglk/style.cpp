@@ -20,8 +20,8 @@
  *                                                                            *
  *****************************************************************************/
 
-#include <stdio.h>
-#include <string.h>
+#include <cstring>
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -122,15 +122,15 @@ void glk_stylehint_set(glui32 wintype, glui32 style, glui32 hint, glsi32 val)
             style == style_Normal &&
             hint == stylehint_BackColor)
     {
-        memcpy(gli_window_color, styles[style].bg, 3);
+        std::memcpy(gli_window_color, styles[style].bg, 3);
     }
 
     if (wintype == wintype_TextBuffer &&
             style == style_Normal &&
             hint == stylehint_TextColor)
     {
-        memcpy(gli_more_color, styles[style].fg, 3);
-        memcpy(gli_caret_color, styles[style].fg, 3);
+        std::memcpy(gli_more_color, styles[style].fg, 3);
+        std::memcpy(gli_caret_color, styles[style].fg, 3);
     }
 }
 
@@ -195,12 +195,12 @@ glui32 glk_style_distinguish(winid_t win, glui32 styl1, glui32 styl2)
     if (win->type == wintype_TextGrid)
     {
         window_textgrid_t *dwin = static_cast<window_textgrid_t *>(win->data);
-        return memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
+        return std::memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
     }
     if (win->type == wintype_TextBuffer)
     {
         window_textbuffer_t *dwin = static_cast<window_textbuffer_t *>(win->data);
-        return memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
+        return std::memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
     }
     return 0;
 }

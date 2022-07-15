@@ -28,13 +28,10 @@
 #endif
 
 #include <array>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <new>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <math.h>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -476,17 +473,17 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
 {
     if (giblorb_get_resource_map() == nullptr)
     {
-        FILE *file;
+        std::FILE *file;
         std::string name;
 
         name = gli_workdir + "/SND" + std::to_string(snd);
 
-        file = fopen(name.c_str(), "rb");
+        file = std::fopen(name.c_str(), "rb");
         if (!file)
             return 0;
 
-        fseek(file, 0, SEEK_END);
-        *len = ftell(file);
+        std::fseek(file, 0, SEEK_END);
+        *len = std::ftell(file);
 
         try
         {
@@ -494,43 +491,43 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         }
         catch (const std::bad_alloc &)
         {
-            fclose(file);
+            std::fclose(file);
             return 0;
         }
 
-        rewind(file);
-        if (fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file))
+        std::rewind(file);
+        if (std::fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file))
         {
-            fclose(file);
+            std::fclose(file);
             return 0;
         }
         fclose(file);
 
         /* AIFF */
-        if (*len > 4 && !memcmp(*buf, "FORM", 4))
+        if (*len > 4 && !std::memcmp(*buf, "FORM", 4))
             return giblorb_ID_FORM;
 
         /* WAVE */
-        if (*len > 4 && !memcmp(*buf, "WAVE", 4))
+        if (*len > 4 && !std::memcmp(*buf, "WAVE", 4))
             return giblorb_ID_WAVE;
 
-        if (*len > 4 && !memcmp(*buf, "RIFF", 4))
+        if (*len > 4 && !std::memcmp(*buf, "RIFF", 4))
             return giblorb_ID_WAVE;
 
         /* midi */
-        if (*len > 4 && !memcmp(*buf, "MThd", 4))
+        if (*len > 4 && !std::memcmp(*buf, "MThd", 4))
             return giblorb_ID_MIDI;
 
         /* s3m */
-        if (*len > 0x30 && !memcmp(*buf + 0x2c, "SCRM", 4))
+        if (*len > 0x30 && !std::memcmp(*buf + 0x2c, "SCRM", 4))
             return giblorb_ID_MOD;
 
         /* XM */
-        if (*len > 20 && !memcmp(*buf, "Extended Module: ", 17))
+        if (*len > 20 && !std::memcmp(*buf, "Extended Module: ", 17))
             return giblorb_ID_MOD;
 
         /* IT */
-        if (*len > 4 && !memcmp(*buf, "IMPM", 4))
+        if (*len > 4 && !std::memcmp(*buf, "IMPM", 4))
             return giblorb_ID_MOD;
 
         /* MOD */
@@ -538,27 +535,27 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         {
             char resname[5] = { 0 };
             memcpy(resname, (*buf) + 1080, 4);
-            if (!strcmp(resname+1, "CHN") ||        /* 4CHN, 6CHN, 8CHN */
-                    !strcmp(resname+2, "CN") ||         /* 16CN, 32CN */
-                    !strcmp(resname, "M.K.") || !strcmp(resname, "M!K!") ||
-                    !strcmp(resname, "FLT4") || !strcmp(resname, "CD81") ||
-                    !strcmp(resname, "OKTA") || !strcmp(resname, "    "))
+            if (!std::strcmp(resname+1, "CHN") ||        /* 4CHN, 6CHN, 8CHN */
+                    !std::strcmp(resname+2, "CN") ||         /* 16CN, 32CN */
+                    !std::strcmp(resname, "M.K.") || !std::strcmp(resname, "M!K!") ||
+                    !std::strcmp(resname, "FLT4") || !std::strcmp(resname, "CD81") ||
+                    !std::strcmp(resname, "OKTA") || !std::strcmp(resname, "    "))
                 return giblorb_ID_MOD;
         }
 
         /* ogg */
-        if (*len > 4 && !memcmp(*buf, "OggS", 4))
+        if (*len > 4 && !std::memcmp(*buf, "OggS", 4))
             return giblorb_ID_OGG;
 
         /* mp3 */
-        if (*len > 2 && !memcmp(*buf, "\377\372", 2))
+        if (*len > 2 && !std::memcmp(*buf, "\377\372", 2))
             return giblorb_ID_MP3;
 
         return giblorb_ID_MP3;
     }
     else
     {
-        FILE *file;
+        std::FILE *file;
         glui32 type;
         long pos;
 
@@ -575,8 +572,8 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
             return 0;
         }
 
-        fseek(file, pos, SEEK_SET);
-        if (fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file)) return 0;
+        std::fseek(file, pos, SEEK_SET);
+        if (std::fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file)) return 0;
         return type;
     }
 }
@@ -619,7 +616,7 @@ static glui32 play_sound(schanid_t chan)
 /** Start a mod music channel */
 static glui32 play_mod(schanid_t chan, long len)
 {
-    FILE *file;
+    std::FILE *file;
     const char *tempdir;
     int music_busy, loop;
 
@@ -642,13 +639,13 @@ static glui32 play_mod(schanid_t chan, long len)
 
     chan->status = CHANNEL_MUSIC;
     /* The fscking mikmod lib want to read the mod only from disk! */
-    tempdir = getenv("TMPDIR");
+    tempdir = std::getenv("TMPDIR");
     if (tempdir == nullptr)
     {
-        tempdir = getenv("TEMP");
+        tempdir = std::getenv("TEMP");
         if (tempdir == nullptr)
         {
-            tempdir = getenv("TMP");
+            tempdir = std::getenv("TMP");
             if (tempdir == nullptr)
             {
                 tempdir = ".";
@@ -658,7 +655,7 @@ static glui32 play_mod(schanid_t chan, long len)
 
     /* allocate size of string tempdir + "XXXXXX' + terminator */
     auto tn = std::make_unique<char[]>(strlen(tempdir) + 7);
-    sprintf(tn.get(), "%sXXXXXX", tempdir);
+    std::sprintf(tn.get(), "%sXXXXXX", tempdir);
     int fd;
     fd = mkstemp(tn.get());
     if (fd == -1)
@@ -667,10 +664,10 @@ static glui32 play_mod(schanid_t chan, long len)
         return 0;
     }
     file = fdopen(fd, "wb");
-    fwrite(chan->sdl_memory, 1, len, file);
-    fclose(file);
+    std::fwrite(chan->sdl_memory, 1, len, file);
+    std::fclose(file);
     chan->music = Mix_LoadMUS(tn.get());
-    remove(tn.get());
+    std::remove(tn.get());
     if (chan->music)
     {
         SDL_LockAudio();

@@ -22,11 +22,9 @@
  *****************************************************************************/
 
 #include <array>
+#include <cstring>
 #include <new>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "glk.h"
 #include "garglk.h"
 
@@ -139,8 +137,8 @@ window_t *gli_new_window(glui32 type, glui32 rock)
     win->echo_line_input = true;
 
     attrclear(&win->attr);
-    memcpy(win->bgcolor, gli_window_color, 3);
-    memcpy(win->fgcolor, gli_more_color, 3);
+    std::memcpy(win->bgcolor, gli_window_color, 3);
+    std::memcpy(win->fgcolor, gli_more_color, 3);
 
     win->str = gli_stream_open_window(win);
     win->echostr = nullptr;
@@ -1575,7 +1573,7 @@ unsigned char *attrbg(style_t *styles, attr_t *attr)
             else
                 return zcolor_Foreground.data();
         else
-            if (zbset && !memcmp(styles[attr->style].fg, zcolor_Background.data(), 3))
+            if (zbset && !std::memcmp(styles[attr->style].fg, zcolor_Background.data(), 3))
                 return zcolor_LightGrey.data();
             else
                 return styles[attr->style].fg;
@@ -1616,7 +1614,7 @@ unsigned char *attrfg(style_t *styles, attr_t *attr)
             else
                 return zcolor_Foreground.data();
         else
-            if (zbset && !memcmp(styles[attr->style].fg, zcolor_Background.data(), 3))
+            if (zbset && !std::memcmp(styles[attr->style].fg, zcolor_Background.data(), 3))
                 return zcolor_LightGrey.data();
             else
                 return styles[attr->style].fg;
