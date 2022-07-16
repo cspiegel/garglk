@@ -303,9 +303,8 @@ void winresize(void)
     NSRect viewRect = [gargoyle updateBackingSize: processID];
     float textureFactor = BACKING_SCALE_FACTOR / [gargoyle getBackingScaleFactor: processID];
 
-    unsigned int vw = (unsigned int) (NSWidth(viewRect) * textureFactor);
-    unsigned int vh = (unsigned int) (NSHeight(viewRect) * textureFactor);
-
+    unsigned int vw = static_cast<unsigned int>(NSWidth(viewRect) * textureFactor);
+    unsigned int vh = static_cast<unsigned int>(NSHeight(viewRect) * textureFactor);
 
     if (gli_image_w == vw && gli_image_h == vh)
         return;
