@@ -199,7 +199,10 @@ typedef struct rect_s rect_t;
 typedef struct picture_s picture_t;
 typedef struct style_s style_t;
 
-enum FACES { MONOR, MONOB, MONOI, MONOZ, PROPR, PROPB, PROPI, PROPZ };
+#ifdef __cplusplus
+enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
+#endif
+
 enum TYPES { MONOF, PROPF };
 enum STYLES { FONTR, FONTB, FONTI, FONTZ };
 
@@ -209,6 +212,7 @@ struct rect_s
     int x1, y1;
 };
 
+#ifdef __cplusplus
 struct picture_s
 {
     int refcount;
@@ -220,11 +224,12 @@ struct picture_s
 
 struct style_s
 {
-    enum FACES font;
+    enum FontFace font;
     unsigned char bg[3];
     unsigned char fg[3];
     bool reverse;
 };
+#endif
 
 extern int gli_image_s;	/* stride */
 extern int gli_image_w;
@@ -347,7 +352,9 @@ extern std::vector<glui32> gli_more_prompt;
 #endif
 extern glui32 gli_more_prompt_len;
 extern int gli_more_align;
-extern int gli_more_font;
+#ifdef __cplusplus
+extern FontFace gli_more_font;
+#endif
 
 extern bool gli_forceclick;
 extern bool gli_copyselect;
@@ -742,8 +749,10 @@ void gli_draw_pixel(int x, int y, const unsigned char *rgb);
 void gli_draw_pixel_lcd(int x, int y, const unsigned char *alpha, const unsigned char *rgb);
 void gli_draw_clear(const unsigned char *rgb);
 void gli_draw_rect(int x, int y, int w, int h, const unsigned char *rgb);
-int gli_draw_string_uni(int x, int y, int f, const unsigned char *rgb, glui32 *text, int len, int spacewidth);
-int gli_string_width_uni(int fidx, const glui32 *text, int len, int spw);
+#ifdef __cplusplus
+int gli_draw_string_uni(int x, int y, FontFace face, const unsigned char *rgb, glui32 *text, int len, int spacewidth);
+int gli_string_width_uni(FontFace font, const glui32 *text, int len, int spw);
+#endif
 void gli_draw_caret(int x, int y);
 void gli_draw_picture(picture_t *pic, int x, int y, int x0, int y0, int x1, int y1);
 
@@ -832,7 +841,10 @@ void attrclear(attr_t *attr);
 bool attrequal(const attr_t *a1, const attr_t *a2);
 unsigned char *attrfg(style_t *styles, attr_t *attr);
 unsigned char *attrbg(style_t *styles, attr_t *attr);
-int attrfont(const style_t *styles, const attr_t *attr);
+
+#ifdef __cplusplus
+FontFace attrfont(const style_t *styles, const attr_t *attr);
+#endif
 
 /* A macro which reads and decodes one character of UTF-8. Needs no
    explanation, I'm sure.

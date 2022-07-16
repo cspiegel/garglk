@@ -89,7 +89,7 @@ struct Font
 std::array<unsigned short, 256> gammamap;
 std::array<unsigned char, 1 << GAMMA_BITS> gammainv;
 
-static std::vector<Font> gfont_table;
+static std::map<FontFace, Font> gfont_table;
 
 int gli_cellw = 8;
 int gli_cellh = 8;
@@ -400,16 +400,16 @@ void gli_initialize_fonts()
     ftmat.yy = 0x10000L;
 
     gfont_table.clear();
-    gfont_table.emplace_back(gli_conf_mono.r, "Gargoyle-Mono.ttf", MONOF, FONTR);
-    gfont_table.emplace_back(gli_conf_mono.b, "Gargoyle-Mono-Bold.ttf", MONOF, FONTB);
-    gfont_table.emplace_back(gli_conf_mono.i, "Gargoyle-Mono-Italic.ttf", MONOF, FONTI);
-    gfont_table.emplace_back(gli_conf_mono.z, "Gargoyle-Mono-Bold-Italic.ttf", MONOF, FONTZ);
-    gfont_table.emplace_back(gli_conf_prop.r, "Gargoyle-Serif.ttf", PROPF, FONTR);
-    gfont_table.emplace_back(gli_conf_prop.b, "Gargoyle-Serif-Bold.ttf", PROPF, FONTB);
-    gfont_table.emplace_back(gli_conf_prop.i, "Gargoyle-Serif-Italic.ttf", PROPF, FONTI);
-    gfont_table.emplace_back(gli_conf_prop.z, "Gargoyle-Serif-Bold-Italic.ttf", PROPF, FONTZ);
+    gfont_table.insert({FontFace::MonoR, Font(gli_conf_mono.r, "Gargoyle-Mono.ttf", MONOF, FONTR)});
+    gfont_table.insert({FontFace::MonoB, Font(gli_conf_mono.b, "Gargoyle-Mono-Bold.ttf", MONOF, FONTB)});
+    gfont_table.insert({FontFace::MonoI, Font(gli_conf_mono.i, "Gargoyle-Mono-Italic.ttf", MONOF, FONTI)});
+    gfont_table.insert({FontFace::MonoZ, Font(gli_conf_mono.z, "Gargoyle-Mono-Bold-Italic.ttf", MONOF, FONTZ)});
+    gfont_table.insert({FontFace::PropR, Font(gli_conf_prop.r, "Gargoyle-Serif.ttf", PROPF, FONTR)});
+    gfont_table.insert({FontFace::PropB, Font(gli_conf_prop.b, "Gargoyle-Serif-Bold.ttf", PROPF, FONTB)});
+    gfont_table.insert({FontFace::PropI, Font(gli_conf_prop.i, "Gargoyle-Serif-Italic.ttf", PROPF, FONTI)});
+    gfont_table.insert({FontFace::PropZ, Font(gli_conf_prop.z, "Gargoyle-Serif-Bold-Italic.ttf", PROPF, FONTZ)});
 
-    const auto &entry = gfont_table.at(0).getglyph('0');
+    const auto &entry = gfont_table.at(FontFace::MonoR).getglyph('0');
 
     gli_cellh = gli_leading;
     gli_cellw = (entry.adv + GLI_SUBPIX - 1) / GLI_SUBPIX;
@@ -604,9 +604,9 @@ static const std::vector<std::pair<std::vector<glui32>, glui32>> ligatures = {
     {{'f', 'l'}, UNI_LIG_FL},
 };
 
-static int gli_string_impl(int x, int fidx, const glui32 *s, size_t n, int spw, std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> callback)
+static int gli_string_impl(int x, FontFace face, const glui32 *s, size_t n, int spw, std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> callback)
 {
-    auto &f = gfont_table.at(fidx);
+    auto &f = gfont_table.at(face);
     bool dolig = !FT_IS_FIXED_WIDTH(f.face);
     int prev = -1;
     glui32 c;
@@ -661,10 +661,10 @@ static int gli_string_impl(int x, int fidx, const glui32 *s, size_t n, int spw, 
     return x;
 }
 
-int gli_draw_string_uni(int x, int y, int fidx, const unsigned char *rgb,
+int gli_draw_string_uni(int x, int y, FontFace face, const unsigned char *rgb,
         glui32 *s, int n, int spw)
 {
-    return gli_string_impl(x, fidx, s, n, spw, [y, rgb](int x, const std::array<Bitmap, GLI_SUBPIX> &glyphs) {
+    return gli_string_impl(x, face, s, n, spw, [y, rgb](int x, const std::array<Bitmap, GLI_SUBPIX> &glyphs) {
         int px = x / GLI_SUBPIX;
         int sx = x % GLI_SUBPIX;
 
@@ -675,9 +675,9 @@ int gli_draw_string_uni(int x, int y, int fidx, const unsigned char *rgb,
     });
 }
 
-int gli_string_width_uni(int fidx, const glui32 *s, int n, int spw)
+int gli_string_width_uni(FontFace face, const glui32 *s, int n, int spw)
 {
-    return gli_string_impl(0, fidx, s, n, spw, [](int, const std::array<Bitmap, GLI_SUBPIX> &) {});
+    return gli_string_impl(0, face, s, n, spw, [](int, const std::array<Bitmap, GLI_SUBPIX> &) {});
 }
 
 void gli_draw_caret(int x, int y)

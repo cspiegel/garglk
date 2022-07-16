@@ -144,8 +144,8 @@ struct Theme {
         linkcolor.to(gli_link_save);
         morecolor.to(gli_more_color);
         morecolor.to(gli_more_save);
-        tstyles.to(gli_tstyles);
-        gstyles.to(gli_gstyles);
+        tstyles.to(gli_tstyles.data());
+        gstyles.to(gli_gstyles.data());
     }
 
     static Theme from_file(const std::string &filename) {

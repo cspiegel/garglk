@@ -352,7 +352,7 @@ void win_textbuffer_redraw(window_t *win)
     int x, y, w;
     int a, b;
     glui32 link;
-    int font;
+    FontFace font;
     unsigned char *color;
     int i;
     int hx0, hx1, hy0, hy1;

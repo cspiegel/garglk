@@ -25,32 +25,32 @@
 #include "glk.h"
 #include "garglk.h"
 
-static bool isprop(enum FACES f)
+static bool isprop(enum FontFace f)
 {
-    return f == PROPR || f == PROPI || f == PROPB || f == PROPZ;
+    return f == FontFace::PropR || f == FontFace::PropI || f == FontFace::PropB || f == FontFace::PropZ;
 }
 
-static bool isbold(enum FACES f)
+static bool isbold(enum FontFace f)
 {
-    return f == PROPB || f == PROPZ || f == MONOB || f == MONOZ;
+    return f == FontFace::PropB || f == FontFace::PropZ || f == FontFace::MonoB || f == FontFace::MonoZ;
 }
 
-static bool isitalic(enum FACES f)
+static bool isitalic(enum FontFace f)
 {
-    return f == PROPI || f == PROPZ || f == MONOI || f == MONOZ;
+    return f == FontFace::PropI || f == FontFace::PropZ || f == FontFace::MonoI || f == FontFace::MonoZ;
 }
 
-static enum FACES makefont(bool p, bool b, bool i)
+static enum FontFace makefont(bool p, bool b, bool i)
 {
-    if ( p && !b && !i) return PROPR;
-    if ( p && !b &&  i) return PROPI;
-    if ( p &&  b && !i) return PROPB;
-    if ( p &&  b &&  i) return PROPZ;
-    if (!p && !b && !i) return MONOR;
-    if (!p && !b &&  i) return MONOI;
-    if (!p &&  b && !i) return MONOB;
-    if (!p &&  b &&  i) return MONOZ;
-    return PROPR;
+    if ( p && !b && !i) return FontFace::PropR;
+    if ( p && !b &&  i) return FontFace::PropI;
+    if ( p &&  b && !i) return FontFace::PropB;
+    if ( p &&  b &&  i) return FontFace::PropZ;
+    if (!p && !b && !i) return FontFace::MonoR;
+    if (!p && !b &&  i) return FontFace::MonoI;
+    if (!p &&  b && !i) return FontFace::MonoB;
+    if (!p &&  b &&  i) return FontFace::MonoZ;
+    return FontFace::PropR;
 }
 
 void glk_stylehint_set(glui32 wintype, glui32 style, glui32 hint, glsi32 val)
@@ -233,26 +233,26 @@ glui32 glk_style_measure(winid_t win, glui32 style, glui32 hint, glui32 *result)
 
         case stylehint_Weight:
             *result =
-                (styles[style].font == PROPB ||
-                 styles[style].font == PROPZ ||
-                 styles[style].font == MONOB ||
-                 styles[style].font == MONOZ);
+                (styles[style].font == FontFace::PropB ||
+                 styles[style].font == FontFace::PropZ ||
+                 styles[style].font == FontFace::MonoB ||
+                 styles[style].font == FontFace::MonoZ);
             return true;
 
         case stylehint_Oblique:
             *result =
-                (styles[style].font == PROPI ||
-                 styles[style].font == PROPZ ||
-                 styles[style].font == MONOI ||
-                 styles[style].font == MONOZ);
+                (styles[style].font == FontFace::PropI ||
+                 styles[style].font == FontFace::PropZ ||
+                 styles[style].font == FontFace::MonoI ||
+                 styles[style].font == FontFace::MonoZ);
             return true;
 
         case stylehint_Proportional:
             *result =
-                (styles[style].font == PROPR ||
-                 styles[style].font == PROPI ||
-                 styles[style].font == PROPB ||
-                 styles[style].font == PROPZ);
+                (styles[style].font == FontFace::PropR ||
+                 styles[style].font == FontFace::PropI ||
+                 styles[style].font == FontFace::PropB ||
+                 styles[style].font == FontFace::PropZ);
             return true;
 
         case stylehint_TextColor:

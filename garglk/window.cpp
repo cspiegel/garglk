@@ -1513,7 +1513,7 @@ void attrclear(attr_t *attr)
     attr->style = 0;
 }
 
-int attrfont(const style_t *styles, const attr_t *attr)
+FontFace attrfont(const style_t *styles, const attr_t *attr)
 {
     return styles[attr->style].font;
 }
