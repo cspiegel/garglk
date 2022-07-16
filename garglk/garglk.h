@@ -44,6 +44,10 @@ enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
 #include <string>
 #include <vector>
 
+enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
+enum class FontType { Monospace, Proportional };
+enum class FontStyle { Roman, Bold, Italic, BoldItalic };
+
 namespace garglk {
 
 // This represents a possible configuration file (garglk.ini).
@@ -82,7 +86,9 @@ std::string winopenfile(const char *prompt, enum FILEFILTERS filter);
 std::string winsavefile(const char *prompt, enum FILEFILTERS filter);
 void winabort(const std::string &msg);
 std::string downcase(const std::string &string);
-void fontreplace(const std::string &font, int type);
+#ifdef __cplusplus
+void fontreplace(const std::string &font, FontType type);
+#endif
 std::vector<ConfigFile> configs(const std::string &exedir, const std::string &gamepath);
 void config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, std::function<void(const std::string &cmd, const std::string &arg)> callback);
 std::string user_config();
@@ -198,13 +204,6 @@ extern int gli_cellh;
 typedef struct rect_s rect_t;
 typedef struct picture_s picture_t;
 typedef struct style_s style_t;
-
-#ifdef __cplusplus
-enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
-#endif
-
-enum TYPES { MONOF, PROPF };
-enum STYLES { FONTR, FONTB, FONTI, FONTZ };
 
 struct rect_s
 {
