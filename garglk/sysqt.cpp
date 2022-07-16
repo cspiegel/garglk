@@ -239,8 +239,7 @@ void Window::resizeEvent(QResizeEvent *event)
     gli_resize_mask(gli_image_w, gli_image_h);
 
     gli_image_s = ((gli_image_w * 4 + 3) / 4) * 4;
-    delete [] gli_image_rgb;
-    gli_image_rgb = new unsigned char[gli_image_s * gli_image_h];
+    gli_image_rgb.resize(gli_image_s * gli_image_h);
 
     gli_force_redraw = true;
     refresh_needed = true;
@@ -295,7 +294,7 @@ void View::refresh()
 
 void View::paintEvent(QPaintEvent *event)
 {
-    QImage image(gli_image_rgb, gli_image_w, gli_image_h, QImage::Format_RGB32);
+    QImage image(gli_image_rgb.data(), gli_image_w, gli_image_h, QImage::Format_RGB32);
     QPainter painter(this);
     painter.drawImage(QPoint(0, 0), image);
     event->accept();

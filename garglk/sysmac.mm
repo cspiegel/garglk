@@ -317,9 +317,7 @@ void winresize(void)
     gli_image_s = ((gli_image_w * 4 + 3) / 4) * 4;
 
     /* initialize offline bitmap store */
-    delete [] gli_image_rgb;
-
-    gli_image_rgb = new unsigned char[gli_image_s * gli_image_h];
+    gli_image_rgb.resize(gli_image_s * gli_image_h);
 
     /* redraw window content */
     gli_resize_mask(gli_image_w, gli_image_h);
@@ -482,7 +480,7 @@ void winrefresh(void)
 {
     gli_windows_redraw();
 
-    NSData * frame = [NSData dataWithBytesNoCopy: gli_image_rgb
+    NSData * frame = [NSData dataWithBytesNoCopy: gli_image_rgb.data()
                                           length: gli_image_s * gli_image_h
                                     freeWhenDone: NO];
 
