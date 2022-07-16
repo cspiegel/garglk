@@ -67,9 +67,7 @@ window_graphics_t *win_graphics_create(window_t *win)
 
 void win_graphics_destroy(window_graphics_t *dwin)
 {
-    if (dwin->rgb)
-        delete [] dwin->rgb;
-
+    delete [] dwin->rgb;
     delete dwin;
 }
 
@@ -116,8 +114,6 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
     }
 
     delete [] dwin->rgb;
-    dwin->rgb = nullptr;
-
     dwin->rgb = newrgb;
     dwin->w = newwid;
     dwin->h = newhgt;
