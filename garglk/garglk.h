@@ -226,17 +226,6 @@ struct style_s
     bool reverse;
 };
 
-#ifdef __cplusplus
-struct mask_t
-{
-    bool initialized = false;
-    int hor = 0;
-    int ver = 0;
-    std::vector<std::vector<glui32>> links;
-    rect_t select;
-};
-#endif
-
 extern int gli_image_s;	/* stride */
 extern int gli_image_w;
 extern int gli_image_h;

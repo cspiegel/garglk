@@ -22,12 +22,22 @@
 
 #include <algorithm>
 #include <new>
+#include <vector>
 
 #include "glk.h"
 #include "garglk.h"
 
 /* storage for hyperlink and selection coordinates */
-static mask_t gli_mask;
+struct Mask
+{
+    bool initialized = false;
+    int hor = 0;
+    int ver = 0;
+    std::vector<std::vector<glui32>> links;
+    rect_t select;
+};
+
+static Mask gli_mask;
 
 /* for copy selection */
 bool gli_copyselect = false;
