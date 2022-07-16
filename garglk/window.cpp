@@ -182,6 +182,7 @@ void gli_delete_window(window_t *win)
     if (next)
         next->prev = prev;
 
+    delete win->impl;
     delete win;
 }
 
