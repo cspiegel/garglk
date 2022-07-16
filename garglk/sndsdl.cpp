@@ -67,7 +67,7 @@ struct glk_schannel_struct
     Mix_Music *music;
 
     SDL_RWops *sdl_rwops;
-    unsigned char *sdl_memory;
+    std::vector<unsigned char> sdl_memory;
     int sdl_channel;
 
     int resid; /* for notifies */
@@ -151,7 +151,6 @@ schanid_t glk_schannel_create_ext(glui32 rock, glui32 volume)
     chan->resid = 0;
     chan->loop = 0;
     chan->notify = 0;
-    chan->sdl_memory = nullptr;
     chan->sdl_rwops = nullptr;
     chan->sample = nullptr;
     chan->paused = 0;
@@ -187,8 +186,7 @@ static void cleanup_channel(schanid_t chan)
         chan->sdl_rwops = nullptr;
     }
 
-    delete [] chan->sdl_memory;
-    chan->sdl_memory = nullptr;
+    chan->sdl_memory.clear();
 
     switch (chan->status)
     {
@@ -469,7 +467,7 @@ static void sound_completion_callback(int chan)
     return;
 }
 
-static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
+static glui32 load_sound_resource(glui32 snd, long *len, std::vector<unsigned char> &buf)
 {
     if (giblorb_get_resource_map() == nullptr)
     {
@@ -487,7 +485,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
 
         try
         {
-            *buf = new unsigned char[*len];
+            buf.resize(*len);
         }
         catch (const std::bad_alloc &)
         {
@@ -496,7 +494,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         }
 
         std::rewind(file);
-        if (std::fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file))
+        if (std::fread(buf.data(), 1, *len, file) != static_cast<size_t>(*len) && !feof(file))
         {
             std::fclose(file);
             return 0;
@@ -504,37 +502,37 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         fclose(file);
 
         /* AIFF */
-        if (*len > 4 && !std::memcmp(*buf, "FORM", 4))
+        if (*len > 4 && !std::memcmp(buf.data(), "FORM", 4))
             return giblorb_ID_FORM;
 
         /* WAVE */
-        if (*len > 4 && !std::memcmp(*buf, "WAVE", 4))
+        if (*len > 4 && !std::memcmp(buf.data(), "WAVE", 4))
             return giblorb_ID_WAVE;
 
-        if (*len > 4 && !std::memcmp(*buf, "RIFF", 4))
+        if (*len > 4 && !std::memcmp(buf.data(), "RIFF", 4))
             return giblorb_ID_WAVE;
 
         /* midi */
-        if (*len > 4 && !std::memcmp(*buf, "MThd", 4))
+        if (*len > 4 && !std::memcmp(buf.data(), "MThd", 4))
             return giblorb_ID_MIDI;
 
         /* s3m */
-        if (*len > 0x30 && !std::memcmp(*buf + 0x2c, "SCRM", 4))
+        if (*len > 0x30 && !std::memcmp(buf.data() + 0x2c, "SCRM", 4))
             return giblorb_ID_MOD;
 
         /* XM */
-        if (*len > 20 && !std::memcmp(*buf, "Extended Module: ", 17))
+        if (*len > 20 && !std::memcmp(buf.data(), "Extended Module: ", 17))
             return giblorb_ID_MOD;
 
         /* IT */
-        if (*len > 4 && !std::memcmp(*buf, "IMPM", 4))
+        if (*len > 4 && !std::memcmp(buf.data(), "IMPM", 4))
             return giblorb_ID_MOD;
 
         /* MOD */
         if (*len > 1084)
         {
             char resname[5] = { 0 };
-            memcpy(resname, (*buf) + 1080, 4);
+            memcpy(resname, (buf.data()) + 1080, 4);
             if (!std::strcmp(resname+1, "CHN") ||        /* 4CHN, 6CHN, 8CHN */
                     !std::strcmp(resname+2, "CN") ||         /* 16CN, 32CN */
                     !std::strcmp(resname, "M.K.") || !std::strcmp(resname, "M!K!") ||
@@ -544,11 +542,11 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         }
 
         /* ogg */
-        if (*len > 4 && !std::memcmp(*buf, "OggS", 4))
+        if (*len > 4 && !std::memcmp(buf.data(), "OggS", 4))
             return giblorb_ID_OGG;
 
         /* mp3 */
-        if (*len > 2 && !std::memcmp(*buf, "\377\372", 2))
+        if (*len > 2 && !std::memcmp(buf.data(), "\377\372", 2))
             return giblorb_ID_MP3;
 
         return giblorb_ID_MP3;
@@ -565,7 +563,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
 
         try
         {
-            *buf = new unsigned char[*len];
+            buf.resize(*len);
         }
         catch (const std::bad_alloc &)
         {
@@ -573,7 +571,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, unsigned char **buf)
         }
 
         std::fseek(file, pos, SEEK_SET);
-        if (std::fread(*buf, 1, *len, file) != static_cast<size_t>(*len) && !feof(file)) return 0;
+        if (std::fread(buf.data(), 1, *len, file) != static_cast<size_t>(*len) && !feof(file)) return 0;
         return type;
     }
 }
@@ -664,7 +662,7 @@ static glui32 play_mod(schanid_t chan, long len)
         return 0;
     }
     file = fdopen(fd, "wb");
-    std::fwrite(chan->sdl_memory, 1, len, file);
+    std::fwrite(chan->sdl_memory.data(), 1, len, file);
     std::fclose(file);
     chan->music = Mix_LoadMUS(tn.data());
     std::remove(tn.data());
@@ -695,7 +693,6 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     glui32 type;
     glui32 result = 0;
     glui32 paused = 0;
-    unsigned char *buf = nullptr;
 
     if (!chan)
     {
@@ -713,10 +710,9 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
         return 1;
 
     /* load sound resource into memory */
-    type = load_sound_resource(snd, &len, &buf);
+    type = load_sound_resource(snd, &len, chan->sdl_memory);
 
-    chan->sdl_memory = buf;
-    chan->sdl_rwops = SDL_RWFromConstMem(buf, static_cast<int>(len));
+    chan->sdl_rwops = SDL_RWFromConstMem(chan->sdl_memory.data(), static_cast<int>(len));
     chan->notify = notify;
     chan->resid = snd;
     chan->loop = repeats;
