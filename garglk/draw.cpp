@@ -76,7 +76,7 @@ struct Font
     bool kerned = false;
     std::map<std::pair<glui32, glui32>, int> kerncache;
 
-    Font(const std::string &path, const std::string &fallback, TYPES type, STYLES style);
+    Font(const std::string &path, const std::string &fallback, FontType type, FontStyle style);
 
     const FontEntry &getglyph(glui32 cid);
     int charkern(glui32 c0, glui32 c1);
@@ -257,32 +257,32 @@ static std::string font_path_fallback_local(const std::string &, const std::stri
     return fallback;
 }
 
-static const char *type_to_name(enum TYPES type)
+static const char *type_to_name(enum FontType type)
 {
-    if (type == MONOF)
+    if (type == FontType::Monospace)
         return "Mono";
     else
         return "Proportional";
 }
 
-static std::string style_to_name(enum STYLES style)
+static std::string style_to_name(FontStyle style)
 {
     switch (style)
     {
-        case FONTR:
+        case FontStyle::Roman:
             return "Regular";
-        case FONTB:
+        case FontStyle::Bold:
             return "Bold";
-        case FONTI:
+        case FontStyle::Italic:
             return "Italic";
-        case FONTZ:
+        case FontStyle::BoldItalic:
             return "Bold Italic";;
     }
 
     return "";
 }
 
-Font::Font(const std::string &path, const std::string &fallback, TYPES type, STYLES style)
+Font::Font(const std::string &path, const std::string &fallback, FontType type, FontStyle style)
 {
     int err = 0;
     std::string fontpath;
@@ -295,7 +295,7 @@ Font::Font(const std::string &path, const std::string &fallback, TYPES type, STY
         font_path_fallback_local,
     };
 
-    if (type == MONOF)
+    if (type == FontType::Monospace)
     {
         aspect = gli_conf_monoaspect;
         size = gli_conf_monosize;
@@ -342,22 +342,22 @@ Font::Font(const std::string &path, const std::string &fallback, TYPES type, STY
 
     switch (style)
     {
-        case FONTR:
+        case FontStyle::Roman:
             make_bold = false;
             make_oblique = false;
             break;
 
-        case FONTB:
+        case FontStyle::Bold:
             make_bold = !(face->style_flags & FT_STYLE_FLAG_BOLD);
             make_oblique = false;
             break;
 
-        case FONTI:
+        case FontStyle::Italic:
             make_bold = false;
             make_oblique = !(face->style_flags & FT_STYLE_FLAG_ITALIC);
             break;
 
-        case FONTZ:
+        case FontStyle::BoldItalic:
             make_bold = !(face->style_flags & FT_STYLE_FLAG_BOLD);
             make_oblique = !(face->style_flags & FT_STYLE_FLAG_ITALIC);
             break;
@@ -379,8 +379,8 @@ void gli_initialize_fonts()
         freetype_error(err, "Unable to initialize FreeType");
 
     fontload();
-    garglk::fontreplace(gli_conf_monofont, MONOF);
-    garglk::fontreplace(gli_conf_propfont, PROPF);
+    garglk::fontreplace(gli_conf_monofont, FontType::Monospace);
+    garglk::fontreplace(gli_conf_propfont, FontType::Proportional);
     fontunload();
 
     /* If the user provided specific fonts, swap them in */
@@ -400,14 +400,14 @@ void gli_initialize_fonts()
     ftmat.yy = 0x10000L;
 
     gfont_table.clear();
-    gfont_table.insert({FontFace::MonoR, Font(gli_conf_mono.r, "Gargoyle-Mono.ttf", MONOF, FONTR)});
-    gfont_table.insert({FontFace::MonoB, Font(gli_conf_mono.b, "Gargoyle-Mono-Bold.ttf", MONOF, FONTB)});
-    gfont_table.insert({FontFace::MonoI, Font(gli_conf_mono.i, "Gargoyle-Mono-Italic.ttf", MONOF, FONTI)});
-    gfont_table.insert({FontFace::MonoZ, Font(gli_conf_mono.z, "Gargoyle-Mono-Bold-Italic.ttf", MONOF, FONTZ)});
-    gfont_table.insert({FontFace::PropR, Font(gli_conf_prop.r, "Gargoyle-Serif.ttf", PROPF, FONTR)});
-    gfont_table.insert({FontFace::PropB, Font(gli_conf_prop.b, "Gargoyle-Serif-Bold.ttf", PROPF, FONTB)});
-    gfont_table.insert({FontFace::PropI, Font(gli_conf_prop.i, "Gargoyle-Serif-Italic.ttf", PROPF, FONTI)});
-    gfont_table.insert({FontFace::PropZ, Font(gli_conf_prop.z, "Gargoyle-Serif-Bold-Italic.ttf", PROPF, FONTZ)});
+    gfont_table.insert({FontFace::MonoR, Font(gli_conf_mono.r, "Gargoyle-Mono.ttf", FontType::Monospace, FontStyle::Roman)});
+    gfont_table.insert({FontFace::MonoB, Font(gli_conf_mono.b, "Gargoyle-Mono-Bold.ttf", FontType::Monospace, FontStyle::Bold)});
+    gfont_table.insert({FontFace::MonoI, Font(gli_conf_mono.i, "Gargoyle-Mono-Italic.ttf", FontType::Monospace, FontStyle::Italic)});
+    gfont_table.insert({FontFace::MonoZ, Font(gli_conf_mono.z, "Gargoyle-Mono-Bold-Italic.ttf", FontType::Monospace, FontStyle::BoldItalic)});
+    gfont_table.insert({FontFace::PropR, Font(gli_conf_prop.r, "Gargoyle-Serif.ttf", FontType::Proportional, FontStyle::Roman)});
+    gfont_table.insert({FontFace::PropB, Font(gli_conf_prop.b, "Gargoyle-Serif-Bold.ttf", FontType::Proportional, FontStyle::Bold)});
+    gfont_table.insert({FontFace::PropI, Font(gli_conf_prop.i, "Gargoyle-Serif-Italic.ttf", FontType::Proportional, FontStyle::Italic)});
+    gfont_table.insert({FontFace::PropZ, Font(gli_conf_prop.z, "Gargoyle-Serif-Bold-Italic.ttf", FontType::Proportional, FontStyle::BoldItalic)});
 
     const auto &entry = gfont_table.at(FontFace::MonoR).getglyph('0');
 
