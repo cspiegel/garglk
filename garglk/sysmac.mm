@@ -312,18 +312,10 @@ void winresize(void)
     if (gli_image_w == vw && gli_image_h == vh)
         return;
 
-    gli_image_w = vw;
-    gli_image_h = vh;
-    gli_image_s = ((gli_image_w * 4 + 3) / 4) * 4;
-
-    /* initialize offline bitmap store */
-    gli_image_rgb.resize(gli_image_s * gli_image_h);
+    gli_windows_size_change(vw, vh);
 
     /* redraw window content */
-    gli_resize_mask(gli_image_w, gli_image_h);
-    gli_force_redraw = true;
     gli_refresh_needed = true;
-    gli_windows_size_change();
 }
 
 static mach_port_t gli_signal_port = 0;

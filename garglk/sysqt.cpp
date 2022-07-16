@@ -233,18 +233,9 @@ void Window::resizeEvent(QResizeEvent *event)
     if (newwid == gli_image_w && newhgt == gli_image_h)
         return;
 
-    gli_image_w = newwid;
-    gli_image_h = newhgt;
-
-    gli_resize_mask(gli_image_w, gli_image_h);
-
-    gli_image_s = ((gli_image_w * 4 + 3) / 4) * 4;
-    gli_image_rgb.resize(gli_image_s * gli_image_h);
-
-    gli_force_redraw = true;
     refresh_needed = true;
 
-    gli_windows_size_change();
+    gli_windows_size_change(newwid, newhgt);
 
     if (gli_conf_save_window_size)
         m_settings->setValue("window/size", event->size());
