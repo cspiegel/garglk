@@ -116,7 +116,7 @@ void win_textgrid_redraw(window_t *win)
     int x, y, w;
     int i, a, b, k, o;
     glui32 link;
-    int font;
+    FontFace font;
     unsigned char *fgcolor, *bgcolor;
 
     x0 = win->bbox.x0;
