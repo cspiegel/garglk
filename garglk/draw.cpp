@@ -97,7 +97,7 @@ int gli_cellh = 8;
 int gli_image_s = 0;
 int gli_image_w = 0;
 int gli_image_h = 0;
-unsigned char *gli_image_rgb = nullptr;
+std::vector<unsigned char> gli_image_rgb;
 
 static const int gli_bpp = 4;
 
@@ -421,7 +421,7 @@ void gli_initialize_fonts()
 
 void gli_draw_pixel(int x, int y, const unsigned char *rgb)
 {
-    unsigned char *p = gli_image_rgb + y * gli_image_s + x * gli_bpp;
+    unsigned char *p = gli_image_rgb.data() + y * gli_image_s + x * gli_bpp;
     if (x < 0 || x >= gli_image_w)
         return;
     if (y < 0 || y >= gli_image_h)
@@ -434,7 +434,7 @@ void gli_draw_pixel(int x, int y, const unsigned char *rgb)
 
 static void draw_pixel_gamma(int x, int y, unsigned char alpha, const unsigned char *rgb)
 {
-    unsigned char *p = gli_image_rgb + y * gli_image_s + x * gli_bpp;
+    unsigned char *p = gli_image_rgb.data() + y * gli_image_s + x * gli_bpp;
     unsigned short invalf = GAMMA_MAX - (alpha * GAMMA_MAX / 255);
     std::array<unsigned short, 3> bg = {
         gammamap[p[0]],
@@ -459,7 +459,7 @@ static void draw_pixel_gamma(int x, int y, unsigned char alpha, const unsigned c
 
 static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const unsigned char *rgb)
 {
-    unsigned char *p = gli_image_rgb + y * gli_image_s + x * gli_bpp;
+    unsigned char *p = gli_image_rgb.data() + y * gli_image_s + x * gli_bpp;
     std::array<unsigned short, 3> invalf = {
         static_cast<unsigned short>(GAMMA_MAX - (alpha[0] * GAMMA_MAX / 255)),
         static_cast<unsigned short>(GAMMA_MAX - (alpha[1] * GAMMA_MAX / 255)),
@@ -518,7 +518,7 @@ void gli_draw_clear(const unsigned char *rgb)
 
     for (y = 0; y < gli_image_h; y++)
     {
-        p = gli_image_rgb + y * gli_image_s;
+        p = gli_image_rgb.data() + y * gli_image_s;
         for (x = 0; x < gli_image_w; x++)
         {
             *p++ = rgb[2];
@@ -546,7 +546,7 @@ void gli_draw_rect(int x0, int y0, int w, int h, const unsigned char *rgb)
     if (x1 > gli_image_w) x1 = gli_image_w;
     if (y1 > gli_image_h) y1 = gli_image_h;
 
-    p0 = gli_image_rgb + y0 * gli_image_s + x0 * gli_bpp;
+    p0 = gli_image_rgb.data() + y0 * gli_image_s + x0 * gli_bpp;
 
     for (y = y0; y < y1; y++)
     {
@@ -746,7 +746,7 @@ void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1,
     }
 
     sp = src->rgba + (sy0 * src->w + sx0) * 4;
-    dp = gli_image_rgb + y0 * gli_image_s + x0 * gli_bpp;
+    dp = gli_image_rgb.data() + y0 * gli_image_s + x0 * gli_bpp;
 
     w = sx1 - sx0;
     h = sy1 - sy0;

@@ -240,7 +240,10 @@ struct mask_t
 extern int gli_image_s;	/* stride */
 extern int gli_image_w;
 extern int gli_image_h;
-extern unsigned char *gli_image_rgb;
+
+#ifdef __cplusplus
+extern std::vector<unsigned char> gli_image_rgb;
+#endif
 
 /*
  * Config globals
