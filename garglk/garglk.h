@@ -86,9 +86,7 @@ std::string winopenfile(const char *prompt, enum FILEFILTERS filter);
 std::string winsavefile(const char *prompt, enum FILEFILTERS filter);
 void winabort(const std::string &msg);
 std::string downcase(const std::string &string);
-#ifdef __cplusplus
 void fontreplace(const std::string &font, FontType type);
-#endif
 std::vector<ConfigFile> configs(const std::string &exedir, const std::string &gamepath);
 void config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, std::function<void(const std::string &cmd, const std::string &arg)> callback);
 std::string user_config();
