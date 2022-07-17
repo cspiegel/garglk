@@ -111,26 +111,10 @@ std::unique_ptr<T, Deleter> unique(T *p, Deleter deleter)
 }
 
 template <std::size_t N>
-struct Pixel {
-public:
+struct Pixel : public std::array<unsigned char, N> {
     template <typename... Args>
-    explicit Pixel(Args... args) : m_pixel{static_cast<unsigned char>(args)...} {
+    explicit Pixel(Args... args) : std::array<unsigned char, N>{static_cast<unsigned char>(args)...} {
     }
-
-    unsigned char operator[](std::size_t i) const {
-        return m_pixel[i];
-    }
-
-    unsigned char &operator[](std::size_t i) {
-        return m_pixel[i];
-    }
-
-    const unsigned char *data() const {
-        return m_pixel.data();
-    }
-
-private:
-    std::array<unsigned char, N> m_pixel;
 };
 
 template <std::size_t N>
