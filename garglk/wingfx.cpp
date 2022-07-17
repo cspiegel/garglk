@@ -21,6 +21,7 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <algorithm>
 #include <cstring>
 
 #include "glk.h"
@@ -96,12 +97,8 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
         return;
     }
 
-    bothwid = dwin->w;
-    if (newwid < bothwid)
-        bothwid = newwid;
-    bothhgt = dwin->h;
-    if (newhgt < bothhgt)
-        bothhgt = newhgt;
+    bothwid = std::min(dwin->w, newwid);
+    bothhgt = std::min(dwin->h, newhgt);
 
     newrgb = new unsigned char[newwid * newhgt * 3];
 
