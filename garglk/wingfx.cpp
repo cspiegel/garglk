@@ -90,7 +90,7 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
         return;
     }
 
-    dwin->rgb.resize(newwid, newhgt);
+    dwin->rgb.resize(newwid, newhgt, true);
     dwin->w = newwid;
     dwin->h = newhgt;
 

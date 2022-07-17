@@ -228,7 +228,7 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
     pic->w = cinfo.output_width;
     pic->h = cinfo.output_height;
     n = cinfo.output_components;
-    pic->rgba.resize(pic->w, pic->h);
+    pic->rgba.resize(pic->w, pic->h, false);
 
     std::vector<JSAMPLE> row(pic->w * n);
     rowarray[0] = row.data();
@@ -311,7 +311,7 @@ static void load_image_png(std::FILE *fl, picture_t *pic)
     rowarray = new png_bytep[pic->h];
     srcdata = new png_byte[pic->w * pic->h * 4];
 
-    pic->rgba.resize(pic->w, pic->h);
+    pic->rgba.resize(pic->w, pic->h, false);
 
     for (ix=0; ix<pic->h; ix++)
         rowarray[ix] = srcdata + (ix * pic->w * 4);

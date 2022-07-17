@@ -854,8 +854,7 @@ void gli_windows_size_change(int w, int h)
 
     gli_resize_mask(gli_image_w, gli_image_h);
 
-    gli_image_s = ((gli_image_w * 4 + 3) / 4) * 4;
-    gli_image_rgb.resize(gli_image_s * gli_image_h);
+    gli_image_rgb.resize(gli_image_w, gli_image_h, false);
 
     gli_force_redraw = true;
     gli_windows_rearrange();

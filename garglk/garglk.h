@@ -37,6 +37,7 @@ enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
 
 #ifdef __cplusplus
 #include <array>
+#include <cstring>
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -111,43 +112,105 @@ std::unique_ptr<T, Deleter> unique(T *p, Deleter deleter)
 }
 
 template <std::size_t N>
-struct Pixel : public std::array<unsigned char, N> {
+class Pixel {
+public:
     template <typename... Args>
-    explicit Pixel(Args... args) : std::array<unsigned char, N>{static_cast<unsigned char>(args)...} {
+    Pixel(Args... args) :
+        m_pixel{static_cast<unsigned char>(args)...},
+        m_data(m_pixel.data()) {
     }
+
+    explicit Pixel(unsigned char *data) : m_data(data) {
+    }
+
+    Pixel(const Pixel &other) :
+        m_pixel(other.m_pixel),
+        m_data(m_pixel.data()) {
+    }
+
+    Pixel &operator=(const Pixel &other) {
+        if (this != &other)
+            std::memcpy(m_data, other.m_data, N);
+
+        return *this;
+    }
+
+    unsigned char operator[](std::size_t i) const {
+        return m_data[i];
+    }
+
+private:
+    std::array<unsigned char, N> m_pixel;
+    unsigned char *const m_data;
+};
+
+template <std::size_t N>
+class Row {
+public:
+    Row(unsigned char *row) : m_row(row) {
+    }
+
+    const Pixel<N> operator[](std::size_t x) const {
+        return Pixel<N>(&m_row[x * N]);
+    }
+
+    Pixel<N> operator[](std::size_t x) {
+        return Pixel<N>(&m_row[x * N]);
+    }
+
+private:
+    unsigned char *m_row;
 };
 
 template <std::size_t N>
 class Canvas {
 public:
-    void resize(int w, int h) {
-        m_array.resize(h);
-        m_array.shrink_to_fit();
-        for (auto &row : m_array) {
-            row.resize(w);
-            row.shrink_to_fit();
+    void resize(int width, int height, bool keep) {
+        if (keep)
+        {
+            auto backup = m_pixels;
+            int minwidth = std::min(m_width, width);
+            int minheight = std::min(m_height, height);
+
+            m_pixels.resize(width * height * N);
+
+            for (int y = 0; y < minheight; y++)
+                std::memcpy(&m_pixels[y * width * N], &backup[y * m_width * N], minwidth * N);
         }
+        else
+        {
+            m_pixels.resize(width * height * N);
+        }
+
+        m_width = width;
+        m_height = height;
     }
 
     bool empty() const {
-        return m_array.empty();
+        return m_pixels.empty();
     }
 
-    const std::vector<Pixel<N>> &operator[](std::size_t y) const {
-        return m_array[y];
+    Row<N> operator[](std::size_t y) {
+        return {&m_pixels[y * m_width * N]};
     }
 
-    std::vector<Pixel<N>> &operator[](std::size_t y) {
-        return m_array[y];
+    const unsigned char *data() const {
+        return m_pixels.data();
+    }
+
+    std::size_t size() const {
+        return m_pixels.size();
     }
 
     void clear() {
-        m_array.clear();
-        m_array.shrink_to_fit();
+        m_pixels.clear();
+        m_pixels.shrink_to_fit();
     }
 
 private:
-    std::vector<std::vector<Pixel<N>>> m_array;
+    std::vector<unsigned char> m_pixels;
+    int m_width = 0;
+    int m_height = 0;
 };
 
 #endif
@@ -268,12 +331,11 @@ struct style_s
 };
 #endif
 
-extern int gli_image_s;	/* stride */
 extern int gli_image_w;
 extern int gli_image_h;
 
 #ifdef __cplusplus
-extern std::vector<unsigned char> gli_image_rgb;
+extern Canvas<4> gli_image_rgb;
 #endif
 
 /*

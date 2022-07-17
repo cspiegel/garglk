@@ -74,7 +74,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     dst->refcount = 1;
     dst->w = newcols;
     dst->h = newrows;
-    dst->rgba.resize(newcols, newrows);
+    dst->rgba.resize(newcols, newrows, false);
     dst->id = src->id;
     dst->scaled = true;
 

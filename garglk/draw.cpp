@@ -97,9 +97,7 @@ int gli_cellh = 8;
 int gli_image_s = 0;
 int gli_image_w = 0;
 int gli_image_h = 0;
-std::vector<unsigned char> gli_image_rgb;
-
-static const int gli_bpp = 4;
+Canvas<4> gli_image_rgb;
 
 static FT_Library ftlib;
 static FT_Matrix ftmat;
@@ -421,25 +419,20 @@ void gli_initialize_fonts()
 
 void gli_draw_pixel(int x, int y, const Pixel<3> &rgb)
 {
-    unsigned char *p = gli_image_rgb.data() + y * gli_image_s + x * gli_bpp;
     if (x < 0 || x >= gli_image_w)
         return;
     if (y < 0 || y >= gli_image_h)
         return;
-    p[0] = rgb[2];
-    p[1] = rgb[1];
-    p[2] = rgb[0];
-    p[3] = 0xFF;
+    gli_image_rgb[y][x] = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
 }
 
 static void draw_pixel_gamma(int x, int y, unsigned char alpha, const unsigned char *rgb)
 {
-    unsigned char *p = gli_image_rgb.data() + y * gli_image_s + x * gli_bpp;
     unsigned short invalf = GAMMA_MAX - (alpha * GAMMA_MAX / 255);
     std::array<unsigned short, 3> bg = {
-        gammamap[p[0]],
-        gammamap[p[1]],
-        gammamap[p[2]]
+        gammamap[gli_image_rgb[y][x][0]],
+        gammamap[gli_image_rgb[y][x][1]],
+        gammamap[gli_image_rgb[y][x][2]]
     };
     std::array<unsigned short, 3> fg = {
         gammamap[rgb[0]],
@@ -451,24 +444,23 @@ static void draw_pixel_gamma(int x, int y, unsigned char alpha, const unsigned c
         return;
     if (y < 0 || y >= gli_image_h)
         return;
-    p[0] = gammainv[fg[2] + mulhigh(static_cast<int>(bg[0]) - fg[2], invalf)];
-    p[1] = gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf)];
-    p[2] = gammainv[fg[0] + mulhigh(static_cast<int>(bg[2]) - fg[0], invalf)];
-    p[3] = 0xFF;
+    gli_image_rgb[y][x] = Pixel<4>(gammainv[fg[2] + mulhigh(static_cast<int>(bg[0]) - fg[2], invalf)],
+                                   gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf)],
+                                   gammainv[fg[0] + mulhigh(static_cast<int>(bg[2]) - fg[0], invalf)],
+                                   0xff);
 }
 
 static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const unsigned char *rgb)
 {
-    unsigned char *p = gli_image_rgb.data() + y * gli_image_s + x * gli_bpp;
     std::array<unsigned short, 3> invalf = {
         static_cast<unsigned short>(GAMMA_MAX - (alpha[0] * GAMMA_MAX / 255)),
         static_cast<unsigned short>(GAMMA_MAX - (alpha[1] * GAMMA_MAX / 255)),
         static_cast<unsigned short>(GAMMA_MAX - (alpha[2] * GAMMA_MAX / 255)),
     };
     std::array<unsigned short, 3> bg = {
-        gammamap[p[0]],
-        gammamap[p[1]],
-        gammamap[p[2]]
+        gammamap[gli_image_rgb[y][x][0]],
+        gammamap[gli_image_rgb[y][x][1]],
+        gammamap[gli_image_rgb[y][x][2]]
     };
     std::array<unsigned short, 3> fg = {
         gammamap[rgb[0]],
@@ -480,10 +472,10 @@ static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const
         return;
     if (y < 0 || y >= gli_image_h)
         return;
-    p[0] = gammainv[fg[2] + mulhigh(static_cast<int>(bg[0]) - fg[2], invalf[2])];
-    p[1] = gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf[1])];
-    p[2] = gammainv[fg[0] + mulhigh(static_cast<int>(bg[2]) - fg[0], invalf[0])];
-    p[3] = 0xFF;
+    gli_image_rgb[y][x] = Pixel<4>(gammainv[fg[2] + mulhigh(static_cast<int>(bg[0]) - fg[2], invalf[2])],
+                                   gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf[1])],
+                                   gammainv[fg[0] + mulhigh(static_cast<int>(bg[2]) - fg[0], invalf[0])],
+                                   0xff);
 }
 
 static void draw_bitmap_gamma(const Bitmap *b, int x, int y, const unsigned char *rgb)
@@ -513,25 +505,19 @@ static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const unsigned 
 
 void gli_draw_clear(const unsigned char *rgb)
 {
-    unsigned char *p;
     int x, y;
 
     for (y = 0; y < gli_image_h; y++)
     {
-        p = gli_image_rgb.data() + y * gli_image_s;
         for (x = 0; x < gli_image_w; x++)
         {
-            *p++ = rgb[2];
-            *p++ = rgb[1];
-            *p++ = rgb[0];
-            *p++ = 0xFF;
+            gli_image_rgb[y][x] = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
         }
     }
 }
 
 void gli_draw_rect(int x0, int y0, int w, int h, const unsigned char *rgb)
 {
-    unsigned char *p0;
     int x1 = x0 + w;
     int y1 = y0 + h;
     int x, y;
@@ -546,19 +532,12 @@ void gli_draw_rect(int x0, int y0, int w, int h, const unsigned char *rgb)
     if (x1 > gli_image_w) x1 = gli_image_w;
     if (y1 > gli_image_h) y1 = gli_image_h;
 
-    p0 = gli_image_rgb.data() + y0 * gli_image_s + x0 * gli_bpp;
-
     for (y = y0; y < y1; y++)
     {
-        unsigned char *p = p0;
         for (x = x0; x < x1; x++)
         {
-            *p++ = rgb[2];
-            *p++ = rgb[1];
-            *p++ = rgb[0];
-            *p++ = 0xFF;
+            gli_image_rgb[y][x] = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
         }
-        p0 += gli_image_s;
     }
 }
 
@@ -712,7 +691,6 @@ void gli_draw_caret(int x, int y)
 
 void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1, int dy1)
 {
-    unsigned char *dp;
     int x1, y1, sx0, sy0, sx1, sy1;
     int w, h;
 
@@ -745,8 +723,6 @@ void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1,
         sy1 += dy1 - y1;
     }
 
-    dp = gli_image_rgb.data() + y0 * gli_image_s + x0 * gli_bpp;
-
     w = sx1 - sx0;
     h = sy1 - sy0;
 
@@ -754,16 +730,16 @@ void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1,
     {
         for (int x = 0; x < w; x++)
         {
+            auto existing = gli_image_rgb[y + y0][x + x0];
             unsigned char sa = src->rgba[y][x][3];
             unsigned char na = 255 - sa;
             unsigned char sr = mul255(src->rgba[y][x][0], sa);
             unsigned char sg = mul255(src->rgba[y][x][1], sa);
             unsigned char sb = mul255(src->rgba[y][x][2], sa);
-            dp[x*4+0] = sb + mul255(dp[x*4+0], na);
-            dp[x*4+1] = sg + mul255(dp[x*4+1], na);
-            dp[x*4+2] = sr + mul255(dp[x*4+2], na);
-            dp[x*4+3] = 0xFF;
+            gli_image_rgb[y + y0][x + x0] = Pixel<4>(sb + mul255(existing[0], na),
+                                                     sg + mul255(existing[1], na),
+                                                     sr + mul255(existing[2], na),
+                                                     0xff);
         }
-        dp += gli_image_s;
     }
 }
