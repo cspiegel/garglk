@@ -54,9 +54,7 @@ window_graphics_t *win_graphics_create(window_t *win)
     res = new window_graphics_t;
 
     res->owner = win;
-    res->bgnd[0] = win->bgcolor[0];
-    res->bgnd[1] = win->bgcolor[1];
-    res->bgnd[2] = win->bgcolor[2];
+    res->bgnd = Pixel(win->bgcolor[0], win->bgcolor[1], win->bgcolor[2]);
 
     res->w = 0;
     res->h = 0;
@@ -240,7 +238,6 @@ void win_graphics_erase_rect(window_graphics_t *dwin, bool whole,
 void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
     glsi32 x0, glsi32 y0, glui32 width, glui32 height)
 {
-    Pixel col;
     int x1 = x0 + width;
     int y1 = y0 + height;
     x0 = gli_zoom_int(x0);
@@ -250,9 +247,9 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
     int x, y;
     int hx0, hx1, hy0, hy1;
 
-    col[0] = (color >> 16) & 0xff;
-    col[1] = (color >> 8) & 0xff;
-    col[2] = (color >> 0) & 0xff;
+    Pixel col((color >> 16) & 0xff,
+              (color >> 8) & 0xff,
+              (color >> 0) & 0xff);
 
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
@@ -284,9 +281,9 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
 
 void win_graphics_set_background_color(window_graphics_t *dwin, glui32 color)
 {
-    dwin->bgnd[0] = (color >> 16) & 0xff;
-    dwin->bgnd[1] = (color >> 8) & 0xff;
-    dwin->bgnd[2] = (color >> 0) & 0xff;
+    dwin->bgnd = Pixel((color >> 16) & 0xff,
+                       (color >> 8) & 0xff,
+                       (color >> 0) & 0xff);
 }
 
 static void drawpicture(picture_t *src, window_graphics_t *dst,

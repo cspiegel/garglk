@@ -631,7 +631,24 @@ struct window_textbuffer_s
     int copypos;
 };
 
-using Pixel = std::array<unsigned char, 3>;
+struct Pixel {
+public:
+    Pixel() = default;
+
+    Pixel(unsigned char r, unsigned char g, unsigned char b) : m_rgb{r, g, b} {
+    }
+
+    unsigned char operator[](std::size_t i) const {
+        return m_rgb[i];
+    }
+
+    const unsigned char *data() const {
+        return m_rgb.data();
+    }
+
+private:
+    std::array<unsigned char, 3> m_rgb;
+};
 
 class Matrix {
 public:
@@ -653,9 +670,7 @@ public:
     }
 
     void replace(int y, int x, const Pixel &rgb) {
-        m_array[y][x][0] = rgb[0];
-        m_array[y][x][1] = rgb[1];
-        m_array[y][x][2] = rgb[2];
+        m_array[y][x] = rgb;
     }
 
     void clear() {
