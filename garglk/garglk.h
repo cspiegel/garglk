@@ -343,10 +343,8 @@ extern float gli_conf_monoaspect;
 
 #ifdef __cplusplus
 extern std::vector<glui32> gli_more_prompt;
-#endif
 extern glui32 gli_more_prompt_len;
 extern int gli_more_align;
-#ifdef __cplusplus
 extern FontFace gli_more_font;
 #endif
 
