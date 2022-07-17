@@ -122,6 +122,10 @@ public:
         return m_rgb[i];
     }
 
+    unsigned char &operator[](std::size_t i) {
+        return m_rgb[i];
+    }
+
     const unsigned char *data() const {
         return m_rgb.data();
     }
@@ -146,12 +150,12 @@ public:
         return m_array.empty();
     }
 
-    const Pixel<N> &at(int y, int x) const {
-        return m_array[y][x];
+    const std::vector<Pixel<N>> &operator[](std::size_t y) const {
+        return m_array[y];
     }
 
-    void replace(int y, int x, const Pixel<N> &rgb) {
-        m_array[y][x] = rgb;
+    std::vector<Pixel<N>> &operator[](std::size_t y) {
+        return m_array[y];
     }
 
     void clear() {

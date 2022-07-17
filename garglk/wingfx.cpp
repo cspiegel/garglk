@@ -126,7 +126,7 @@ void win_graphics_redraw(window_t *win)
 
         for (y = 0; y < dwin->h; y++)
             for (x = 0; x < dwin->w; x++)
-                gli_draw_pixel(x + x0, y + y0, dwin->rgb.at(y, x));
+                gli_draw_pixel(x + x0, y + y0, dwin->rgb[y][x]);
     }
 }
 
@@ -228,7 +228,7 @@ void win_graphics_erase_rect(window_graphics_t *dwin, bool whole,
     {
         for (x = x0; x < x1; x++)
         {
-            dwin->rgb.replace(y, x, dwin->bgnd);
+            dwin->rgb[y][x] = dwin->bgnd;
         }
     }
 
@@ -272,7 +272,7 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
     {
         for (x = x0; x < x1; x++)
         {
-            dwin->rgb.replace(y, x, col);
+            dwin->rgb[y][x] = col;
         }
     }
 
@@ -351,7 +351,7 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     {
         for (x = 0; x < w; x++)
         {
-            auto existing = dst->rgb.at(y + y0, x + x0);
+            auto existing = dst->rgb[y + y0][x + x0];
             unsigned char sa = sp[x*4+3];
             unsigned char na = 255 - sa;
             unsigned char sr = mul255(sp[x*4+0], sa);
@@ -362,7 +362,7 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
                 sg + mul255(existing[1], na),
                 sb + mul255(existing[2], na)
             );
-            dst->rgb.replace(y + y0, x + x0, rgb);
+            dst->rgb[y + y0][x + x0] = rgb;
         }
 
         sp += src->w * 4;
