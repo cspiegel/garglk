@@ -631,13 +631,49 @@ struct window_textbuffer_s
     int copypos;
 };
 
+using Pixel = std::array<unsigned char, 3>;
+
+class Matrix {
+public:
+    void resize(int w, int h) {
+        m_array.resize(h);
+        m_array.shrink_to_fit();
+        for (auto &row : m_array) {
+            row.resize(w);
+            row.shrink_to_fit();
+        }
+    }
+
+    bool empty() const {
+        return m_array.empty();
+    }
+
+    const Pixel &at(int y, int x) const {
+        return m_array[y][x];
+    }
+
+    void replace(int y, int x, unsigned char *rgb) {
+        m_array[y][x][0] = rgb[0];
+        m_array[y][x][1] = rgb[1];
+        m_array[y][x][2] = rgb[2];
+    }
+
+    void clear() {
+        m_array.clear();
+        m_array.shrink_to_fit();
+    }
+
+private:
+    std::vector<std::vector<Pixel>> m_array;
+};
+
 struct window_graphics_s
 {
     window_t *owner;
     unsigned char bgnd[3];
     int dirty;
     int w, h;
-    std::vector<unsigned char> rgb;
+    Matrix rgb;
 };
 #endif
 

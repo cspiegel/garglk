@@ -75,9 +75,7 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
 {
     window_graphics_t *dwin = win->window.graphics;
     int newwid, newhgt;
-    int bothwid, bothhgt;
     int oldw, oldh;
-    int y;
 
     win->bbox = *box;
 
@@ -91,24 +89,10 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
         dwin->w = 0;
         dwin->h = 0;
         dwin->rgb.clear();
-        dwin->rgb.shrink_to_fit();
         return;
     }
 
-    bothwid = std::min(dwin->w, newwid);
-    bothhgt = std::min(dwin->h, newhgt);
-
-    std::vector<unsigned char> newrgb(newwid * newhgt * 3);
-
-    if (bothwid && bothhgt)
-    {
-        for (y = 0; y < bothhgt; y++)
-            std::memcpy(newrgb.data() + y * newwid * 3,
-                    dwin->rgb.data() + y * oldw * 3,
-                    bothwid * 3);
-    }
-
-    dwin->rgb = std::move(newrgb);
+    dwin->rgb.resize(newwid, newhgt);
     dwin->w = newwid;
     dwin->h = newhgt;
 
@@ -144,7 +128,7 @@ void win_graphics_redraw(window_t *win)
 
         for (y = 0; y < dwin->h; y++)
             for (x = 0; x < dwin->w; x++)
-                gli_draw_pixel(x + x0, y + y0, dwin->rgb.data() + (y * dwin->w + x) * 3);
+                gli_draw_pixel(x + x0, y + y0, dwin->rgb.at(y, x).data());
     }
 }
 
@@ -244,12 +228,9 @@ void win_graphics_erase_rect(window_graphics_t *dwin, bool whole,
 
     for (y = y0; y < y1; y++)
     {
-        unsigned char *p = dwin->rgb.data() + (y * dwin->w + x0) * 3;
         for (x = x0; x < x1; x++)
         {
-            *p++ = dwin->bgnd[0];
-            *p++ = dwin->bgnd[1];
-            *p++ = dwin->bgnd[2];
+            dwin->rgb.replace(y, x, dwin->bgnd);
         }
     }
 
@@ -292,12 +273,9 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
 
     for (y = y0; y < y1; y++)
     {
-        unsigned char *p = dwin->rgb.data() + (y * dwin->w + x0) * 3;
         for (x = x0; x < x1; x++)
         {
-            *p++ = col[0];
-            *p++ = col[1];
-            *p++ = col[2];
+            dwin->rgb.replace(y, x, col);
         }
     }
 
@@ -314,7 +292,7 @@ void win_graphics_set_background_color(window_graphics_t *dwin, glui32 color)
 static void drawpicture(picture_t *src, window_graphics_t *dst,
     int x0, int y0, int width, int height, glui32 linkval)
 {
-    unsigned char *sp, *dp;
+    unsigned char *sp;
     int dx1, dy1, x1, y1, sx0, sy0, sx1, sy1;
     int x, y, w, h;
     int hx0, hx1, hy0, hy1;
@@ -368,7 +346,6 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     gli_put_hyperlink(linkval, hx0, hy0, hx1, hy1);
 
     sp = src->rgba + (sy0 * src->w + sx0) * 4;
-    dp = dst->rgb.data() + (y0 * dst->w + x0) * 3;
 
     w = sx1 - sx0;
     h = sy1 - sy0;
@@ -377,16 +354,20 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     {
         for (x = 0; x < w; x++)
         {
+            auto existing = dst->rgb.at(y + y0, x + x0);
             unsigned char sa = sp[x*4+3];
             unsigned char na = 255 - sa;
             unsigned char sr = mul255(sp[x*4+0], sa);
             unsigned char sg = mul255(sp[x*4+1], sa);
             unsigned char sb = mul255(sp[x*4+2], sa);
-            dp[x*3+0] = sr + mul255(dp[x*3+0], na);
-            dp[x*3+1] = sg + mul255(dp[x*3+1], na);
-            dp[x*3+2] = sb + mul255(dp[x*3+2], na);
+            Pixel rgb = {
+                static_cast<unsigned char>(sr + mul255(existing[0], na)),
+                static_cast<unsigned char>(sg + mul255(existing[1], na)),
+                static_cast<unsigned char>(sb + mul255(existing[2], na)),
+            };
+            dst->rgb.replace(y + y0, x + x0, rgb.data());
         }
+
         sp += src->w * 4;
-        dp += dst->w * 3;
     }
 }
