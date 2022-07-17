@@ -56,8 +56,6 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     if (dst && dst->w == newcols && dst->h == newrows)
         return dst;
 
-    unsigned char *xelrow;
-    unsigned char *newxelrow;
     unsigned char *xP;
     unsigned char *nxP;
     int row, col;
@@ -78,12 +76,9 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     dst->refcount = 1;
     dst->w = newcols;
     dst->h = newrows;
-    dst->rgba = new unsigned char[newcols * newrows * 4];
+    dst->rgba.resize(newcols, newrows);
     dst->id = src->id;
     dst->scaled = true;
-
-    xelrow = src->rgba;
-    newxelrow = dst->rgba;
 
     std::vector<unsigned char> tempxelrow(cols * 4);
     std::vector<long> rs(cols + 1);
@@ -108,24 +103,23 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 
     for ( row = 0; row < newrows; ++row )
     {
-        /* First scale Y from xelrow into tempxelrow. */
+        /* First scale Y from src->rgba into tempxelrow. */
         {
             while ( fracrowleft < fracrowtofill )
             {
                 if ( needtoreadrow )
                     if ( rowsread < rows )
                     {
-                        xelrow += src->w * 4;
                         ++rowsread;
                         /* needtoreadrow = 0; */
                     }
 
-                for ( col = 0, xP = xelrow; col < cols; ++col, xP += 4 )
+                for ( col = 0; col < cols; ++col)
                 {
-                    rs[col] += fracrowleft * xP[0] * xP[3];
-                    gs[col] += fracrowleft * xP[1] * xP[3];
-                    bs[col] += fracrowleft * xP[2] * xP[3];
-                    as[col] += fracrowleft * xP[3];
+                    rs[col] += fracrowleft * src->rgba[rowsread - 1][col][0] * src->rgba[rowsread - 1][col][3];
+                    gs[col] += fracrowleft * src->rgba[rowsread - 1][col][1] * src->rgba[rowsread - 1][col][3];
+                    bs[col] += fracrowleft * src->rgba[rowsread - 1][col][2] * src->rgba[rowsread - 1][col][3];
+                    as[col] += fracrowleft * src->rgba[rowsread - 1][col][3];
                 }
 
                 fracrowtofill -= fracrowleft;
@@ -137,19 +131,18 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
             if ( needtoreadrow )
                 if ( rowsread < rows )
                 {
-                    xelrow += src->w * 4;
                     ++rowsread;
                     needtoreadrow = 0;
                 }
 
-            for ( col = 0, xP = xelrow, nxP = tempxelrow.data();
-                    col < cols; ++col, xP += 4, nxP += 4)
+            for ( col = 0, nxP = tempxelrow.data();
+                    col < cols; ++col, nxP += 4)
             {
                 long r, g, b, a;
-                r = rs[col] + fracrowtofill * xP[0] * xP[3];
-                g = gs[col] + fracrowtofill * xP[1] * xP[3];
-                b = bs[col] + fracrowtofill * xP[2] * xP[3];
-                a = as[col] + fracrowtofill * xP[3];
+                r = rs[col] + fracrowtofill * src->rgba[rowsread - 1][col][0] * src->rgba[rowsread - 1][col][3];
+                g = gs[col] + fracrowtofill * src->rgba[rowsread - 1][col][1] * src->rgba[rowsread - 1][col][3];
+                b = bs[col] + fracrowtofill * src->rgba[rowsread - 1][col][2] * src->rgba[rowsread - 1][col][3];
+                a = as[col] + fracrowtofill * src->rgba[rowsread - 1][col][3];
 
                 if (!a)
                 {
@@ -183,17 +176,17 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
             fracrowtofill = SCALE;
         }
 
-        /* Now scale X from tempxelrow into newxelrow and write it out. */
+        /* Now scale X from tempxelrow into dst->rgba and write it out. */
         {
             long r, g, b, a;
             long fraccoltofill, fraccolleft;
             int needcol;
 
-            nxP = newxelrow;
             fraccoltofill = SCALE;
             r = g = b = a = HALFSCALE;
             needcol = 0;
 
+            int dstcol = 0;
             for ( col = 0, xP = tempxelrow.data(); col < cols; ++col, xP += 4 )
             {
                 fraccolleft = sxscale;
@@ -201,7 +194,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                 {
                     if ( needcol )
                     {
-                        nxP += 4;
+                        dstcol++;
                         r = g = b = a = HALFSCALE;
                     }
 
@@ -226,10 +219,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                         if ( a > maxval ) a = maxval;
                     }
 
-                    nxP[0] = r;
-                    nxP[1] = g;
-                    nxP[2] = b;
-                    nxP[3] = a;
+                    dst->rgba[row][dstcol] = Pixel<4>(r, g, b, a);
 
                     fraccolleft -= fraccoltofill;
                     fraccoltofill = SCALE;
@@ -240,7 +230,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                 {
                     if ( needcol )
                     {
-                        nxP += 4;
+                        dstcol++;
                         r = g = b = a = HALFSCALE;
                         needcol = 0;
                     }
@@ -281,13 +271,8 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                     if ( a > maxval ) a = maxval;
                 }
 
-                nxP[0] = r;
-                nxP[1] = g;
-                nxP[2] = b;
-                nxP[3] = a;
+                dst->rgba[row][dstcol] = Pixel<4>(r, g, b, a);
             }
-
-            newxelrow += dst->w * 4;
         }
     }
 

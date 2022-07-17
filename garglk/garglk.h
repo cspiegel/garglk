@@ -113,25 +113,24 @@ std::unique_ptr<T, Deleter> unique(T *p, Deleter deleter)
 template <std::size_t N>
 struct Pixel {
 public:
-    Pixel() = default;
-
-    Pixel(unsigned char r, unsigned char g, unsigned char b) : m_rgb{r, g, b} {
+    template <typename... Ts>
+    explicit Pixel(Ts... rest) : m_pixel{static_cast<unsigned char>(rest)...} {
     }
 
     unsigned char operator[](std::size_t i) const {
-        return m_rgb[i];
+        return m_pixel[i];
     }
 
     unsigned char &operator[](std::size_t i) {
-        return m_rgb[i];
+        return m_pixel[i];
     }
 
     const unsigned char *data() const {
-        return m_rgb.data();
+        return m_pixel.data();
     }
 
 private:
-    std::array<unsigned char, N> m_rgb;
+    std::array<unsigned char, N> m_pixel;
 };
 
 template <std::size_t N>
@@ -271,7 +270,7 @@ struct picture_s
 {
     int refcount;
     int w, h;
-    unsigned char *rgba;
+    Matrix<4> rgba;
     unsigned long id;
     bool scaled;
 };

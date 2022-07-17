@@ -712,7 +712,7 @@ void gli_draw_caret(int x, int y)
 
 void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1, int dy1)
 {
-    unsigned char *sp, *dp;
+    unsigned char *dp;
     int x1, y1, sx0, sy0, sx1, sy1;
     int w, h;
 
@@ -745,7 +745,6 @@ void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1,
         sy1 += dy1 - y1;
     }
 
-    sp = src->rgba + (sy0 * src->w + sx0) * 4;
     dp = gli_image_rgb.data() + y0 * gli_image_s + x0 * gli_bpp;
 
     w = sx1 - sx0;
@@ -755,17 +754,16 @@ void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1,
     {
         for (int x = 0; x < w; x++)
         {
-            unsigned char sa = sp[x*4+3];
+            unsigned char sa = src->rgba[y][x][3];
             unsigned char na = 255 - sa;
-            unsigned char sr = mul255(sp[x*4+0], sa);
-            unsigned char sg = mul255(sp[x*4+1], sa);
-            unsigned char sb = mul255(sp[x*4+2], sa);
+            unsigned char sr = mul255(src->rgba[y][x][0], sa);
+            unsigned char sg = mul255(src->rgba[y][x][1], sa);
+            unsigned char sb = mul255(src->rgba[y][x][2], sa);
             dp[x*4+0] = sb + mul255(dp[x*4+0], na);
             dp[x*4+1] = sg + mul255(dp[x*4+1], na);
             dp[x*4+2] = sr + mul255(dp[x*4+2], na);
             dp[x*4+3] = 0xFF;
         }
-        sp += src->w * 4;
         dp += gli_image_s;
     }
 }

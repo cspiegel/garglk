@@ -87,7 +87,6 @@ void gli_picture_decrement(picture_t *pic)
 
     if (pic->refcount > 0 && --pic->refcount == 0)
     {
-        delete [] pic->rgba;
         delete pic;
     }
 }
@@ -196,7 +195,6 @@ picture_t *gli_picture_load(unsigned long id)
     pic->refcount = 1;
     pic->w = 0;
     pic->h = 0;
-    pic->rgba = nullptr;
     pic->id = id;
     pic->scaled = false;
 
@@ -209,12 +207,6 @@ picture_t *gli_picture_load(unsigned long id)
     if (closeafter)
         fclose(fl);
 
-    if (!pic->rgba)
-    {
-        delete pic;
-        return nullptr;
-    }
-
     gli_picture_store(pic);
 
     return pic;
@@ -225,7 +217,6 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
     JSAMPROW rowarray[1];
-    unsigned char *p;
     int n, i;
 
     cinfo.err = jpeg_std_error(&jerr);
@@ -237,26 +228,24 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
     pic->w = cinfo.output_width;
     pic->h = cinfo.output_height;
     n = cinfo.output_components;
-    pic->rgba = new unsigned char[pic->w * pic->h * 4];
+    pic->rgba.resize(pic->w, pic->h);
 
-    p = pic->rgba;
     std::vector<JSAMPLE> row(pic->w * n);
     rowarray[0] = row.data();
 
     while (cinfo.output_scanline < cinfo.output_height)
     {
+        JDIMENSION y = cinfo.output_scanline;
         jpeg_read_scanlines(&cinfo, rowarray, 1);
         if (n == 1)
             for (i = 0; i < pic->w; i++)
             {
-                *p++ = row[i]; *p++ = row[i]; *p++ = row[i];
-                *p++ = 0xFF;
+                pic->rgba[y][i] = Pixel<4>(row[i], row[i], row[i], 0xff);
             }
         else if (n == 3)
             for (i = 0; i < pic->w; i++)
             {
-                *p++ = row[i*3+0]; *p++ = row[i*3+1]; *p++ = row[i*3+2];
-                *p++ = 0xFF;
+                pic->rgba[y][i] = Pixel<4>(row[i*3+0], row[i*3+1], row[i*3+2], 0xff);
             }
     }
 
@@ -266,7 +255,8 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
 
 static void load_image_png(std::FILE *fl, picture_t *pic)
 {
-    int ix, x, y;
+    // int ix, x, y;
+    int ix;
     int srcrowbytes;
     png_structp png_ptr = nullptr;
     png_infop info_ptr = nullptr;
@@ -321,6 +311,8 @@ static void load_image_png(std::FILE *fl, picture_t *pic)
     rowarray = new png_bytep[pic->h];
     srcdata = new png_byte[pic->w * pic->h * 4];
 
+    pic->rgba.resize(pic->w, pic->h);
+
     for (ix=0; ix<pic->h; ix++)
         rowarray[ix] = srcdata + (ix * pic->w * 4);
 
@@ -328,22 +320,17 @@ static void load_image_png(std::FILE *fl, picture_t *pic)
     png_read_end(png_ptr, info_ptr);
 
     png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-    delete [] rowarray;
 
-    pic->rgba = srcdata;
-
-    if (pic->w * 3 == srcrowbytes)
+    bool has_alpha = srcrowbytes == pic->w * 4;
+    int size = has_alpha ? 4 : 3;
+    for (int y = 0; y < pic->h; y++)
     {
-        for (y = 0; y < pic->h; y++)
+        for (int x = 0; x < pic->w; x++)
         {
-            srcdata = pic->rgba + y * pic->w * 4;
-            for (x = pic->w - 1; x >= 0; x--)
-            {
-                srcdata[x * 4 + 3] = 0xFF;
-                srcdata[x * 4 + 2] = srcdata[x * 3 + 2];
-                srcdata[x * 4 + 1] = srcdata[x * 3 + 1];
-                srcdata[x * 4 + 0] = srcdata[x * 3 + 0];
-            }
+            auto a = has_alpha ? rowarray[y][x * size + 3] : 0xff;
+            pic->rgba[y][x] = Pixel<4>(rowarray[y][x * size + 0], rowarray[y][x * size + 1], rowarray[y][x * size + 2], a);
         }
     }
+
+    delete [] rowarray;
 }

@@ -289,7 +289,6 @@ void win_graphics_set_background_color(window_graphics_t *dwin, glui32 color)
 static void drawpicture(picture_t *src, window_graphics_t *dst,
     int x0, int y0, int width, int height, glui32 linkval)
 {
-    unsigned char *sp;
     int dx1, dy1, x1, y1, sx0, sy0, sx1, sy1;
     int x, y, w, h;
     int hx0, hx1, hy0, hy1;
@@ -342,8 +341,6 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     /* zero out or set hyperlink for these coordinates */
     gli_put_hyperlink(linkval, hx0, hy0, hx1, hy1);
 
-    sp = src->rgba + (sy0 * src->w + sx0) * 4;
-
     w = sx1 - sx0;
     h = sy1 - sy0;
 
@@ -352,11 +349,11 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
         for (x = 0; x < w; x++)
         {
             auto existing = dst->rgb[y + y0][x + x0];
-            unsigned char sa = sp[x*4+3];
+            unsigned char sa = src->rgba[y + sy0][x + sx0][3];
             unsigned char na = 255 - sa;
-            unsigned char sr = mul255(sp[x*4+0], sa);
-            unsigned char sg = mul255(sp[x*4+1], sa);
-            unsigned char sb = mul255(sp[x*4+2], sa);
+            unsigned char sr = mul255(src->rgba[y][x][0], sa);
+            unsigned char sg = mul255(src->rgba[y][x][1], sa);
+            unsigned char sb = mul255(src->rgba[y][x][2], sa);
             Pixel<3> rgb(
                 sr + mul255(existing[0], na),
                 sg + mul255(existing[1], na),
@@ -364,7 +361,5 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
             );
             dst->rgb[y + y0][x + x0] = rgb;
         }
-
-        sp += src->w * 4;
     }
 }
