@@ -79,10 +79,10 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     dst->scaled = true;
 
     std::vector<Pixel<4>> tempxelrow(cols);
-    std::vector<long> rs(cols + 1);
-    std::vector<long> gs(cols + 1);
-    std::vector<long> bs(cols + 1);
-    std::vector<long> as(cols + 1);
+    std::vector<long> rs(cols);
+    std::vector<long> gs(cols);
+    std::vector<long> bs(cols);
+    std::vector<long> as(cols);
 
     /* Compute all sizes and scales. */
 
