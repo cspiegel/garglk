@@ -240,7 +240,7 @@ void win_graphics_erase_rect(window_graphics_t *dwin, bool whole,
 void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
     glsi32 x0, glsi32 y0, glui32 width, glui32 height)
 {
-    unsigned char col[3];
+    Pixel col;
     int x1 = x0 + width;
     int y1 = y0 + height;
     x0 = gli_zoom_int(x0);
@@ -365,7 +365,7 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
                 static_cast<unsigned char>(sg + mul255(existing[1], na)),
                 static_cast<unsigned char>(sb + mul255(existing[2], na)),
             };
-            dst->rgb.replace(y + y0, x + x0, rgb.data());
+            dst->rgb.replace(y + y0, x + x0, rgb);
         }
 
         sp += src->w * 4;

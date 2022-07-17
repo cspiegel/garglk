@@ -652,7 +652,7 @@ public:
         return m_array[y][x];
     }
 
-    void replace(int y, int x, unsigned char *rgb) {
+    void replace(int y, int x, const Pixel &rgb) {
         m_array[y][x][0] = rgb[0];
         m_array[y][x][1] = rgb[1];
         m_array[y][x][2] = rgb[2];
@@ -670,7 +670,7 @@ private:
 struct window_graphics_s
 {
     window_t *owner;
-    unsigned char bgnd[3];
+    Pixel bgnd;
     int dirty;
     int w, h;
     Matrix rgb;
