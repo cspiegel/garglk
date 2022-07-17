@@ -44,11 +44,11 @@ void gli_initialize_babel()
         {
             try
             {
-                std::vector<char> metaData(metaSize);
-                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metaData.data(), metaData.size(), ctx) > 0)
+                std::vector<char> metadata(metaSize);
+                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metadata.data(), metadata.size(), ctx) > 0)
                 {
-                    char *storyTitle = ifiction_get_tag(metaData.data(), const_cast<char *>("bibliographic"), const_cast<char *>("title"), nullptr);
-                    char *storyAuthor = ifiction_get_tag(metaData.data(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr);
+                    char *storyTitle = ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>("title"), nullptr);
+                    char *storyAuthor = ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr);
                     if (storyTitle && storyAuthor)
                     {
                         std::string title;
