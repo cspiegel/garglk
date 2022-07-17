@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <utility>
 
 #include "glk.h"
 #include "garglk.h"
@@ -59,7 +60,6 @@ window_graphics_t *win_graphics_create(window_t *win)
 
     res->w = 0;
     res->h = 0;
-    res->rgb = nullptr;
 
     res->dirty = 0;
 
@@ -68,7 +68,6 @@ window_graphics_t *win_graphics_create(window_t *win)
 
 void win_graphics_destroy(window_graphics_t *dwin)
 {
-    delete [] dwin->rgb;
     delete dwin;
 }
 
@@ -78,7 +77,6 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
     int newwid, newhgt;
     int bothwid, bothhgt;
     int oldw, oldh;
-    unsigned char *newrgb;
     int y;
 
     win->bbox = *box;
@@ -92,26 +90,25 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
     {
         dwin->w = 0;
         dwin->h = 0;
-        delete [] dwin->rgb;
-        dwin->rgb = nullptr;
+        dwin->rgb.clear();
+        dwin->rgb.shrink_to_fit();
         return;
     }
 
     bothwid = std::min(dwin->w, newwid);
     bothhgt = std::min(dwin->h, newhgt);
 
-    newrgb = new unsigned char[newwid * newhgt * 3];
+    std::vector<unsigned char> newrgb(newwid * newhgt * 3);
 
     if (bothwid && bothhgt)
     {
         for (y = 0; y < bothhgt; y++)
-            std::memcpy(newrgb + y * newwid * 3,
-                    dwin->rgb + y * oldw * 3,
+            std::memcpy(newrgb.data() + y * newwid * 3,
+                    dwin->rgb.data() + y * oldw * 3,
                     bothwid * 3);
     }
 
-    delete [] dwin->rgb;
-    dwin->rgb = newrgb;
+    dwin->rgb = std::move(newrgb);
     dwin->w = newwid;
     dwin->h = newhgt;
 
@@ -142,12 +139,12 @@ void win_graphics_redraw(window_t *win)
     {
         dwin->dirty = 0;
 
-        if (!dwin->rgb)
+        if (dwin->rgb.empty())
             return;
 
         for (y = 0; y < dwin->h; y++)
             for (x = 0; x < dwin->w; x++)
-                gli_draw_pixel(x + x0, y + y0, dwin->rgb + (y * dwin->w + x) * 3);
+                gli_draw_pixel(x + x0, y + y0, dwin->rgb.data() + (y * dwin->w + x) * 3);
     }
 }
 
@@ -247,7 +244,7 @@ void win_graphics_erase_rect(window_graphics_t *dwin, bool whole,
 
     for (y = y0; y < y1; y++)
     {
-        unsigned char *p = dwin->rgb + (y * dwin->w + x0) * 3;
+        unsigned char *p = dwin->rgb.data() + (y * dwin->w + x0) * 3;
         for (x = x0; x < x1; x++)
         {
             *p++ = dwin->bgnd[0];
@@ -295,7 +292,7 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
 
     for (y = y0; y < y1; y++)
     {
-        unsigned char *p = dwin->rgb + (y * dwin->w + x0) * 3;
+        unsigned char *p = dwin->rgb.data() + (y * dwin->w + x0) * 3;
         for (x = x0; x < x1; x++)
         {
             *p++ = col[0];
@@ -371,7 +368,7 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     gli_put_hyperlink(linkval, hx0, hy0, hx1, hy1);
 
     sp = src->rgba + (sy0 * src->w + sx0) * 4;
-    dp = dst->rgb + (y0 * dst->w + x0) * 3;
+    dp = dst->rgb.data() + (y0 * dst->w + x0) * 3;
 
     w = sx1 - sx0;
     h = sy1 - sy0;

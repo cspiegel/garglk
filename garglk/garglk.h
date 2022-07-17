@@ -650,7 +650,7 @@ struct window_graphics_s
     unsigned char bgnd[3];
     int dirty;
     int w, h;
-    unsigned char *rgb;
+    std::vector<unsigned char> rgb;
 };
 #endif
 
