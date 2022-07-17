@@ -37,6 +37,7 @@ enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
 
 #ifdef __cplusplus
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <regex>
@@ -108,6 +109,59 @@ std::unique_ptr<T, Deleter> unique(T *p, Deleter deleter)
 }
 
 }
+
+template <std::size_t N>
+struct Pixel {
+public:
+    Pixel() = default;
+
+    Pixel(unsigned char r, unsigned char g, unsigned char b) : m_rgb{r, g, b} {
+    }
+
+    unsigned char operator[](std::size_t i) const {
+        return m_rgb[i];
+    }
+
+    const unsigned char *data() const {
+        return m_rgb.data();
+    }
+
+private:
+    std::array<unsigned char, N> m_rgb;
+};
+
+template <std::size_t N>
+class Matrix {
+public:
+    void resize(int w, int h) {
+        m_array.resize(h);
+        m_array.shrink_to_fit();
+        for (auto &row : m_array) {
+            row.resize(w);
+            row.shrink_to_fit();
+        }
+    }
+
+    bool empty() const {
+        return m_array.empty();
+    }
+
+    const Pixel<N> &at(int y, int x) const {
+        return m_array[y][x];
+    }
+
+    void replace(int y, int x, const Pixel<N> &rgb) {
+        m_array[y][x] = rgb;
+    }
+
+    void clear() {
+        m_array.clear();
+        m_array.shrink_to_fit();
+    }
+
+private:
+    std::vector<std::vector<Pixel<N>>> m_array;
+};
 
 #endif
 
@@ -631,64 +685,13 @@ struct window_textbuffer_s
     int copypos;
 };
 
-struct Pixel {
-public:
-    Pixel() = default;
-
-    Pixel(unsigned char r, unsigned char g, unsigned char b) : m_rgb{r, g, b} {
-    }
-
-    unsigned char operator[](std::size_t i) const {
-        return m_rgb[i];
-    }
-
-    const unsigned char *data() const {
-        return m_rgb.data();
-    }
-
-private:
-    std::array<unsigned char, 3> m_rgb;
-};
-
-class Matrix {
-public:
-    void resize(int w, int h) {
-        m_array.resize(h);
-        m_array.shrink_to_fit();
-        for (auto &row : m_array) {
-            row.resize(w);
-            row.shrink_to_fit();
-        }
-    }
-
-    bool empty() const {
-        return m_array.empty();
-    }
-
-    const Pixel &at(int y, int x) const {
-        return m_array[y][x];
-    }
-
-    void replace(int y, int x, const Pixel &rgb) {
-        m_array[y][x] = rgb;
-    }
-
-    void clear() {
-        m_array.clear();
-        m_array.shrink_to_fit();
-    }
-
-private:
-    std::vector<std::vector<Pixel>> m_array;
-};
-
 struct window_graphics_s
 {
     window_t *owner;
-    Pixel bgnd;
+    Pixel<3> bgnd;
     int dirty;
     int w, h;
-    Matrix rgb;
+    Matrix<3> rgb;
 };
 #endif
 
@@ -800,7 +803,7 @@ extern void gli_streams_close_all(void);
 
 void gli_initialize_fonts(void);
 #ifdef __cplusplus
-void gli_draw_pixel(int x, int y, const Pixel &rgb);
+void gli_draw_pixel(int x, int y, const Pixel<3> &rgb);
 #endif
 void gli_draw_pixel_lcd(int x, int y, const unsigned char *alpha, const unsigned char *rgb);
 void gli_draw_clear(const unsigned char *rgb);

@@ -54,7 +54,7 @@ window_graphics_t *win_graphics_create(window_t *win)
     res = new window_graphics_t;
 
     res->owner = win;
-    res->bgnd = Pixel(win->bgcolor[0], win->bgcolor[1], win->bgcolor[2]);
+    res->bgnd = Pixel<3>(win->bgcolor[0], win->bgcolor[1], win->bgcolor[2]);
 
     res->w = 0;
     res->h = 0;
@@ -247,9 +247,9 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
     int x, y;
     int hx0, hx1, hy0, hy1;
 
-    Pixel col((color >> 16) & 0xff,
-              (color >> 8) & 0xff,
-              (color >> 0) & 0xff);
+    Pixel<3> col((color >> 16) & 0xff,
+                 (color >> 8) & 0xff,
+                 (color >> 0) & 0xff);
 
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
@@ -281,9 +281,9 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
 
 void win_graphics_set_background_color(window_graphics_t *dwin, glui32 color)
 {
-    dwin->bgnd = Pixel((color >> 16) & 0xff,
-                       (color >> 8) & 0xff,
-                       (color >> 0) & 0xff);
+    dwin->bgnd = Pixel<3>((color >> 16) & 0xff,
+                          (color >> 8) & 0xff,
+                          (color >> 0) & 0xff);
 }
 
 static void drawpicture(picture_t *src, window_graphics_t *dst,
@@ -357,11 +357,11 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
             unsigned char sr = mul255(sp[x*4+0], sa);
             unsigned char sg = mul255(sp[x*4+1], sa);
             unsigned char sb = mul255(sp[x*4+2], sa);
-            Pixel rgb = {
-                static_cast<unsigned char>(sr + mul255(existing[0], na)),
-                static_cast<unsigned char>(sg + mul255(existing[1], na)),
-                static_cast<unsigned char>(sb + mul255(existing[2], na)),
-            };
+            Pixel<3> rgb(
+                sr + mul255(existing[0], na),
+                sg + mul255(existing[1], na),
+                sb + mul255(existing[2], na)
+            );
             dst->rgb.replace(y + y0, x + x0, rgb);
         }
 
