@@ -419,7 +419,7 @@ void gli_initialize_fonts()
  * Drawing
  */
 
-void gli_draw_pixel(int x, int y, const unsigned char *rgb)
+void gli_draw_pixel(int x, int y, const Pixel &rgb)
 {
     unsigned char *p = gli_image_rgb.data() + y * gli_image_s + x * gli_bpp;
     if (x < 0 || x >= gli_image_w)
