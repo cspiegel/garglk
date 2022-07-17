@@ -47,16 +47,14 @@ void gli_initialize_babel()
                 std::vector<char> metadata(metaSize);
                 if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metadata.data(), metadata.size(), ctx) > 0)
                 {
-                    char *storyTitle = ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>("title"), nullptr);
-                    char *storyAuthor = ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr);
-                    if (storyTitle && storyAuthor)
+                    auto story_title = garglk::unique(ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>("title"), nullptr), free);
+                    auto story_author = garglk::unique(ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>("author"), nullptr), free);
+                    if (story_title != nullptr && story_author != nullptr)
                     {
                         std::string title;
-                        title = std::string(storyTitle) + " - " + storyAuthor;
+                        title = std::string(story_title.get()) + " - " + story_author.get();
                         garglk_set_story_title(title.c_str());
                     }
-                    free(storyTitle);
-                    free(storyAuthor);
                 }
             }
             catch (const std::bad_alloc &)
