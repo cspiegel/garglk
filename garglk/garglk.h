@@ -134,7 +134,7 @@ private:
 };
 
 template <std::size_t N>
-class Matrix {
+class Canvas {
 public:
     void resize(int w, int h) {
         m_array.resize(h);
@@ -270,7 +270,7 @@ struct picture_s
 {
     int refcount;
     int w, h;
-    Matrix<4> rgba;
+    Canvas<4> rgba;
     unsigned long id;
     bool scaled;
 };
@@ -694,7 +694,7 @@ struct window_graphics_s
     Pixel<3> bgnd;
     int dirty;
     int w, h;
-    Matrix<3> rgb;
+    Canvas<3> rgb;
 };
 #endif
 
