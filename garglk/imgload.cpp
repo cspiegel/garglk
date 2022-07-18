@@ -255,7 +255,6 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
 
 static void load_image_png(std::FILE *fl, picture_t *pic)
 {
-    // int ix, x, y;
     int ix;
     int srcrowbytes;
     png_structp png_ptr = nullptr;
