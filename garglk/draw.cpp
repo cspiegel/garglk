@@ -507,11 +507,12 @@ void gli_draw_clear(const unsigned char *rgb)
 {
     int x, y;
 
+    auto pixel = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
     for (y = 0; y < gli_image_h; y++)
     {
         for (x = 0; x < gli_image_w; x++)
         {
-            gli_image_rgb[y][x] = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
+            gli_image_rgb[y][x] = pixel;
         }
     }
 }
@@ -532,11 +533,12 @@ void gli_draw_rect(int x0, int y0, int w, int h, const unsigned char *rgb)
     if (x1 > gli_image_w) x1 = gli_image_w;
     if (y1 > gli_image_h) y1 = gli_image_h;
 
+    auto pixel = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
     for (y = y0; y < y1; y++)
     {
         for (x = x0; x < x1; x++)
         {
-            gli_image_rgb[y][x] = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
+            gli_image_rgb[y][x] = pixel;
         }
     }
 }
