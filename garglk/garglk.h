@@ -115,7 +115,7 @@ template <std::size_t N>
 class Pixel {
 public:
     template <typename... Args>
-    Pixel(Args... args) :
+    explicit Pixel(Args... args) :
         m_pixel{static_cast<unsigned char>(args)...},
         m_data(m_pixel.data()) {
     }
