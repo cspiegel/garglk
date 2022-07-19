@@ -215,8 +215,6 @@ public:
     Color(unsigned char red, unsigned char green, unsigned char blue) : Pixel<3>(red, green, blue) {
     }
 
-    void to(unsigned char *rgb) const;
-    static Color from(const unsigned char *rgb);
     static Color from(const std::string &colors);
 
 private:
