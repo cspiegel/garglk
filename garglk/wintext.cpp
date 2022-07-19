@@ -59,62 +59,7 @@ static void touchscroll(window_textbuffer_t *dwin)
 
 window_textbuffer_t *win_textbuffer_create(window_t *win)
 {
-    window_textbuffer_t *dwin = new window_textbuffer_t;
-    dwin->lines.resize(SCROLLBACK);
-
-    int i;
-
-    dwin->owner = win;
-
-    for (i = 0; i < HISTORYLEN; i++)
-        dwin->history[i] = nullptr;
-    dwin->historypos = 0;
-    dwin->historyfirst = 0;
-    dwin->historypresent = 0;
-
-    dwin->lastseen = 0;
-    dwin->scrollpos = 0;
-    dwin->scrollmax = 0;
-    dwin->scrollback = SCROLLBACK;
-
-    dwin->width = -1;
-    dwin->height = -1;
-
-    dwin->inbuf = nullptr;
-    dwin->inunicode = false;
-    dwin->echo_line_input = true;
-
-    dwin->ladjw = dwin->radjw = 0;
-    dwin->ladjn = dwin->radjn = 0;
-
-    dwin->numchars = 0;
-    dwin->chars = dwin->lines[0].chars.data();
-    dwin->attrs = dwin->lines[0].attrs.data();
-
-    dwin->spaced = 0;
-    dwin->dashed = 0;
-
-    for (i = 0; i < dwin->scrollback; i++)
-    {
-        dwin->lines[i].dirty = false;
-        dwin->lines[i].repaint = false;
-        dwin->lines[i].lm = 0;
-        dwin->lines[i].rm = 0;
-        dwin->lines[i].lpic = nullptr;
-        dwin->lines[i].rpic = nullptr;
-        dwin->lines[i].lhyper = 0;
-        dwin->lines[i].rhyper = 0;
-        dwin->lines[i].len = 0;
-        dwin->lines[i].newline = false;
-        dwin->lines[i].chars.fill(' ');
-        dwin->lines[i].attrs.fill(attr_t{});
-    }
-
-    dwin->styles = gli_tstyles;
-
-    dwin->copypos = 0;
-
-    return dwin;
+    return new window_textbuffer_t(win, gli_tstyles, SCROLLBACK);
 }
 
 void win_textbuffer_destroy(window_textbuffer_t *dwin)

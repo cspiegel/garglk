@@ -96,8 +96,8 @@ std::array<style_t, style_NUMSTYLES> gli_gstyles{{
     {FontFace::MonoR, {0xff,0xff,0xff}, {0x60,0x60,0x60}, false}, /* User2 */
 }};
 
-std::array<style_t, style_NUMSTYLES> gli_tstyles_def;
-std::array<style_t, style_NUMSTYLES> gli_gstyles_def;
+std::array<style_t, style_NUMSTYLES> gli_tstyles_def = gli_tstyles;
+std::array<style_t, style_NUMSTYLES> gli_gstyles_def = gli_gstyles;
 
 std::vector<garglk::ConfigFile> garglk::all_configs;
 
@@ -741,9 +741,6 @@ void gli_startup(int argc, char *argv[])
 
     gli_more_prompt.resize(base_more_prompt.size() + 1);
     gli_more_prompt_len = gli_parse_utf8(reinterpret_cast<const unsigned char *>(base_more_prompt.data()), base_more_prompt.size(), gli_more_prompt.data(), base_more_prompt.size());
-
-    gli_tstyles_def = gli_tstyles;
-    gli_gstyles_def = gli_gstyles;
 
     if (gli_baseline == 0)
         gli_baseline = std::round(gli_conf_propsize);

@@ -331,8 +331,8 @@ struct picture_s
 struct style_s
 {
     enum FontFace font;
-    Color bg{0x00, 0x00, 0x00};
-    Color fg{0x00, 0x00, 0x00};
+    Color bg;
+    Color fg;
     bool reverse;
 };
 #endif
@@ -662,17 +662,23 @@ struct tgline_t
 
 struct window_textgrid_s
 {
+    window_textgrid_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> &styles_) :
+        owner(owner_),
+        styles(std::move(styles_))
+    {
+    }
+
     window_t *owner;
 
-    int width, height;
+    int width = 0, height = 0;
     std::array<tgline_t, 256> lines;
 
-    int curx, cury; /* the window cursor position */
+    int curx = 0, cury = 0; /* the window cursor position */
 
     /* for line input */
-    void *inbuf;	/* unsigned char* for latin1, glui32* for unicode */
-    int inunicode;
-    int inorgx, inorgy;
+    void *inbuf = nullptr;	/* unsigned char* for latin1, glui32* for unicode */
+    int inunicode = false;
+    int inorgx = 0, inorgy = 0;
     int inoriglen, inmax;
     int incurs, inlen;
     attr_t origattr;
@@ -685,56 +691,69 @@ struct window_textgrid_s
 
 struct tbline_t
 {
-    int len;
-    bool newline, dirty, repaint;
-    picture_t *lpic, *rpic;
-    glui32 lhyper, rhyper;
-    int lm, rm;
+    tbline_t() {
+        chars.fill(' ');
+    }
+    int len = 0;
+    bool newline = false, dirty = false, repaint = false;
+    picture_t *lpic = nullptr, *rpic = nullptr;
+    glui32 lhyper = 0, rhyper = 0;
+    int lm = 0, rm = 0;
     std::array<glui32, TBLINELEN> chars;
     std::array<attr_t, TBLINELEN> attrs;
 };
 
 struct window_textbuffer_s
 {
+    window_textbuffer_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> &styles_, int scrollback_) :
+        owner(owner_),
+        scrollback(scrollback_),
+        styles(std::move(styles_))
+    {
+        lines.resize(scrollback);
+        chars = lines[0].chars.data();
+        attrs = lines[0].attrs.data();
+    }
+
     window_t *owner;
 
-    int width, height;
-    int spaced;
-    int dashed;
+    int width = -1, height = -1;
+    int spaced = 0;
+    int dashed = 0;
 
     std::vector<tbline_t> lines;
-    int scrollback;
+    int scrollback = SCROLLBACK;
 
-    int numchars;		/* number of chars in last line: lines[0] */
+    int numchars = 0;		/* number of chars in last line: lines[0] */
     glui32 *chars;		/* alias to lines[0].chars */
     attr_t *attrs;		/* alias to lines[0].attrs */
 
     /* adjust margins temporarily for images */
-    int ladjw;
-    int ladjn;
-    int radjw;
-    int radjn;
+    int ladjw = 0;
+    int ladjn = 0;
+    int radjw = 0;
+    int radjn = 0;
 
     /* Command history. */
-    glui32 *history[HISTORYLEN];
-    int historypos;
-    int historyfirst, historypresent;
+    glui32 *history[HISTORYLEN] = {nullptr};
+    int historypos = 0;
+    int historyfirst = 0, historypresent = 0;
 
     /* for paging */
-    int lastseen;
-    int scrollpos;
-    int scrollmax;
+    int lastseen = 0;
+    int scrollpos = 0;
+    int scrollmax = 0;
 
     /* for line input */
-    void *inbuf;	/* unsigned char* for latin1, glui32* for unicode */
-    bool inunicode;
+    void *inbuf = nullptr;	/* unsigned char* for latin1, glui32* for unicode */
+    bool inunicode = false;
     int inmax;
     long infence;
     long incurs;
     attr_t origattr;
     gidispatch_rock_t inarrayrock;
 
-    bool echo_line_input;
+    bool echo_line_input = true;
     std::vector<glui32> line_terminators;
 
     /* style hints and settings */
@@ -742,7 +761,7 @@ struct window_textbuffer_s
 
     /* for copy selection */
     std::vector<glui32> copybuf;
-    int copypos;
+    int copypos = 0;
 };
 
 struct window_graphics_s

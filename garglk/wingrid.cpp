@@ -41,24 +41,7 @@ static void touch(window_textgrid_t *dwin, int line)
 
 window_textgrid_t *win_textgrid_create(window_t *win)
 {
-    window_textgrid_t *dwin = new window_textgrid_t;
-    dwin->owner = win;
-
-    dwin->width = 0;
-    dwin->height = 0;
-
-    dwin->curx = 0;
-    dwin->cury = 0;
-
-    dwin->inbuf = nullptr;
-    dwin->inunicode = false;
-
-    dwin->inorgx = 0;
-    dwin->inorgy = 0;
-
-    dwin->styles = gli_gstyles;
-
-    return dwin;
+    return new window_textgrid_t(win, gli_tstyles);
 }
 
 void win_textgrid_destroy(window_textgrid_t *dwin)
