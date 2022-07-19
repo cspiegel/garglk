@@ -353,7 +353,6 @@ void win_textbuffer_redraw(window_t *win)
     int a, b;
     glui32 link;
     FontFace font;
-    Color color;
     int i;
     int hx0, hx1, hy0, hy1;
     bool selbuf, selrow, selchar;
@@ -426,7 +425,7 @@ void win_textbuffer_redraw(window_t *win)
         linelen = ln.len;
 
         /* kill spaces at the end unless they're a different color*/
-        color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+        Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
         while (i > 0 && linelen > 1 && ln.chars[linelen-1] == ' '
             && dwin->styles[ln.attrs[linelen-1].style].bg == color
             && !dwin->styles[ln.attrs[linelen-1].style].reverse)
@@ -638,7 +637,7 @@ void win_textbuffer_redraw(window_t *win)
         gli_put_hyperlink(0, x0/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX, y + gli_leading);
 
-        color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+        Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
         gli_draw_rect(x/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX - x/GLI_SUBPIX, gli_leading,
                 color);
@@ -970,7 +969,6 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     int saved;
     int i;
     int linelen;
-    Color color;
 
     // Don't speak if the current text style is input, under the
     // assumption that the interpreter is trying to display the user's
@@ -997,7 +995,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     pw = (win->bbox.x1 - win->bbox.x0 - gli_tmarginx * 2 - gli_scroll_width) * GLI_SUBPIX;
     pw = pw - 2 * SLOP - dwin->radjw - dwin->ladjw;
 
-    color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+    Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
 
     /* oops ... overflow */
     if (dwin->numchars + 1 >= TBLINELEN)

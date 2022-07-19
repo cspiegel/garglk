@@ -114,7 +114,7 @@ window_t *gli_new_window(glui32 type, glui32 rock)
 {
     window_t *win = new window_t;
 
-    win->impl = new WinImpl;
+    win->impl = new WinImpl(gli_window_color, gli_more_color);
 
     win->magicnum = MAGIC_WINDOW_NUM;
     win->rock = rock;
@@ -136,8 +136,6 @@ window_t *gli_new_window(glui32 type, glui32 rock)
     win->echo_line_input = true;
 
     attrclear(&win->attr);
-    win->impl->bgcolor = gli_window_color;
-    win->impl->fgcolor = gli_more_color;
 
     win->str = gli_stream_open_window(win);
     win->echostr = nullptr;

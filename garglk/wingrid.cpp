@@ -117,7 +117,6 @@ void win_textgrid_redraw(window_t *win)
     int i, a, b, k, o;
     glui32 link;
     FontFace font;
-    Color fgcolor, bgcolor;
 
     x0 = win->bbox.x0;
     y0 = win->bbox.y0;
@@ -142,8 +141,8 @@ void win_textgrid_redraw(window_t *win)
                 {
                     link = ln->attrs[a].hyper;
                     font = attrfont(dwin->styles.data(), &ln->attrs[a]);
-                    fgcolor = link ? gli_link_color : attrfg(dwin->styles.data(), &ln->attrs[a]);
-                    bgcolor = attrbg(dwin->styles.data(), &ln->attrs[a]);
+                    Color fgcolor = link ? gli_link_color : attrfg(dwin->styles.data(), &ln->attrs[a]);
+                    Color bgcolor = attrbg(dwin->styles.data(), &ln->attrs[a]);
                     w = (b - a) * gli_cellw;
                     gli_draw_rect(x, y, w, gli_leading, bgcolor);
                     o = x;
@@ -166,8 +165,8 @@ void win_textgrid_redraw(window_t *win)
             }
             link = ln->attrs[a].hyper;
             font = attrfont(dwin->styles.data(), &ln->attrs[a]);
-            fgcolor = link ? gli_link_color : attrfg(dwin->styles.data(), &ln->attrs[a]);
-            bgcolor = attrbg(dwin->styles.data(), &ln->attrs[a]);
+            Color fgcolor = link ? gli_link_color : attrfg(dwin->styles.data(), &ln->attrs[a]);
+            Color bgcolor = attrbg(dwin->styles.data(), &ln->attrs[a]);
             w = (b - a) * gli_cellw;
             w += win->bbox.x1 - (x + w);
             gli_draw_rect(x, y, w, gli_leading, bgcolor);

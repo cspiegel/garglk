@@ -44,6 +44,7 @@ enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
 #include <regex>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
@@ -209,9 +210,6 @@ private:
 
 class Color : public Pixel<3> {
 public:
-    Color() : Pixel<3>(0, 0, 0) {
-    }
-
     Color(unsigned char red, unsigned char green, unsigned char blue) : Pixel<3>(red, green, blue) {
     }
 
@@ -333,8 +331,8 @@ struct picture_s
 struct style_s
 {
     enum FontFace font;
-    Color bg;
-    Color fg;
+    Color bg{0x00, 0x00, 0x00};
+    Color fg{0x00, 0x00, 0x00};
     bool reverse;
 };
 #endif
@@ -581,6 +579,9 @@ typedef struct
 // struct is empty.
 struct WinImpl
 {
+    WinImpl(Color &bgcolor_, Color &fgcolor_) : bgcolor(std::move(bgcolor_)), fgcolor(std::move(fgcolor_)) {
+    }
+
     std::vector<glui32> line_terminators;
     Color bgcolor;
     Color fgcolor;
