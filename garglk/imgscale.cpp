@@ -112,7 +112,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                         /* needtoreadrow = 0; */
                     }
 
-                for ( col = 0; col < cols; ++col)
+                for ( col = 0; col < cols; ++col )
                 {
                     rs[col] += fracrowleft * src->rgba[rowsread - 1][col][0] * src->rgba[rowsread - 1][col][3];
                     gs[col] += fracrowleft * src->rgba[rowsread - 1][col][1] * src->rgba[rowsread - 1][col][3];
