@@ -114,10 +114,11 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 
                 for ( col = 0; col < cols; ++col )
                 {
-                    rs[col] += fracrowleft * src->rgba[rowsread - 1][col][0] * src->rgba[rowsread - 1][col][3];
-                    gs[col] += fracrowleft * src->rgba[rowsread - 1][col][1] * src->rgba[rowsread - 1][col][3];
-                    bs[col] += fracrowleft * src->rgba[rowsread - 1][col][2] * src->rgba[rowsread - 1][col][3];
-                    as[col] += fracrowleft * src->rgba[rowsread - 1][col][3];
+                    auto alpha = src->rgba[rowsread - 1][col][3];
+                    rs[col] += fracrowleft * src->rgba[rowsread - 1][col][0] * alpha;
+                    gs[col] += fracrowleft * src->rgba[rowsread - 1][col][1] * alpha;
+                    bs[col] += fracrowleft * src->rgba[rowsread - 1][col][2] * alpha;
+                    as[col] += fracrowleft * alpha;
                 }
 
                 fracrowtofill -= fracrowleft;
@@ -135,11 +136,12 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 
             for ( col = 0; col < cols; ++col )
             {
+                auto alpha = src->rgba[rowsread - 1][col][3];
                 long r, g, b, a;
-                r = rs[col] + fracrowtofill * src->rgba[rowsread - 1][col][0] * src->rgba[rowsread - 1][col][3];
-                g = gs[col] + fracrowtofill * src->rgba[rowsread - 1][col][1] * src->rgba[rowsread - 1][col][3];
-                b = bs[col] + fracrowtofill * src->rgba[rowsread - 1][col][2] * src->rgba[rowsread - 1][col][3];
-                a = as[col] + fracrowtofill * src->rgba[rowsread - 1][col][3];
+                r = rs[col] + fracrowtofill * src->rgba[rowsread - 1][col][0] * alpha;
+                g = gs[col] + fracrowtofill * src->rgba[rowsread - 1][col][1] * alpha;
+                b = bs[col] + fracrowtofill * src->rgba[rowsread - 1][col][2] * alpha;
+                a = as[col] + fracrowtofill * alpha;
 
                 if (!a)
                 {
@@ -183,6 +185,11 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
             int dstcol = 0;
             for ( col = 0; col < cols; ++col )
             {
+                auto alpha = tempxelrow[col][3];
+                auto tempxel_blended_r = tempxelrow[col][0] * alpha;
+                auto tempxel_blended_g = tempxelrow[col][1] * alpha;
+                auto tempxel_blended_b = tempxelrow[col][2] * alpha;
+
                 fraccolleft = sxscale;
                 while ( fraccolleft >= fraccoltofill )
                 {
@@ -192,10 +199,10 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                         r = g = b = a = HALFSCALE;
                     }
 
-                    r += fraccoltofill * tempxelrow[col][0] * tempxelrow[col][3];
-                    g += fraccoltofill * tempxelrow[col][1] * tempxelrow[col][3];
-                    b += fraccoltofill * tempxelrow[col][2] * tempxelrow[col][3];
-                    a += fraccoltofill * tempxelrow[col][3];
+                    r += fraccoltofill * tempxel_blended_r;
+                    g += fraccoltofill * tempxel_blended_g;
+                    b += fraccoltofill * tempxel_blended_b;
+                    a += fraccoltofill * alpha;
 
                     if (!a)
                     {
@@ -229,10 +236,10 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                         needcol = 0;
                     }
 
-                    r += fraccolleft * tempxelrow[col][0] * tempxelrow[col][3];
-                    g += fraccolleft * tempxelrow[col][1] * tempxelrow[col][3];
-                    b += fraccolleft * tempxelrow[col][2] * tempxelrow[col][3];
-                    a += fraccolleft * tempxelrow[col][3];
+                    r += fraccolleft * tempxel_blended_r;
+                    g += fraccolleft * tempxel_blended_g;
+                    b += fraccolleft * tempxel_blended_b;
+                    a += fraccolleft * alpha;
 
                     fraccoltofill -= fraccolleft;
                 }
