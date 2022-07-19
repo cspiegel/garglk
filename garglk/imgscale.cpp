@@ -79,10 +79,10 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     dst->scaled = true;
 
     std::vector<Pixel<4>> tempxelrow(cols);
-    std::vector<long> rs(cols);
-    std::vector<long> gs(cols);
-    std::vector<long> bs(cols);
-    std::vector<long> as(cols);
+    std::vector<long> rs(cols, HALFSCALE);
+    std::vector<long> gs(cols, HALFSCALE);
+    std::vector<long> bs(cols, HALFSCALE);
+    std::vector<long> as(cols, HALFSCALE);
 
     /* Compute all sizes and scales. */
 
@@ -95,8 +95,6 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
     fracrowleft = syscale;
     needtoreadrow = 0;
 
-    for ( col = 0; col < cols; ++col )
-        rs[col] = gs[col] = bs[col] = as[col] = HALFSCALE;
     fracrowtofill = SCALE;
 
     for ( row = 0; row < newrows; ++row )
