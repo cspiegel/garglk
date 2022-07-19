@@ -153,6 +153,12 @@ public:
         return Pixel<N>(&m_row[x * N]);
     }
 
+    void fill(const Pixel<N> &pixel, int start, int end) {
+        auto data = pixel.data();
+        for (int i = start; i < end; i++)
+            memcpy(&m_row[i * N], data, N);
+    }
+
 private:
     unsigned char *m_row;
 };

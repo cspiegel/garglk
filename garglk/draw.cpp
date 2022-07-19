@@ -521,7 +521,7 @@ void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
 {
     int x1 = x0 + w;
     int y1 = y0 + h;
-    int x, y;
+    int y;
 
     if (x0 < 0) x0 = 0;
     if (y0 < 0) y0 = 0;
@@ -536,10 +536,7 @@ void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
     auto pixel = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
     for (y = y0; y < y1; y++)
     {
-        for (x = x0; x < x1; x++)
-        {
-            gli_image_rgb[y][x] = pixel;
-        }
+        gli_image_rgb[y].fill(pixel, x0, x1);
     }
 }
 
