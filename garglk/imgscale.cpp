@@ -136,9 +136,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
             {
                 auto alpha = src->rgba[rowsread - 1][col][3];
                 long r, g, b, a;
-                r = rs[col] + fracrowtofill * src->rgba[rowsread - 1][col][0] * alpha;
-                g = gs[col] + fracrowtofill * src->rgba[rowsread - 1][col][1] * alpha;
-                b = bs[col] + fracrowtofill * src->rgba[rowsread - 1][col][2] * alpha;
+
                 a = as[col] + fracrowtofill * alpha;
 
                 if (!a)
@@ -147,12 +145,18 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                 }
                 else
                 {
+                    r = rs[col] + fracrowtofill * src->rgba[rowsread - 1][col][0] * alpha;
                     r /= a;
                     if ( r > maxval ) r = maxval;
+
+                    g = gs[col] + fracrowtofill * src->rgba[rowsread - 1][col][1] * alpha;
                     g /= a;
                     if ( g > maxval ) g = maxval;
+
+                    b = bs[col] + fracrowtofill * src->rgba[rowsread - 1][col][2] * alpha;
                     b /= a;
                     if ( b > maxval ) b = maxval;
+
                     a /= SCALE;
                     if ( a > maxval ) a = maxval;
                 }
@@ -197,9 +201,6 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                         r = g = b = a = HALFSCALE;
                     }
 
-                    r += fraccoltofill * tempxel_blended_r;
-                    g += fraccoltofill * tempxel_blended_g;
-                    b += fraccoltofill * tempxel_blended_b;
                     a += fraccoltofill * alpha;
 
                     if (!a)
@@ -208,12 +209,18 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
                     }
                     else
                     {
+                        r += fraccoltofill * tempxel_blended_r;
                         r /= a;
                         if ( r > maxval ) r = maxval;
+
+                        g += fraccoltofill * tempxel_blended_g;
                         g /= a;
                         if ( g > maxval ) g = maxval;
+
+                        b += fraccoltofill * tempxel_blended_b;
                         b /= a;
                         if ( b > maxval ) b = maxval;
+
                         a /= SCALE;
                         if ( a > maxval ) a = maxval;
                     }
