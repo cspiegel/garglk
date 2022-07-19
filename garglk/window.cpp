@@ -136,8 +136,8 @@ window_t *gli_new_window(glui32 type, glui32 rock)
     win->echo_line_input = true;
 
     attrclear(&win->attr);
-    gli_window_color.to(win->bgcolor);
-    gli_more_color.to(win->fgcolor);
+    win->impl->bgcolor = gli_window_color;
+    win->impl->fgcolor = gli_more_color;
 
     win->str = gli_stream_open_window(win);
     win->echostr = nullptr;
@@ -865,7 +865,7 @@ void gli_window_redraw(window_t *win)
 {
     if (gli_force_redraw)
     {
-        Color color = gli_override_bg_set ? gli_window_color : Color::from(win->bgcolor);
+        Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
         int y0 = win->yadj ? win->bbox.y0 - win->yadj : win->bbox.y0;
         gli_draw_rect(win->bbox.x0, y0,
                 win->bbox.x1 - win->bbox.x0,

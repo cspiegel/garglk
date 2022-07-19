@@ -54,7 +54,7 @@ window_graphics_t *win_graphics_create(window_t *win)
     res = new window_graphics_t;
 
     res->owner = win;
-    res->bgnd = Pixel<3>(win->bgcolor[0], win->bgcolor[1], win->bgcolor[2]);
+    res->bgnd = win->impl->bgcolor;
 
     res->w = 0;
     res->h = 0;

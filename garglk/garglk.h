@@ -584,6 +584,8 @@ typedef struct
 struct WinImpl
 {
     std::vector<glui32> line_terminators;
+    Color bgcolor;
+    Color fgcolor;
 };
 #else
 struct WinImpl
@@ -625,8 +627,6 @@ struct glk_window_struct
     struct WinImpl *impl;
 
     attr_t attr;
-    unsigned char bgcolor[3];
-    unsigned char fgcolor[3];
 
     gidispatch_rock_t disprock;
     window_t *next, *prev; /* in the big linked list of windows */
