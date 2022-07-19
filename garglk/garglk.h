@@ -662,7 +662,7 @@ struct tgline_t
 
 struct window_textgrid_s
 {
-    window_textgrid_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> &styles_) :
+    window_textgrid_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> styles_) :
         owner(owner_),
         styles(std::move(styles_))
     {
@@ -705,7 +705,7 @@ struct tbline_t
 
 struct window_textbuffer_s
 {
-    window_textbuffer_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> &styles_, int scrollback_) :
+    window_textbuffer_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> styles_, int scrollback_) :
         owner(owner_),
         scrollback(scrollback_),
         styles(std::move(styles_))
