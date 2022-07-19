@@ -109,7 +109,6 @@ std::unique_ptr<T, Deleter> unique(T *p, Deleter deleter)
 
 }
 
-extern "C" {
 #endif
 
 #include <stdbool.h>
@@ -894,9 +893,5 @@ FontFace attrfont(const style_t *styles, const attr_t *attr);
             )) \
         )) \
     )
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

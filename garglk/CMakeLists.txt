@@ -57,9 +57,9 @@ add_library(garglk babeldata.cpp style.cpp config.cpp draw.cpp event.cpp
     # libraries, but will fail with static libraries. These are pulled
     # from cheapglk and kept separate logically, but they're really a
     # part of garglk itself, so add them directly to the garglk target.
-    cheapglk/cgblorb.c cheapglk/cgdate.c cheapglk/cgfref.cpp
-    cheapglk/cggestal.c cheapglk/cgmisc.c cheapglk/cgstream.c
-    cheapglk/cgunicod.c cheapglk/gi_blorb.c cheapglk/gi_dispa.c)
+    cheapglk/cgblorb.cpp cheapglk/cgdate.c cheapglk/cgfref.cpp
+    cheapglk/cggestal.cpp cheapglk/cgmisc.cpp cheapglk/cgstream.cpp
+    cheapglk/cgunicod.cpp cheapglk/gi_blorb.c cheapglk/gi_dispa.c)
 
 target_include_directories(garglk PRIVATE .)
 
