@@ -116,17 +116,17 @@ static FontFace font2idx(const std::string &font)
 
 float gli_conf_gamma = 1.0;
 
-unsigned char gli_window_color[3] = { 0xff, 0xff, 0xff };
-unsigned char gli_caret_color[3] = { 0x00, 0x00, 0x00 };
-unsigned char gli_border_color[3] = { 0x00, 0x00, 0x00 };
-unsigned char gli_more_color[3] = { 0x00, 0x60, 0x00 };
-unsigned char gli_link_color[3] = { 0x00, 0x00, 0x60 };
+Color gli_window_color(0xff, 0xff, 0xff);
+Color gli_caret_color(0x00, 0x00, 0x00);
+Color gli_border_color(0x00, 0x00, 0x00);
+Color gli_more_color(0x00, 0x60, 0x00);
+Color gli_link_color(0x00, 0x00, 0x60);
 
-unsigned char gli_window_save[3] = { 0xff, 0xff, 0xff };
-unsigned char gli_caret_save[3] = { 0x00, 0x00, 0x00 };
-unsigned char gli_border_save[3] = { 0x00, 0x00, 0x00 };
-unsigned char gli_more_save[3] = { 0x00, 0x60, 0x00 };
-unsigned char gli_link_save[3] = { 0x00, 0x00, 0x60 };
+Color gli_window_save(0xff, 0xff, 0xff);
+Color gli_caret_save(0x00, 0x00, 0x00);
+Color gli_border_save(0x00, 0x00, 0x00);
+Color gli_more_save(0x00, 0x60, 0x00);
+Color gli_link_save(0x00, 0x00, 0x00);
 
 bool gli_override_fg_set = false;
 glui32 gli_override_fg_val = 0;
@@ -140,8 +140,8 @@ glui32 gli_more_prompt_len;
 int gli_more_align = 0;
 FontFace gli_more_font = FontFace::PropB;
 
-unsigned char gli_scroll_bg[3] = { 0xb0, 0xb0, 0xb0 };
-unsigned char gli_scroll_fg[3] = { 0x80, 0x80, 0x80 };
+Color gli_scroll_bg(0xb0, 0xb0, 0xb0);
+Color gli_scroll_fg(0x80, 0x80, 0x80);
 int gli_scroll_width = 0;
 
 int gli_caret_shape = 2;
@@ -204,11 +204,11 @@ std::string garglk::downcase(const std::string &string)
     return lowered;
 }
 
-static void parsecolor(const std::string &str, unsigned char *rgb)
+static void parsecolor(const std::string &str, Color &rgb)
 {
     try
     {
-        Color::from(str).to(rgb);
+        rgb = Color::from(str);
     }
     catch (const std::runtime_error &)
     {

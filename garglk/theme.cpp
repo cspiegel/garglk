@@ -103,8 +103,8 @@ struct Styles {
     void to(style_t *styles) const {
         for (int i = 0; i < style_NUMSTYLES; i++)
         {
-            colors[i].fg.to(styles[i].fg);
-            colors[i].bg.to(styles[i].bg);
+            styles[i].fg = colors[i].fg;
+            styles[i].bg = colors[i].bg;
         }
     }
 
@@ -113,8 +113,8 @@ struct Styles {
 
         for (int i = 0; i < style_NUMSTYLES; i++)
         {
-            colors[i].fg = Color::from(styles[i].fg);
-            colors[i].bg = Color::from(styles[i].bg);
+            colors[i].fg = styles[i].fg;
+            colors[i].bg = styles[i].bg;
         }
 
         return {colors};
@@ -132,16 +132,16 @@ struct Theme {
     Styles gstyles;
 
     void apply() const {
-        windowcolor.to(gli_window_color);
-        windowcolor.to(gli_window_save);
-        bordercolor.to(gli_border_color);
-        bordercolor.to(gli_border_save);
-        caretcolor.to(gli_caret_color);
-        caretcolor.to(gli_caret_save);
-        linkcolor.to(gli_link_color);
-        linkcolor.to(gli_link_save);
-        morecolor.to(gli_more_color);
-        morecolor.to(gli_more_save);
+        gli_window_color = windowcolor;
+        gli_window_save = windowcolor;
+        gli_border_color = bordercolor;
+        gli_border_save = bordercolor;
+        gli_caret_color = caretcolor;
+        gli_caret_save = caretcolor;
+        gli_link_color = linkcolor;
+        gli_link_save = linkcolor;
+        gli_more_color = morecolor;
+        gli_more_save = morecolor;
         tstyles.to(gli_tstyles.data());
         gstyles.to(gli_gstyles.data());
     }

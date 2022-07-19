@@ -136,8 +136,8 @@ window_t *gli_new_window(glui32 type, glui32 rock)
     win->echo_line_input = true;
 
     attrclear(&win->attr);
-    std::memcpy(win->bgcolor, gli_window_color, 3);
-    std::memcpy(win->fgcolor, gli_more_color, 3);
+    gli_window_color.to(win->bgcolor);
+    gli_more_color.to(win->fgcolor);
 
     win->str = gli_stream_open_window(win);
     win->echostr = nullptr;
@@ -865,7 +865,7 @@ void gli_window_redraw(window_t *win)
 {
     if (gli_force_redraw)
     {
-        unsigned char *color = gli_override_bg_set ? gli_window_color : win->bgcolor;
+        Color color = gli_override_bg_set ? gli_window_color : Color::from(win->bgcolor);
         int y0 = win->yadj ? win->bbox.y0 - win->yadj : win->bbox.y0;
         gli_draw_rect(win->bbox.x0, y0,
                 win->bbox.x1 - win->bbox.x0,
@@ -1517,24 +1517,24 @@ FontFace attrfont(const style_t *styles, const attr_t *attr)
     return styles[attr->style].font;
 }
 
-static std::array<unsigned char, 3> zcolor_LightGrey = { 181, 181, 181 };
-static std::array<unsigned char, 3> zcolor_Foreground = { 0, 0, 0 };
-static std::array<unsigned char, 3> zcolor_Background = { 0, 0, 0 };
-static std::array<unsigned char, 3> zcolor_Bright = { 0, 0, 0 };
+static Color zcolor_LightGrey = Color(181, 181, 181);
+static Color zcolor_Foreground = Color(0, 0, 0);
+static Color zcolor_Background = Color(0, 0, 0);
+static Color zcolor_Bright = Color(0, 0, 0);
 
 static unsigned int zcolor_fg = 0;
 static unsigned int zcolor_bg = 0;
 
-static unsigned char *rgbshift(const std::array<unsigned char, 3> rgb)
+static Color rgbshift(const Color rgb)
 {
-    zcolor_Bright[0] = (rgb[0] + 0x30) < 0xff ? (rgb[0] + 0x30) : 0xff;
-    zcolor_Bright[1] = (rgb[1] + 0x30) < 0xff ? (rgb[1] + 0x30) : 0xff;
-    zcolor_Bright[2] = (rgb[2] + 0x30) < 0xff ? (rgb[2] + 0x30) : 0xff;
+    zcolor_Bright = Color((rgb[0] + 0x30) < 0xff ? (rgb[0] + 0x30) : 0xff,
+                          (rgb[1] + 0x30) < 0xff ? (rgb[1] + 0x30) : 0xff,
+                          (rgb[2] + 0x30) < 0xff ? (rgb[2] + 0x30) : 0xff);
 
-    return zcolor_Bright.data();
+    return zcolor_Bright;
 }
 
-unsigned char *attrbg(style_t *styles, attr_t *attr)
+Color attrbg(style_t *styles, attr_t *attr)
 {
     int revset = attr->reverse || (styles[attr->style].reverse && !gli_override_reverse);
 
@@ -1546,24 +1546,24 @@ unsigned char *attrbg(style_t *styles, attr_t *attr)
 
     if (zfset && zfore != zcolor_fg)
     {
-        zcolor_Foreground[0] = (zfore >> 16) & 0xff;
-        zcolor_Foreground[1] = (zfore >> 8) & 0xff;
-        zcolor_Foreground[2] = (zfore) & 0xff;
+        zcolor_Foreground = Color((zfore >> 16) & 0xff,
+                                  (zfore >> 8) & 0xff,
+                                  (zfore) & 0xff);
         zcolor_fg = zfore;
     }
 
     if (zbset && zback != zcolor_bg)
     {
-        zcolor_Background[0] = (zback >> 16) & 0xff;
-        zcolor_Background[1] = (zback >> 8) & 0xff;
-        zcolor_Background[2] = (zback) & 0xff;
+        zcolor_Background = Color((zback >> 16) & 0xff,
+                                  (zback >> 8) & 0xff,
+                                  (zback) & 0xff);
         zcolor_bg = zback;
     }
 
     if (!revset)
     {
         if (zbset)
-            return zcolor_Background.data();
+            return zcolor_Background;
         else
             return styles[attr->style].bg;
     }
@@ -1573,16 +1573,16 @@ unsigned char *attrbg(style_t *styles, attr_t *attr)
             if (zfore == zback)
                 return rgbshift(zcolor_Foreground);
             else
-                return zcolor_Foreground.data();
+                return zcolor_Foreground;
         else
-            if (zbset && !std::memcmp(styles[attr->style].fg, zcolor_Background.data(), 3))
-                return zcolor_LightGrey.data();
+            if (zbset && styles[attr->style].fg == zcolor_Background)
+                return zcolor_LightGrey;
             else
                 return styles[attr->style].fg;
     }
 }
 
-unsigned char *attrfg(style_t *styles, attr_t *attr)
+Color attrfg(style_t *styles, attr_t *attr)
 {
     int revset = attr->reverse || (styles[attr->style].reverse && !gli_override_reverse);
 
@@ -1594,17 +1594,17 @@ unsigned char *attrfg(style_t *styles, attr_t *attr)
 
     if (zfset && zfore != zcolor_fg)
     {
-        zcolor_Foreground[0] = (zfore >> 16) & 0xff;
-        zcolor_Foreground[1] = (zfore >> 8) & 0xff;
-        zcolor_Foreground[2] = (zfore) & 0xff;
+        zcolor_Foreground = Color((zfore >> 16) & 0xff,
+                                  (zfore >> 8) & 0xff,
+                                  (zfore) & 0xff);
         zcolor_fg = zfore;
     }
 
     if (zbset && zback != zcolor_bg)
     {
-        zcolor_Background[0] = (zback >> 16) & 0xff;
-        zcolor_Background[1] = (zback >> 8) & 0xff;
-        zcolor_Background[2] = (zback) & 0xff;
+        zcolor_Background = Color((zback >> 16) & 0xff,
+                                  (zback >> 8) & 0xff,
+                                  (zback) & 0xff);
         zcolor_bg = zback;
     }
 
@@ -1614,17 +1614,17 @@ unsigned char *attrfg(style_t *styles, attr_t *attr)
             if (zfore == zback)
                 return rgbshift(zcolor_Foreground);
             else
-                return zcolor_Foreground.data();
+                return zcolor_Foreground;
         else
-            if (zbset && !std::memcmp(styles[attr->style].fg, zcolor_Background.data(), 3))
-                return zcolor_LightGrey.data();
+            if (zbset && styles[attr->style].fg == zcolor_Background)
+                return zcolor_LightGrey;
             else
                 return styles[attr->style].fg;
     }
     else
     {
         if (zbset)
-            return zcolor_Background.data();
+            return zcolor_Background;
         else
             return styles[attr->style].bg;
     }

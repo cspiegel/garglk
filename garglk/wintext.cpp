@@ -353,7 +353,7 @@ void win_textbuffer_redraw(window_t *win)
     int a, b;
     glui32 link;
     FontFace font;
-    unsigned char *color;
+    Color color;
     int i;
     int hx0, hx1, hy0, hy1;
     bool selbuf, selrow, selchar;
@@ -426,7 +426,7 @@ void win_textbuffer_redraw(window_t *win)
         linelen = ln.len;
 
         /* kill spaces at the end unless they're a different color*/
-        color = gli_override_bg_set ? gli_window_color : win->bgcolor;
+        color = gli_override_bg_set ? gli_window_color : Color::from(win->bgcolor);
         while (i > 0 && linelen > 1 && ln.chars[linelen-1] == ' '
             && dwin->styles[ln.attrs[linelen-1].style].bg == color
             && !dwin->styles[ln.attrs[linelen-1].style].reverse)
@@ -538,7 +538,7 @@ void win_textbuffer_redraw(window_t *win)
         /*
          * fill in background colors
          */
-        color = gli_override_bg_set ? gli_window_color : win->bgcolor;
+        color = gli_override_bg_set ? gli_window_color : Color::from(win->bgcolor);
         gli_draw_rect(x0/GLI_SUBPIX, y,
                 (x1-x0) / GLI_SUBPIX, gli_leading,
                 color);
@@ -586,7 +586,7 @@ void win_textbuffer_redraw(window_t *win)
         }
         x += w;
 
-        color = gli_override_bg_set ? gli_window_color : win->bgcolor;
+        color = gli_override_bg_set ? gli_window_color : Color::from(win->bgcolor);
         gli_draw_rect(x/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX - x/GLI_SUBPIX, gli_leading,
                 color);
@@ -638,7 +638,7 @@ void win_textbuffer_redraw(window_t *win)
         gli_put_hyperlink(0, x0/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX, y + gli_leading);
 
-        color = gli_override_bg_set ? gli_window_color : win->bgcolor;
+        color = gli_override_bg_set ? gli_window_color : Color::from(win->bgcolor);
         gli_draw_rect(x/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX - x/GLI_SUBPIX, gli_leading,
                 color);
@@ -651,7 +651,7 @@ void win_textbuffer_redraw(window_t *win)
         if (gli_more_align == 2)    /* right */
             x = x1 - SLOP - w;
 
-        color = gli_override_fg_set ? gli_more_color : win->fgcolor;
+        color = gli_override_fg_set ? gli_more_color : Color::from(win->fgcolor);
         gli_draw_string_uni(x, y + gli_baseline,
                 gli_more_font, color,
                 gli_more_prompt.data(), gli_more_prompt_len, -1);
@@ -970,7 +970,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     int saved;
     int i;
     int linelen;
-    unsigned char *color;
+    Color color;
 
     // Don't speak if the current text style is input, under the
     // assumption that the interpreter is trying to display the user's
@@ -997,7 +997,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     pw = (win->bbox.x1 - win->bbox.x0 - gli_tmarginx * 2 - gli_scroll_width) * GLI_SUBPIX;
     pw = pw - 2 * SLOP - dwin->radjw - dwin->ladjw;
 
-    color = gli_override_bg_set ? gli_window_color : win->bgcolor;
+    color = gli_override_bg_set ? gli_window_color : Color::from(win->bgcolor);
 
     /* oops ... overflow */
     if (dwin->numchars + 1 >= TBLINELEN)
@@ -1058,7 +1058,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     }
 
     if (gli_conf_spaces && win->attr.style != style_Preformatted
-        && std::memcmp(dwin->styles[win->attr.style].bg, color, sizeof dwin->styles[win->attr.style].bg) == 0
+        && dwin->styles[win->attr.style].bg == color
         && !dwin->styles[win->attr.style].reverse)
     {
         /* turn (period space space) into (period space) */

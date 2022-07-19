@@ -426,7 +426,7 @@ void gli_draw_pixel(int x, int y, const Pixel<3> &rgb)
     gli_image_rgb[y][x] = Pixel<4>(rgb[2], rgb[1], rgb[0], 0xff);
 }
 
-static void draw_pixel_gamma(int x, int y, unsigned char alpha, const unsigned char *rgb)
+static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Color &rgb)
 {
     unsigned short invalf = GAMMA_MAX - (alpha * GAMMA_MAX / 255);
     std::array<unsigned short, 3> bg = {
@@ -450,7 +450,7 @@ static void draw_pixel_gamma(int x, int y, unsigned char alpha, const unsigned c
                                    0xff);
 }
 
-static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const unsigned char *rgb)
+static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const Color &rgb)
 {
     std::array<unsigned short, 3> invalf = {
         static_cast<unsigned short>(GAMMA_MAX - (alpha[0] * GAMMA_MAX / 255)),
@@ -478,7 +478,7 @@ static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const
                                    0xff);
 }
 
-static void draw_bitmap_gamma(const Bitmap *b, int x, int y, const unsigned char *rgb)
+static void draw_bitmap_gamma(const Bitmap *b, int x, int y, const Color &rgb)
 {
     int i, k, c;
     for (k = 0; k < b->h; k++)
@@ -491,7 +491,7 @@ static void draw_bitmap_gamma(const Bitmap *b, int x, int y, const unsigned char
     }
 }
 
-static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const unsigned char *rgb)
+static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const Color &rgb)
 {
     int i, j, k;
     for (k = 0; k < b->h; k++)
@@ -503,7 +503,7 @@ static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const unsigned 
     }
 }
 
-void gli_draw_clear(const unsigned char *rgb)
+void gli_draw_clear(const Color &rgb)
 {
     int x, y;
 
@@ -517,7 +517,7 @@ void gli_draw_clear(const unsigned char *rgb)
     }
 }
 
-void gli_draw_rect(int x0, int y0, int w, int h, const unsigned char *rgb)
+void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
 {
     int x1 = x0 + w;
     int y1 = y0 + h;
@@ -642,7 +642,7 @@ static int gli_string_impl(int x, FontFace face, const glui32 *s, size_t n, int 
     return x;
 }
 
-int gli_draw_string_uni(int x, int y, FontFace face, const unsigned char *rgb,
+int gli_draw_string_uni(int x, int y, FontFace face, const Color &rgb,
         glui32 *s, int n, int spw)
 {
     return gli_string_impl(x, face, s, n, spw, [y, rgb](int x, const std::array<Bitmap, GLI_SUBPIX> &glyphs) {

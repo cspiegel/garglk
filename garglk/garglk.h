@@ -121,6 +121,14 @@ public:
         return *this;
     }
 
+    bool operator==(const Pixel<N> &other) {
+        return std::memcmp(m_data, other.m_data, N) == 0;
+    }
+
+    const unsigned char *data() const {
+        return m_data;
+    }
+
     unsigned char operator[](std::size_t i) const {
         return m_data[i];
     }
@@ -201,6 +209,9 @@ private:
 
 class Color : public Pixel<3> {
 public:
+    Color() : Pixel<3>(0, 0, 0) {
+    }
+
     Color(unsigned char red, unsigned char green, unsigned char blue) : Pixel<3>(red, green, blue) {
     }
 
@@ -324,8 +335,8 @@ struct picture_s
 struct style_s
 {
     enum FontFace font;
-    unsigned char bg[3];
-    unsigned char fg[3];
+    Color bg;
+    Color fg;
     bool reverse;
 };
 #endif
@@ -350,19 +361,19 @@ extern std::array<style_t, style_NUMSTYLES> gli_gstyles;
 
 extern std::array<style_t, style_NUMSTYLES> gli_tstyles_def;
 extern std::array<style_t, style_NUMSTYLES> gli_gstyles_def;
+
+extern Color gli_window_color;
+extern Color gli_border_color;
+extern Color gli_caret_color;
+extern Color gli_more_color;
+extern Color gli_link_color;
+
+extern Color gli_window_save;
+extern Color gli_border_save;
+extern Color gli_caret_save;
+extern Color gli_more_save;
+extern Color gli_link_save;
 #endif
-
-extern unsigned char gli_window_color[3];
-extern unsigned char gli_border_color[3];
-extern unsigned char gli_caret_color[3];
-extern unsigned char gli_more_color[3];
-extern unsigned char gli_link_color[3];
-
-extern unsigned char gli_window_save[3];
-extern unsigned char gli_border_save[3];
-extern unsigned char gli_caret_save[3];
-extern unsigned char gli_more_save[3];
-extern unsigned char gli_link_save[3];
 
 extern bool gli_override_fg_set;
 extern glui32 gli_override_fg_val;
@@ -422,8 +433,10 @@ extern bool gli_conf_lockrows;
 extern bool gli_conf_save_window_size;
 extern bool gli_conf_save_window_location;
 
-extern unsigned char gli_scroll_bg[3];
-extern unsigned char gli_scroll_fg[3];
+#ifdef __cplusplus
+extern Color gli_scroll_bg;
+extern Color gli_scroll_fg;
+#endif
 extern int gli_scroll_width;
 
 extern int gli_baseline;
@@ -854,10 +867,12 @@ void gli_initialize_fonts(void);
 void gli_draw_pixel(int x, int y, const Pixel<3> &rgb);
 #endif
 void gli_draw_pixel_lcd(int x, int y, const unsigned char *alpha, const unsigned char *rgb);
-void gli_draw_clear(const unsigned char *rgb);
-void gli_draw_rect(int x, int y, int w, int h, const unsigned char *rgb);
 #ifdef __cplusplus
-int gli_draw_string_uni(int x, int y, FontFace face, const unsigned char *rgb, glui32 *text, int len, int spacewidth);
+void gli_draw_clear(const Color &rgb);
+void gli_draw_rect(int x, int y, int w, int h, const Color &rgb);
+#ifdef __cplusplus
+int gli_draw_string_uni(int x, int y, FontFace face, const Color &rgb, glui32 *text, int len, int spacewidth);
+#endif
 int gli_string_width_uni(FontFace font, const glui32 *text, int len, int spw);
 #endif
 void gli_draw_caret(int x, int y);
@@ -946,10 +961,10 @@ void gli_notification_waiting(void);
 void attrset(attr_t *attr, glui32 style);
 void attrclear(attr_t *attr);
 bool attrequal(const attr_t *a1, const attr_t *a2);
-unsigned char *attrfg(style_t *styles, attr_t *attr);
-unsigned char *attrbg(style_t *styles, attr_t *attr);
-
 #ifdef __cplusplus
+Color attrfg(style_t *styles, attr_t *attr);
+Color attrbg(style_t *styles, attr_t *attr);
+
 FontFace attrfont(const style_t *styles, const attr_t *attr);
 #endif
 

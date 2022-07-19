@@ -1840,15 +1840,13 @@ static void gli_set_zcolors(stream_t *str, glui32 fg, glui32 bg)
     if (!gli_conf_stylehint)
         return;
 
-    unsigned char fore[3];
-    fore[0] = (fg >> 16) & 0xff;
-    fore[1] = (fg >> 8) & 0xff;
-    fore[2] = (fg) & 0xff;
+    Color fore((fg >> 16) & 0xff,
+               (fg >> 8) & 0xff,
+               (fg) & 0xff);
 
-    unsigned char back[3];
-    back[0] = (bg >> 16) & 0xff;
-    back[1] = (bg >> 8) & 0xff;
-    back[2] = (bg) & 0xff;
+    Color back((bg >> 16) & 0xff,
+               (bg >> 8) & 0xff,
+               (bg) & 0xff);
 
     switch (str->type)
     {
@@ -1861,9 +1859,9 @@ static void gli_set_zcolors(stream_t *str, glui32 fg, glui32 bg)
                     str->win->attr.fgcolor = 0;
                     gli_override_fg_set = false;
                     gli_override_fg_val = 0;
-                    memcpy(gli_more_color, gli_more_save, 3);
-                    memcpy(gli_caret_color, gli_caret_save, 3);
-                    memcpy(gli_link_color, gli_link_save, 3);
+                    gli_more_color = gli_more_save;
+                    gli_caret_color = gli_caret_save;
+                    gli_link_color = gli_link_save;
                 }
                 else if (fg != zcolor_Current)
                 {
@@ -1871,9 +1869,9 @@ static void gli_set_zcolors(stream_t *str, glui32 fg, glui32 bg)
                     str->win->attr.fgcolor = fg;
                     gli_override_fg_set = true;
                     gli_override_fg_val = fg;
-                    memcpy(gli_more_color, fore, 3);
-                    memcpy(gli_caret_color, fore, 3);
-                    memcpy(gli_link_color, fore, 3);
+                    gli_more_color = fore;
+                    gli_caret_color = fore;
+                    gli_link_color = fore;
                 }
             }
 
@@ -1885,8 +1883,8 @@ static void gli_set_zcolors(stream_t *str, glui32 fg, glui32 bg)
                     str->win->attr.bgcolor = 0;
                     gli_override_bg_set = false;
                     gli_override_bg_val = 0;
-                    memcpy(gli_window_color, gli_window_save, 3);
-                    memcpy(gli_border_color, gli_border_save, 3);
+                    gli_window_color = gli_window_save;
+                    gli_border_color = gli_border_save;
                 }
                 else if (bg != zcolor_Current)
                 {
@@ -1894,8 +1892,8 @@ static void gli_set_zcolors(stream_t *str, glui32 fg, glui32 bg)
                     str->win->attr.bgcolor = bg;
                     gli_override_bg_set = true;
                     gli_override_bg_val = bg;
-                    memcpy(gli_window_color, back, 3);
-                    memcpy(gli_border_color, back, 3);
+                    gli_window_color = back;
+                    gli_border_color = back;
                 }
             }
 

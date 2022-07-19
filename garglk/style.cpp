@@ -78,15 +78,15 @@ void glk_stylehint_set(glui32 wintype, glui32 style, glui32 hint, glsi32 val)
     switch (hint)
     {
         case stylehint_TextColor:
-            styles[style].fg[0] = (val >> 16) & 0xff;
-            styles[style].fg[1] = (val >> 8) & 0xff;
-            styles[style].fg[2] = (val) & 0xff;
+            styles[style].fg = Color((val >> 16) & 0xff,
+                                     (val >> 8) & 0xff,
+                                     (val) & 0xff);
             break;
 
         case stylehint_BackColor:
-            styles[style].bg[0] = (val >> 16) & 0xff;
-            styles[style].bg[1] = (val >> 8) & 0xff;
-            styles[style].bg[2] = (val) & 0xff;
+            styles[style].bg = Color((val >> 16) & 0xff,
+                                     (val >> 8) & 0xff,
+                                     (val) & 0xff);
             break;
 
         case stylehint_ReverseColor:
@@ -122,15 +122,15 @@ void glk_stylehint_set(glui32 wintype, glui32 style, glui32 hint, glsi32 val)
             style == style_Normal &&
             hint == stylehint_BackColor)
     {
-        std::memcpy(gli_window_color, styles[style].bg, 3);
+        gli_window_color = styles[style].bg;
     }
 
     if (wintype == wintype_TextBuffer &&
             style == style_Normal &&
             hint == stylehint_TextColor)
     {
-        std::memcpy(gli_more_color, styles[style].fg, 3);
-        std::memcpy(gli_caret_color, styles[style].fg, 3);
+        gli_more_color = styles[style].fg;
+        gli_caret_color = styles[style].fg;
     }
 }
 
@@ -167,15 +167,11 @@ void glk_stylehint_clear(glui32 wintype, glui32 style, glui32 hint)
     switch (hint)
     {
         case stylehint_TextColor:
-            styles[style].fg[0] = defaults[style].fg[0];
-            styles[style].fg[1] = defaults[style].fg[1];
-            styles[style].fg[2] = defaults[style].fg[2];
+            styles[style].fg = defaults[style].fg;
             break;
 
         case stylehint_BackColor:
-            styles[style].bg[0] = defaults[style].bg[0];
-            styles[style].bg[1] = defaults[style].bg[1];
-            styles[style].bg[2] = defaults[style].bg[2];
+            styles[style].bg = defaults[style].bg;
             break;
 
         case stylehint_ReverseColor:
