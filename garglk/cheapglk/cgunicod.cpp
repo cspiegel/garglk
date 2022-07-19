@@ -315,7 +315,7 @@ static glui32 gli_buffer_change_case(glui32 *buf, glui32 len,
 
         /* Now we have to allocate a new buffer, if we haven't already. */
         if (!newoutbuf) {
-            newoutbuf = malloc((len+1) * sizeof(glui32));
+            newoutbuf = static_cast<glui32 *>(malloc((len+1) * sizeof(glui32)));
             if (!newoutbuf)
                 return 0;
             if (outcount)

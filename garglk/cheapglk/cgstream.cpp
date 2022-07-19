@@ -136,9 +136,9 @@ void gli_delete_stream(stream_t *str)
         case strtype_Memory: 
             if (gli_unregister_arr) {
                 /* This could be a char array or a glui32 array. */
-                char *typedesc = (str->unicode ? "&+#!Iu" : "&+#!Cn");
+                const char *typedesc = (str->unicode ? "&+#!Iu" : "&+#!Cn");
                 void *buf = (str->unicode ? (void*)str->ubuf : (void*)str->buf);
-                (*gli_unregister_arr)(buf, str->buflen, typedesc,
+                (*gli_unregister_arr)(buf, str->buflen, const_cast<char *>(typedesc),
                     str->arrayrock);
             }
             break;
@@ -229,7 +229,7 @@ strid_t glk_stream_open_memory(char *buf, glui32 buflen, glui32 fmode,
         else
             str->bufeof = str->bufend;
         if (gli_register_arr) {
-            str->arrayrock = (*gli_register_arr)(buf, buflen, "&+#!Cn");
+            str->arrayrock = (*gli_register_arr)(buf, buflen, const_cast<char *>("&+#!Cn"));
         }
     }
     
@@ -354,7 +354,7 @@ strid_t glk_stream_open_memory_uni(glui32 *ubuf, glui32 buflen, glui32 fmode,
         else
             str->ubufeof = str->ubufend;
         if (gli_register_arr) {
-            str->arrayrock = (*gli_register_arr)(ubuf, buflen, "&+#!Iu");
+            str->arrayrock = (*gli_register_arr)(ubuf, buflen, const_cast<char *>("&+#!Iu"));
         }
     }
     
@@ -2001,7 +2001,7 @@ static glui32 gli_unput_buffer_uni(stream_t *str, const glui32 *buf, glui32 len)
 
 static glui32 gli_unput_buffer(stream_t *str, const char *buf, glui32 len)
 {
-    glui32 *unicode = malloc(len);
+    glui32 *unicode = static_cast<glui32 *>(malloc(len));
     if (unicode == NULL)
         return 0;
 
