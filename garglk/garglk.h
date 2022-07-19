@@ -133,7 +133,7 @@ private:
 template <std::size_t N>
 class Row {
 public:
-    Row(unsigned char *row) : m_row(row) {
+    explicit Row(unsigned char *row) : m_row(row) {
     }
 
     const Pixel<N> operator[](std::size_t x) const {
@@ -177,7 +177,7 @@ public:
     }
 
     Row<N> operator[](std::size_t y) {
-        return {&m_pixels[y * m_width * N]};
+        return Row<N>(&m_pixels[y * m_width * N]);
     }
 
     const unsigned char *data() const {
