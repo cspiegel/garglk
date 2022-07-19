@@ -187,6 +187,11 @@ public:
         m_height = height;
     }
 
+    void fill(const Pixel<N> &pixel) {
+        for (int i = 0; i < m_width * m_height; i++)
+            memcpy(&m_pixels[i * N], pixel.data(), N);
+    }
+
     bool empty() const {
         return m_pixels.empty();
     }
