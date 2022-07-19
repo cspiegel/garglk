@@ -68,20 +68,6 @@ struct ConfigFile {
     bool user;
 };
 
-struct Color {
-public:
-    Color(unsigned char red, unsigned char green, unsigned char blue) : m_red(red), m_green(green), m_blue(blue) {
-    }
-
-    void to(unsigned char *rgb) const;
-    static Color from(const unsigned char *rgb);
-    static Color from(const std::string &colors);
-
-private:
-    unsigned char m_red, m_green, m_blue;
-    static const std::regex m_color_re;
-};
-
 extern std::vector<garglk::ConfigFile> all_configs;
 
 std::string winopenfile(const char *prompt, enum FILEFILTERS filter);
@@ -212,6 +198,21 @@ private:
     int m_width = 0;
     int m_height = 0;
 };
+
+namespace garglk {
+class Color : public Pixel<3> {
+public:
+    Color(unsigned char red, unsigned char green, unsigned char blue) : Pixel<3>(red, green, blue) {
+    }
+
+    void to(unsigned char *rgb) const;
+    static Color from(const unsigned char *rgb);
+    static Color from(const std::string &colors);
+
+private:
+    static const std::regex m_color_re;
+};
+}
 
 #endif
 

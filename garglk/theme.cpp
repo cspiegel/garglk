@@ -46,9 +46,9 @@ static std::set<K> map_keys(const std::map<K, V> &map)
 const std::regex Color::m_color_re("#?[a-fA-F0-9]{6}");
 
 void Color::to(unsigned char *rgb) const {
-    rgb[0] = m_red;
-    rgb[1] = m_green;
-    rgb[2] = m_blue;
+    rgb[0] = (*this)[0];
+    rgb[1] = (*this)[1];
+    rgb[2] = (*this)[2];
 }
 
 Color Color::from(const unsigned char *rgb) {
