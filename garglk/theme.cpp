@@ -20,8 +20,6 @@
 
 using json = nlohmann::json;
 
-using garglk::Color;
-
 template<size_t...Is, typename T>
 std::array<T, sizeof...(Is)> make_array(const T &value, std::index_sequence<Is...>) {
     return {(static_cast<void>(Is), value)...};

@@ -208,7 +208,7 @@ static void parsecolor(const std::string &str, unsigned char *rgb)
 {
     try
     {
-        garglk::Color::from(str).to(rgb);
+        Color::from(str).to(rgb);
     }
     catch (const std::runtime_error &)
     {

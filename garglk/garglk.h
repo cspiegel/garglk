@@ -199,7 +199,6 @@ private:
     int m_height = 0;
 };
 
-namespace garglk {
 class Color : public Pixel<3> {
 public:
     Color(unsigned char red, unsigned char green, unsigned char blue) : Pixel<3>(red, green, blue) {
@@ -212,7 +211,6 @@ public:
 private:
     static const std::regex m_color_re;
 };
-}
 
 #endif
 
