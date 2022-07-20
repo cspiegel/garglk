@@ -655,11 +655,20 @@ struct window_graphics_s
 
 /* ---------------------------------------------------------------------- */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void gli_initialize_sound(void);
 extern void gli_initialize_tts(void);
 extern void gli_tts_speak(const glui32 *buf, size_t len);
 extern void gli_tts_flush(void);
 extern void gli_tts_purge(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 extern gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan);
 
 /* ---------------------------------------------------------------------- */
