@@ -34,12 +34,6 @@
 #include <mach-o/dyld.h>
 #import "sysmac.h"
 
-#ifdef __ppc__
-#define ByteOrderOGL GL_UNSIGNED_INT_8_8_8_8
-#else
-#define ByteOrderOGL GL_UNSIGNED_INT_8_8_8_8_REV
-#endif
-
 #define MaxBuffer 1024
 
 static const char * AppName = "Gargoyle " VERSION;
@@ -98,8 +92,8 @@ static const char *winfilters[] =
 
     /* create texture from data */
     glTexImage2D(GL_TEXTURE_RECTANGLE_ARB,
-                 0, GL_RGBA, width, height, 0, GL_BGRA,
-                 ByteOrderOGL,
+                 0, GL_RGB8, width, height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE,
                  [frame bytes]);
     textureWidth = width;
     textureHeight = height;

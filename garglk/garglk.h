@@ -352,7 +352,7 @@ extern int gli_image_w;
 extern int gli_image_h;
 
 #ifdef __cplusplus
-extern Canvas<4> gli_image_rgb;
+extern Canvas<3> gli_image_rgb;
 #endif
 
 /*
