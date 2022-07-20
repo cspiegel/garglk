@@ -41,12 +41,12 @@ static std::set<K> map_keys(const std::map<K, V> &map)
     return keys;
 }
 
-const std::regex Color::m_color_re("#?[a-fA-F0-9]{6}");
-
-Color Color::from(const std::string &str) {
+Color gli_parse_color(const std::string &str)
+{
+    static const std::regex color_re("#?[a-fA-F0-9]{6}");
     std::string r, g, b;
 
-    if (!std::regex_match(str, m_color_re))
+    if (!std::regex_match(str, color_re))
         throw std::runtime_error("invalid color: " + str);
 
     int pos = str[0] == '#' ? 1 : 0;
@@ -144,11 +144,11 @@ struct Theme {
         json j;
         f >> j;
 
-        auto window = Color::from(j.at("window"));
-        auto border = Color::from(j.at("border"));
-        auto caret = Color::from(j.at("caret"));
-        auto link = Color::from(j.at("link"));
-        auto more = Color::from(j.at("more"));
+        auto window = gli_parse_color(j.at("window"));
+        auto border = gli_parse_color(j.at("border"));
+        auto caret = gli_parse_color(j.at("caret"));
+        auto link = gli_parse_color(j.at("link"));
+        auto more = gli_parse_color(j.at("more"));
         auto text_buffer = get_user_styles(j, "text_buffer");
         auto text_grid = get_user_styles(j, "text_grid");
 
@@ -185,8 +185,8 @@ private:
         };
 
         auto parse_colors = [&possible_colors](const json &style, int i) {
-            auto fg = Color::from(style.at("fg"));
-            auto bg = Color::from(style.at("bg"));
+            auto fg = gli_parse_color(style.at("fg"));
+            auto bg = gli_parse_color(style.at("bg"));
             possible_colors[i] = ColorPair{fg, bg};
         };
 

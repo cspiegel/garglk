@@ -417,16 +417,16 @@ void gli_initialize_fonts()
  * Drawing
  */
 
-void gli_draw_pixel(int x, int y, const Pixel<3> &rgb)
+void gli_draw_pixel(int x, int y, const Color &rgb)
 {
     if (x < 0 || x >= gli_image_w)
         return;
     if (y < 0 || y >= gli_image_h)
         return;
-    gli_image_rgb[y][x] = Pixel<3>(rgb[0], rgb[1], rgb[2]);
+    gli_image_rgb[y][x] = rgb;
 }
 
-static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Pixel<3> &rgb)
+static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Color &rgb)
 {
     unsigned short invalf = GAMMA_MAX - (alpha * GAMMA_MAX / 255);
     std::array<unsigned short, 3> bg = {
@@ -449,7 +449,7 @@ static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Pixel<3> &
                                    gammainv[fg[2] + mulhigh(static_cast<int>(bg[2]) - fg[2], invalf)]);
 }
 
-static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const Pixel<3> &rgb)
+static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const Color &rgb)
 {
     std::array<unsigned short, 3> invalf = {
         static_cast<unsigned short>(GAMMA_MAX - (alpha[0] * GAMMA_MAX / 255)),
@@ -476,7 +476,7 @@ static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const
                                    gammainv[fg[2] + mulhigh(static_cast<int>(bg[2]) - fg[2], invalf[2])]);
 }
 
-static void draw_bitmap_gamma(const Bitmap *b, int x, int y, const Pixel<3> &rgb)
+static void draw_bitmap_gamma(const Bitmap *b, int x, int y, const Color &rgb)
 {
     int i, k, c;
     for (k = 0; k < b->h; k++)
@@ -489,7 +489,7 @@ static void draw_bitmap_gamma(const Bitmap *b, int x, int y, const Pixel<3> &rgb
     }
 }
 
-static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const Pixel<3> &rgb)
+static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const Color &rgb)
 {
     int i, j, k;
     for (k = 0; k < b->h; k++)
@@ -501,12 +501,12 @@ static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const Pixel<3> 
     }
 }
 
-void gli_draw_clear(const Pixel<3> &rgb)
+void gli_draw_clear(const Color &rgb)
 {
     gli_image_rgb.fill(rgb);
 }
 
-void gli_draw_rect(int x0, int y0, int w, int h, const Pixel<3> &rgb)
+void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
 {
     int x1 = x0 + w;
     int y1 = y0 + h;
@@ -522,10 +522,9 @@ void gli_draw_rect(int x0, int y0, int w, int h, const Pixel<3> &rgb)
     if (x1 > gli_image_w) x1 = gli_image_w;
     if (y1 > gli_image_h) y1 = gli_image_h;
 
-    auto pixel = Pixel<3>(rgb[0], rgb[1], rgb[2]);
     for (y = y0; y < y1; y++)
     {
-        gli_image_rgb[y].fill(pixel, x0, x1);
+        gli_image_rgb[y].fill(rgb, x0, x1);
     }
 }
 
@@ -628,7 +627,7 @@ static int gli_string_impl(int x, FontFace face, const glui32 *s, size_t n, int 
     return x;
 }
 
-int gli_draw_string_uni(int x, int y, FontFace face, const Pixel<3> &rgb,
+int gli_draw_string_uni(int x, int y, FontFace face, const Color &rgb,
         glui32 *s, int n, int spw)
 {
     return gli_string_impl(x, face, s, n, spw, [y, rgb](int x, const std::array<Bitmap, GLI_SUBPIX> &glyphs) {

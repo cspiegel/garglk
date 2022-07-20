@@ -219,16 +219,9 @@ private:
     int m_height = 0;
 };
 
-class Color : public Pixel<3> {
-public:
-    Color(unsigned char red, unsigned char green, unsigned char blue) : Pixel<3>(red, green, blue) {
-    }
+using Color = Pixel<3>;
 
-    static Color from(const std::string &colors);
-
-private:
-    static const std::regex m_color_re;
-};
+Color gli_parse_color(const std::string &str);
 
 #endif
 
@@ -778,7 +771,7 @@ struct window_textbuffer_s
 struct window_graphics_s
 {
     window_t *owner;
-    Pixel<3> bgnd;
+    Color bgnd;
     int dirty;
     int w, h;
     Canvas<3> rgb;
@@ -893,10 +886,10 @@ extern void gli_streams_close_all(void);
 
 void gli_initialize_fonts(void);
 #ifdef __cplusplus
-void gli_draw_pixel(int x, int y, const Pixel<3> &rgb);
-void gli_draw_clear(const Pixel<3> &rgb);
-void gli_draw_rect(int x, int y, int w, int h, const Pixel<3> &rgb);
-int gli_draw_string_uni(int x, int y, FontFace face, const Pixel<3> &rgb, glui32 *text, int len, int spacewidth);
+void gli_draw_pixel(int x, int y, const Color &rgb);
+void gli_draw_clear(const Color &rgb);
+void gli_draw_rect(int x, int y, int w, int h, const Color &rgb);
+int gli_draw_string_uni(int x, int y, FontFace face, const Color &rgb, glui32 *text, int len, int spacewidth);
 int gli_string_width_uni(FontFace font, const glui32 *text, int len, int spw);
 #endif
 void gli_draw_caret(int x, int y);
