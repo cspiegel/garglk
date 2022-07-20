@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <memory>
 #include <new>
 
 #include "glk.h"
@@ -36,7 +37,7 @@ put_text(window_textbuffer_t *dwin, char *buf, int len, int pos, int oldlen);
 static void
 put_text_uni(window_textbuffer_t *dwin, glui32 *buf, int len, int pos, int oldlen);
 static bool
-put_picture(window_textbuffer_t *dwin, picture_t *pic, glui32 align, glui32 linkval);
+put_picture(window_textbuffer_t *dwin, std::shared_ptr<picture_t> pic, glui32 align, glui32 linkval);
 
 static void touch(window_textbuffer_t *dwin, int line)
 {
@@ -64,8 +65,6 @@ window_textbuffer_t *win_textbuffer_create(window_t *win)
 
 void win_textbuffer_destroy(window_textbuffer_t *dwin)
 {
-    int i;
-
     if (dwin->inbuf)
     {
         if (gli_unregister_arr)
@@ -77,11 +76,6 @@ void win_textbuffer_destroy(window_textbuffer_t *dwin)
     }
 
     dwin->owner = nullptr;
-
-    for (i = 0; i < dwin->scrollback; i++) {
-        gli_picture_decrement(dwin->lines[i].lpic);
-        gli_picture_decrement(dwin->lines[i].rpic);
-    }
 
     delete dwin;
 }
@@ -103,7 +97,7 @@ static void reflow(window_t *win)
     std::vector<attr_t> attrbuf;
     std::vector<glui32> charbuf;
     std::vector<int> alignbuf;
-    std::vector<picture_t *>     pictbuf;
+    std::vector<std::shared_ptr<picture_t>> pictbuf;
     std::vector<glui32> hyperbuf;
     std::vector<int> offsetbuf;
 
@@ -141,7 +135,6 @@ static void reflow(window_t *win)
             offsetbuf[x] = p;
             alignbuf[x] = imagealign_MarginLeft;
             pictbuf[x] = dwin->lines[k].lpic;
-            gli_picture_increment(pictbuf[x]);
             hyperbuf[x] = dwin->lines[k].lhyper;
             x++;
         }
@@ -151,7 +144,6 @@ static void reflow(window_t *win)
             offsetbuf[x] = p;
             alignbuf[x] = imagealign_MarginRight;
             pictbuf[x] = dwin->lines[k].rpic;
-            gli_picture_increment(pictbuf[x]);
             hyperbuf[x] = dwin->lines[k].rhyper;
             x++;
         }
@@ -624,7 +616,7 @@ void win_textbuffer_redraw(window_t *win)
         {
             if (y < y1 && y + ln.lpic->h > y0)
             {
-                gli_draw_picture(ln.lpic,
+                gli_draw_picture(ln.lpic.get(),
                         x0/GLI_SUBPIX, y,
                         x0/GLI_SUBPIX, y0, x1/GLI_SUBPIX, y1);
                 link = ln.lhyper;
@@ -642,7 +634,7 @@ void win_textbuffer_redraw(window_t *win)
         {
             if (y < y1 && y + ln.rpic->h > y0)
             {
-                gli_draw_picture(ln.rpic,
+                gli_draw_picture(ln.rpic.get(),
                         x1/GLI_SUBPIX - ln.rpic->w, y,
                         x0/GLI_SUBPIX, y0, x1/GLI_SUBPIX, y1);
                 link = ln.rhyper;
@@ -734,8 +726,8 @@ static void scrollresize(window_textbuffer_t *dwin)
         dwin->lines[i].repaint = false;
         dwin->lines[i].lm = 0;
         dwin->lines[i].rm = 0;
-        dwin->lines[i].lpic = nullptr;
-        dwin->lines[i].rpic = nullptr;
+        dwin->lines[i].lpic.reset();
+        dwin->lines[i].rpic.reset();
         dwin->lines[i].lhyper = 0;
         dwin->lines[i].rhyper = 0;
         dwin->lines[i].len = 0;
@@ -794,8 +786,8 @@ static void scrolloneline(window_textbuffer_t *dwin, bool forced)
     dwin->lines[0].newline = false;
     dwin->lines[0].lm = dwin->ladjw;
     dwin->lines[0].rm = dwin->radjw;
-    dwin->lines[0].lpic = nullptr;
-    dwin->lines[0].rpic = nullptr;
+    dwin->lines[0].lpic.reset();
+    dwin->lines[0].rpic.reset();
     dwin->lines[0].lhyper = 0;
     dwin->lines[0].rhyper = 0;
     dwin->lines[0].chars.fill(' ');
@@ -1110,10 +1102,8 @@ void win_textbuffer_clear(window_t *win)
     {
         dwin->lines[i].len = 0;
 
-        gli_picture_decrement(dwin->lines[i].lpic);
-        dwin->lines[i].lpic = nullptr;
-        gli_picture_decrement(dwin->lines[i].rpic);
-        dwin->lines[i].rpic = nullptr;
+        dwin->lines[i].lpic.reset();
+        dwin->lines[i].rpic.reset();
 
         dwin->lines[i].lhyper = 0;
         dwin->lines[i].rhyper = 0;
@@ -1631,7 +1621,7 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
 }
 
 static bool
-put_picture(window_textbuffer_t *dwin, picture_t *pic, glui32 align, glui32 linkval)
+put_picture(window_textbuffer_t *dwin, std::shared_ptr<picture_t> pic, glui32 align, glui32 linkval)
 {
     if (align == imagealign_MarginRight)
     {
@@ -1669,10 +1659,9 @@ put_picture(window_textbuffer_t *dwin, picture_t *pic, glui32 align, glui32 link
 glui32 win_textbuffer_draw_picture(window_textbuffer_t *dwin,
     glui32 image, glui32 align, bool scaled, glui32 width, glui32 height)
 {
-    picture_t *pic;
     glui32 hyperlink;
 
-    pic = gli_picture_load(image);
+    auto pic = gli_picture_load(image);
 
     if (!pic)
         return false;
@@ -1684,21 +1673,12 @@ glui32 win_textbuffer_draw_picture(window_textbuffer_t *dwin,
     }
 
     if (scaled)
-    {
-        picture_t *tmp;
-        tmp = gli_picture_scale(pic, width, height);
-        pic = tmp;
-    }
+        pic = gli_picture_scale(pic.get(), width, height);
     else
-    {
-        picture_t *tmp;
-        tmp = gli_picture_scale(pic, gli_zoom_int(pic->w), gli_zoom_int(pic->h));
-        pic = tmp;
-    }
+        pic = gli_picture_scale(pic.get(), gli_zoom_int(pic->w), gli_zoom_int(pic->h));
 
     hyperlink = dwin->owner->attr.hyper;
 
-    gli_picture_increment(pic);
     return put_picture(dwin, pic, align, hyperlink);
 }
 

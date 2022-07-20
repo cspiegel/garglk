@@ -325,7 +325,6 @@ struct rect_s
 #ifdef __cplusplus
 struct picture_s
 {
-    int refcount;
     int w, h;
     Canvas<4> rgba;
     unsigned long id;
@@ -700,7 +699,7 @@ struct tbline_t
     }
     int len = 0;
     bool newline = false, dirty = false, repaint = false;
-    picture_t *lpic = nullptr, *rpic = nullptr;
+    std::shared_ptr<picture_t> lpic, rpic;
     glui32 lhyper = 0, rhyper = 0;
     int lm = 0, rm = 0;
     std::array<glui32, TBLINELEN> chars;
@@ -916,12 +915,12 @@ void fontunload(void);
 
 void giblorb_get_resource(glui32 usage, glui32 resnum, FILE **file, long *pos, long *len, glui32 *type);
 
-picture_t *gli_picture_load(unsigned long id);
-void gli_picture_store(picture_t *pic);
-picture_t *gli_picture_retrieve(unsigned long id, bool scaled);
-picture_t *gli_picture_scale(picture_t *src, int destwidth, int destheight);
-void gli_picture_increment(picture_t *pic);
-void gli_picture_decrement(picture_t *pic);
+#ifdef __cplusplus
+std::shared_ptr<picture_t> gli_picture_load(unsigned long id);
+void gli_picture_store(std::shared_ptr<picture_t> pic);
+std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled);
+std::shared_ptr<picture_t> gli_picture_scale(picture_t *src, int destwidth, int destheight);
+#endif
 void gli_piclist_increment(void);
 void gli_piclist_decrement(void);
 

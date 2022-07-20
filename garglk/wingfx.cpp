@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <memory>
 #include <utility>
 
 #include "glk.h"
@@ -162,7 +163,7 @@ bool win_graphics_draw_picture(window_graphics_t *dwin,
     glsi32 xpos, glsi32 ypos,
     bool scale, glui32 imagewidth, glui32 imageheight)
 {
-    picture_t *pic = gli_picture_load(image);
+    auto pic = gli_picture_load(image);
     glui32 hyperlink = dwin->owner->attr.hyper;
     xpos = gli_zoom_int(xpos);
     ypos = gli_zoom_int(ypos);
@@ -184,7 +185,7 @@ bool win_graphics_draw_picture(window_graphics_t *dwin,
     imagewidth = gli_zoom_int(imagewidth);
     imageheight = gli_zoom_int(imageheight);
 
-    drawpicture(pic, dwin, xpos, ypos, imagewidth, imageheight, hyperlink);
+    drawpicture(pic.get(), dwin, xpos, ypos, imagewidth, imageheight, hyperlink);
 
     win_graphics_touch(dwin);
 
@@ -292,12 +293,14 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     int dx1, dy1, x1, y1, sx0, sy0, sx1, sy1;
     int x, y, w, h;
     int hx0, hx1, hy0, hy1;
+    std::shared_ptr<picture_t> scaled;
 
     if (width != src->w || height != src->h)
     {
-        src = gli_picture_scale(src, width, height);
-        if (!src)
+        scaled = gli_picture_scale(src, width, height);
+        if (!scaled)
             return;
+        src = scaled.get();
     }
 
     sx0 = 0;

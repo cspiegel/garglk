@@ -23,6 +23,7 @@
 
 #include <array>
 #include <cstring>
+#include <memory>
 #include <new>
 
 #include "glk.h"
@@ -1410,12 +1411,10 @@ glui32 glk_image_draw_scaled(winid_t win, glui32 image,
 
 glui32 glk_image_get_info(glui32 image, glui32 *width, glui32 *height)
 {
-    picture_t *pic;
-
     if (!gli_conf_graphics)
         return false;
 
-    pic = gli_picture_load(image);
+    auto pic = gli_picture_load(image);
     if (!pic)
         return false;
 

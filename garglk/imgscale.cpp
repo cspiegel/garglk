@@ -25,12 +25,13 @@
  * Image scaling, based on pnmscale.c...
  */
 
+#include <memory>
 #include <vector>
 
 #include "glk.h"
 #include "garglk.h"
 
-picture_t *
+std::shared_ptr<picture_t>
 gli_picture_scale(picture_t *src, int newcols, int newrows)
 {
     /* pnmscale.c - read a portable anymap and scale it
@@ -49,9 +50,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 #define HALFSCALE 2048
 #define maxval 255
 
-    picture_t *dst;
-
-    dst = gli_picture_retrieve(src->id, true);
+    auto dst = gli_picture_retrieve(src->id, true);
 
     if (dst && dst->w == newcols && dst->h == newrows)
         return dst;
@@ -70,8 +69,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 
     /* Allocate destination image and scratch space */
 
-    dst = new picture_t;
-    dst->refcount = 1;
+    dst = std::make_shared<picture_t>();
     dst->w = newcols;
     dst->h = newrows;
     dst->rgba.resize(newcols, newrows, false);

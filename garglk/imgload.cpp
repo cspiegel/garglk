@@ -37,29 +37,18 @@
 #define giblorb_ID_JPEG      (giblorb_make_id('J', 'P', 'E', 'G'))
 #define giblorb_ID_PNG       (giblorb_make_id('P', 'N', 'G', ' '))
 
-static void load_image_png(std::FILE *fl, picture_t *pic);
-static void load_image_jpeg(std::FILE *fl, picture_t *pic);
+static void load_image_png(std::FILE *fl, std::shared_ptr<picture_t> pic);
+static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic);
 
 struct PicturePair
 {
-    picture_t *picture;
-    picture_t *scaled;
+    std::shared_ptr<picture_t> picture;
+    std::shared_ptr<picture_t> scaled;
 };
 
 std::map<unsigned long, PicturePair> picstore;
 
 static int gli_piclist_refcount = 0;	/* count references to loaded pictures */
-
-static void gli_piclist_clear()
-{
-    for (const auto &pair : picstore)
-    {
-        gli_picture_decrement(pair.second.picture);
-        gli_picture_decrement(pair.second.scaled);
-    }
-
-    picstore.clear();
-}
 
 void gli_piclist_increment()
 {
@@ -69,39 +58,19 @@ void gli_piclist_increment()
 void gli_piclist_decrement()
 {
     if (gli_piclist_refcount > 0 && --gli_piclist_refcount == 0)
-        gli_piclist_clear();
+        picstore.clear();
 }
 
-void gli_picture_increment(picture_t *pic)
-{
-    if (!pic)
-        return;
-
-    pic->refcount++;
-}
-
-void gli_picture_decrement(picture_t *pic)
-{
-    if (!pic)
-        return;
-
-    if (pic->refcount > 0 && --pic->refcount == 0)
-    {
-        delete pic;
-    }
-}
-
-static void gli_picture_store_original(picture_t *pic)
+static void gli_picture_store_original(std::shared_ptr<picture_t> pic)
 {
     picstore[pic->id] = PicturePair{pic, nullptr};
 }
 
-static void gli_picture_store_scaled(picture_t *pic)
+static void gli_picture_store_scaled(std::shared_ptr<picture_t> pic)
 {
     try
     {
         auto &picpair = picstore.at(pic->id);
-        gli_picture_decrement(picpair.scaled);
         picpair.scaled = pic;
     }
     catch (const std::out_of_range &)
@@ -109,7 +78,7 @@ static void gli_picture_store_scaled(picture_t *pic)
     }
 }
 
-void gli_picture_store(picture_t *pic)
+void gli_picture_store(std::shared_ptr<picture_t> pic)
 {
     if (!pic)
         return;
@@ -120,7 +89,7 @@ void gli_picture_store(picture_t *pic)
         gli_picture_store_scaled(pic);
 }
 
-picture_t *gli_picture_retrieve(unsigned long id, bool scaled)
+std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled)
 {
     try
     {
@@ -134,9 +103,9 @@ picture_t *gli_picture_retrieve(unsigned long id, bool scaled)
     }
 }
 
-picture_t *gli_picture_load(unsigned long id)
+std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
 {
-    picture_t *pic;
+    std::shared_ptr<picture_t> pic;
     std::FILE *fl;
     bool closeafter;
     glui32 chunktype;
@@ -191,8 +160,7 @@ picture_t *gli_picture_load(unsigned long id)
         closeafter = false;
     }
 
-    pic = new picture_t;
-    pic->refcount = 1;
+    pic = std::make_shared<picture_t>();
     pic->w = 0;
     pic->h = 0;
     pic->id = id;
@@ -212,7 +180,7 @@ picture_t *gli_picture_load(unsigned long id)
     return pic;
 }
 
-static void load_image_jpeg(std::FILE *fl, picture_t *pic)
+static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic)
 {
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -253,7 +221,7 @@ static void load_image_jpeg(std::FILE *fl, picture_t *pic)
     jpeg_destroy_decompress(&cinfo);
 }
 
-static void load_image_png(std::FILE *fl, picture_t *pic)
+static void load_image_png(std::FILE *fl, std::shared_ptr<picture_t> pic)
 {
     int ix;
     int srcrowbytes;
