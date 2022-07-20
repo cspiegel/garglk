@@ -260,14 +260,9 @@ static void load_image_png(std::FILE *fl, picture_t *pic)
     png_structp png_ptr = nullptr;
     png_infop info_ptr = nullptr;
 
-    /* These are static so that the setjmp/longjmp error-handling of
-       libpng doesn't mangle them. Horribly thread-unsafe, but we
-       hope we don't run into that. */
-    static png_bytep *rowarray;
-    static png_bytep srcdata;
-
-    rowarray = nullptr;
-    srcdata = nullptr;
+    /* Define these before the setjmp() call to ensure destructors are called. */
+    std::vector<png_bytep> rowarray;
+    std::vector<png_byte> srcdata;
 
     png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     if (!png_ptr)
@@ -284,8 +279,6 @@ static void load_image_png(std::FILE *fl, picture_t *pic)
     {
         /* If we jump here, we had a problem reading the file */
         png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-        delete [] rowarray;
-        delete [] srcdata;
         return;
     }
 
@@ -307,15 +300,15 @@ static void load_image_png(std::FILE *fl, picture_t *pic)
 
     assert(srcrowbytes == pic->w * 4 || srcrowbytes == pic->w * 3);
 
-    rowarray = new png_bytep[pic->h];
-    srcdata = new png_byte[pic->w * pic->h * 4];
+    rowarray.resize(pic->h);
+    srcdata.resize(pic->w * pic->h * 4);
 
     pic->rgba.resize(pic->w, pic->h, false);
 
     for (ix=0; ix<pic->h; ix++)
-        rowarray[ix] = srcdata + (ix * pic->w * 4);
+        rowarray[ix] = &srcdata[ix * pic->w * 4];
 
-    png_read_image(png_ptr, rowarray);
+    png_read_image(png_ptr, rowarray.data());
     png_read_end(png_ptr, info_ptr);
 
     png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
@@ -330,6 +323,4 @@ static void load_image_png(std::FILE *fl, picture_t *pic)
             pic->rgba[y][x] = Pixel<4>(rowarray[y][x * size + 0], rowarray[y][x * size + 1], rowarray[y][x * size + 2], a);
         }
     }
-
-    delete [] rowarray;
 }
