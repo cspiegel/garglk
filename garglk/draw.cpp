@@ -503,8 +503,7 @@ static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const Color &rg
 
 void gli_draw_clear(const Color &rgb)
 {
-    auto pixel = Pixel<3>(rgb[0], rgb[1], rgb[2]);
-    gli_image_rgb.fill(pixel);
+    gli_image_rgb.fill(rgb);
 }
 
 void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
