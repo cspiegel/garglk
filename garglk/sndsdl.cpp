@@ -474,17 +474,16 @@ static glui32 load_sound_resource(glui32 snd, long *len, std::vector<unsigned ch
 {
     if (giblorb_get_resource_map() == nullptr)
     {
-        std::FILE *file;
         std::string name;
 
         name = gli_workdir + "/SND" + std::to_string(snd);
 
-        file = std::fopen(name.c_str(), "rb");
+        auto file = garglk::unique(std::fopen(name.c_str(), "rb"), fclose);
         if (!file)
             return 0;
 
-        std::fseek(file, 0, SEEK_END);
-        *len = std::ftell(file);
+        std::fseek(file.get(), 0, SEEK_END);
+        *len = std::ftell(file.get());
 
         try
         {
@@ -492,17 +491,14 @@ static glui32 load_sound_resource(glui32 snd, long *len, std::vector<unsigned ch
         }
         catch (const std::bad_alloc &)
         {
-            std::fclose(file);
             return 0;
         }
 
-        std::rewind(file);
-        if (std::fread(buf.data(), 1, *len, file) != static_cast<size_t>(*len) && !feof(file))
+        std::rewind(file.get());
+        if (std::fread(buf.data(), 1, *len, file.get()) != static_cast<size_t>(*len) && !std::feof(file.get()))
         {
-            std::fclose(file);
             return 0;
         }
-        fclose(file);
 
         const std::map<std::pair<long, std::vector<std::string>>, unsigned long> formats = {
             /* AIFF */
