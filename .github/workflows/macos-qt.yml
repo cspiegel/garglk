@@ -15,7 +15,7 @@ jobs:
         run: brew update
 
       - name: Install packages
-        run: brew install libopenmpt libsndfile libvorbis mpg123 qt6
+        run: brew install libopenmpt libsndfile libvorbis mpg123 qt6 libpng jpeg
 
       - name: Build (Qt)
         run: |
