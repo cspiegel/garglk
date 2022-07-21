@@ -117,20 +117,20 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
 
     if (giblorb_get_resource_map() == nullptr)
     {
-        unsigned char buf[8];
+        std::array<unsigned char, 8> buf;
         std::string filename = gli_workdir + "/PIC" + std::to_string(id);
 
         fl = {std::fopen(filename.c_str(), "rb"), fclose};
         if (!fl)
             return nullptr;
 
-        if (std::fread(buf, 1, 8, fl.get()) != 8)
+        if (std::fread(buf.data(), 1, 8, fl.get()) != 8)
         {
             /* Can't read the first few bytes. Forget it. */
             return nullptr;
         }
 
-        if (!png_sig_cmp(buf, 0, 8))
+        if (!png_sig_cmp(buf.data(), 0, 8))
         {
             chunktype = giblorb_ID_PNG;
         }
