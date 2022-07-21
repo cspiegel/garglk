@@ -21,6 +21,7 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <array>
 #include <cassert>
 #include <cstdio>
 #include <map>
@@ -184,7 +185,7 @@ static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic)
 {
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
-    JSAMPROW rowarray[1];
+    std::array<JSAMPROW, 1> rowarray;
     int n, i;
 
     cinfo.err = jpeg_std_error(&jerr);
@@ -210,7 +211,7 @@ static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic)
         while (cinfo.output_scanline < cinfo.output_height)
         {
             JDIMENSION y = cinfo.output_scanline;
-            jpeg_read_scanlines(&cinfo, rowarray, 1);
+            jpeg_read_scanlines(&cinfo, rowarray.data(), 1);
             if (n == 1)
                 for (i = 0; i < pic->w; i++)
                 {
