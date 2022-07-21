@@ -188,36 +188,46 @@ static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic)
     int n, i;
 
     cinfo.err = jpeg_std_error(&jerr);
-    jpeg_create_decompress(&cinfo);
-    jpeg_stdio_src(&cinfo, fl);
-    jpeg_read_header(&cinfo, TRUE);
-    jpeg_start_decompress(&cinfo);
+    jerr.error_exit = [](j_common_ptr cinfo) {
+        throw cinfo->err;
+    };
 
-    pic->w = cinfo.output_width;
-    pic->h = cinfo.output_height;
-    n = cinfo.output_components;
-    pic->rgba.resize(pic->w, pic->h, false);
-
-    std::vector<JSAMPLE> row(pic->w * n);
-    rowarray[0] = row.data();
-
-    while (cinfo.output_scanline < cinfo.output_height)
+    try
     {
-        JDIMENSION y = cinfo.output_scanline;
-        jpeg_read_scanlines(&cinfo, rowarray, 1);
-        if (n == 1)
-            for (i = 0; i < pic->w; i++)
-            {
-                pic->rgba[y][i] = Pixel<4>(row[i], row[i], row[i], 0xff);
-            }
-        else if (n == 3)
-            for (i = 0; i < pic->w; i++)
-            {
-                pic->rgba[y][i] = Pixel<4>(row[i*3+0], row[i*3+1], row[i*3+2], 0xff);
-            }
+        jpeg_create_decompress(&cinfo);
+        jpeg_stdio_src(&cinfo, fl);
+        jpeg_read_header(&cinfo, TRUE);
+        jpeg_start_decompress(&cinfo);
+
+        pic->w = cinfo.output_width;
+        pic->h = cinfo.output_height;
+        n = cinfo.output_components;
+        pic->rgba.resize(pic->w, pic->h, false);
+
+        std::vector<JSAMPLE> row(pic->w * n);
+        rowarray[0] = row.data();
+
+        while (cinfo.output_scanline < cinfo.output_height)
+        {
+            JDIMENSION y = cinfo.output_scanline;
+            jpeg_read_scanlines(&cinfo, rowarray, 1);
+            if (n == 1)
+                for (i = 0; i < pic->w; i++)
+                {
+                    pic->rgba[y][i] = Pixel<4>(row[i], row[i], row[i], 0xff);
+                }
+            else if (n == 3)
+                for (i = 0; i < pic->w; i++)
+                {
+                    pic->rgba[y][i] = Pixel<4>(row[i*3+0], row[i*3+1], row[i*3+2], 0xff);
+                }
+        }
+
+        jpeg_finish_decompress(&cinfo);
+    } catch (const jpeg_error_mgr *)
+    {
     }
 
-    jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
 }
 
