@@ -532,7 +532,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, std::vector<unsigned ch
         if (*len > 1084)
         {
             char resname[5] = { 0 };
-            memcpy(resname, (buf.data()) + 1080, 4);
+            std::memcpy(resname, (buf.data()) + 1080, 4);
             if (!std::strcmp(resname+1, "CHN") ||        /* 4CHN, 6CHN, 8CHN */
                     !std::strcmp(resname+2, "CN") ||         /* 16CN, 32CN */
                     !std::strcmp(resname, "M.K.") || !std::strcmp(resname, "M!K!") ||
