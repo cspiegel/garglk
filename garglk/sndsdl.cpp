@@ -31,7 +31,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <map>
 #include <new>
 #include <string>
 #include <vector>
@@ -500,7 +499,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, std::vector<unsigned ch
             return 0;
         }
 
-        const std::map<std::pair<long, std::vector<std::string>>, unsigned long> formats = {
+        const std::vector<std::pair<std::pair<long, std::vector<std::string>>, unsigned long>> formats = {
             /* AIFF */
             {{0, {"FORM"}}, giblorb_ID_FORM},
 
