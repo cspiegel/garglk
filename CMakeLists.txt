@@ -9,6 +9,14 @@ string(STRIP "${GARGOYLE_VERSION}" GARGOYLE_VERSION)
 # CI builds which include the current Git revision as the version.
 project(garglk)
 
+# On Mac, CMake's package search can find mismatching headers and
+# libraries due to frameworks being searched early. Search frameworks
+# last to try to ensure updated libraries (e.g. from Homebrew) are found
+# first.
+if(APPLE)
+    set(CMAKE_FIND_FRAMEWORK LAST)
+endif()
+
 if(POLICY CMP0069)
     cmake_policy(SET CMP0069 NEW)
     include(CheckIPOSupported)
