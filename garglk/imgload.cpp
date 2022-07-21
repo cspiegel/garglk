@@ -200,7 +200,6 @@ static std::shared_ptr<picture_t> load_image_jpeg(std::FILE *fl, unsigned long i
         jpeg_read_header(&cinfo, TRUE);
         jpeg_start_decompress(&cinfo);
 
-
         n = cinfo.output_components;
 
         auto pic = std::make_shared<picture_t>(id, cinfo.output_width, cinfo.output_height, false);
@@ -235,71 +234,20 @@ static std::shared_ptr<picture_t> load_image_jpeg(std::FILE *fl, unsigned long i
 
 static std::shared_ptr<picture_t> load_image_png(std::FILE *fl, unsigned long id)
 {
-    int ix;
-    int srcrowbytes;
-    png_structp png_ptr = nullptr;
-    png_infop info_ptr = nullptr;
+    png_image image;
 
-    /* Define these before the setjmp() call to ensure destructors are called. */
-    std::vector<png_bytep> rowarray;
-    std::vector<png_byte> srcdata;
+    image.version = PNG_IMAGE_VERSION;
+    image.opaque = nullptr;
+    auto free_png = garglk::unique(&image, png_image_free);
 
-    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-    if (!png_ptr)
+    if (png_image_begin_read_from_stdio(&image, fl) == 0)
         return nullptr;
 
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr)
-    {
-        png_destroy_read_struct(&png_ptr, nullptr, nullptr);
+    image.format = PNG_FORMAT_RGBA;
+    auto pic = std::make_shared<picture_t>(id, image.width, image.height, false);
+
+    if (png_image_finish_read(&image, nullptr, pic->rgba.data(), 0, nullptr) == 0)
         return nullptr;
-    }
-
-    if (setjmp(png_jmpbuf(png_ptr)))
-    {
-        /* If we jump here, we had a problem reading the file */
-        png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-        return nullptr;
-    }
-
-    png_init_io(png_ptr, fl);
-
-    png_read_info(png_ptr, info_ptr);
-
-    auto pic = std::make_shared<picture_t>(id, png_get_image_width(png_ptr, info_ptr), png_get_image_height(png_ptr, info_ptr), false);
-
-    png_set_strip_16(png_ptr);
-    png_set_packing(png_ptr);
-    png_set_expand(png_ptr);
-    png_set_gray_to_rgb(png_ptr);
-
-    png_read_update_info(png_ptr, info_ptr);
-
-    srcrowbytes = png_get_rowbytes(png_ptr, info_ptr);
-
-    assert(srcrowbytes == pic->w * 4 || srcrowbytes == pic->w * 3);
-
-    rowarray.resize(pic->h);
-    srcdata.resize(pic->w * pic->h * 4);
-
-    for (ix=0; ix<pic->h; ix++)
-        rowarray[ix] = &srcdata[ix * pic->w * 4];
-
-    png_read_image(png_ptr, rowarray.data());
-    png_read_end(png_ptr, info_ptr);
-
-    png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-
-    bool has_alpha = srcrowbytes == pic->w * 4;
-    int size = has_alpha ? 4 : 3;
-    for (int y = 0; y < pic->h; y++)
-    {
-        for (int x = 0; x < pic->w; x++)
-        {
-            auto a = has_alpha ? rowarray[y][x * size + 3] : 0xff;
-            pic->rgba[y][x] = Pixel<4>(rowarray[y][x * size + 0], rowarray[y][x * size + 1], rowarray[y][x * size + 2], a);
-        }
-    }
 
     return pic;
 }

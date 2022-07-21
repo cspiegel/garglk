@@ -200,6 +200,10 @@ public:
         return Row<N>(&m_pixels[y * m_width * N]);
     }
 
+    unsigned char *data() {
+        return m_pixels.data();
+    }
+
     const unsigned char *data() const {
         return m_pixels.data();
     }
