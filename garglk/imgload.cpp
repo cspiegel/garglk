@@ -95,7 +95,6 @@ std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled)
     try
     {
         const auto &picpair = picstore.at(id);
-
         return scaled ? picpair.scaled : picpair.picture;
     }
     catch (const std::out_of_range &)
