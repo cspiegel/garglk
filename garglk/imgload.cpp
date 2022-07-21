@@ -38,8 +38,8 @@
 #define giblorb_ID_JPEG      (giblorb_make_id('J', 'P', 'E', 'G'))
 #define giblorb_ID_PNG       (giblorb_make_id('P', 'N', 'G', ' '))
 
-static void load_image_png(std::FILE *fl, std::shared_ptr<picture_t> pic);
-static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic);
+static std::shared_ptr<picture_t> load_image_png(std::FILE *fl, unsigned long id);
+static std::shared_ptr<picture_t> load_image_jpeg(std::FILE *fl, unsigned long id);
 
 struct PicturePair
 {
@@ -107,8 +107,7 @@ std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled)
 std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
 {
     std::shared_ptr<picture_t> pic;
-    std::FILE *fl;
-    bool closeafter;
+    std::unique_ptr<FILE, std::function<void(FILE *)>> fl;
     glui32 chunktype;
 
     pic = gli_picture_retrieve(id, false);
@@ -121,15 +120,13 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
         unsigned char buf[8];
         std::string filename = gli_workdir + "/PIC" + std::to_string(id);
 
-        closeafter = true;
-        fl = std::fopen(filename.c_str(), "rb");
+        fl = {std::fopen(filename.c_str(), "rb"), fclose};
         if (!fl)
             return nullptr;
 
-        if (std::fread(buf, 1, 8, fl) != 8)
+        if (std::fread(buf, 1, 8, fl.get()) != 8)
         {
             /* Can't read the first few bytes. Forget it. */
-            std::fclose(fl);
             return nullptr;
         }
 
@@ -144,44 +141,45 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
         else
         {
             /* Not a readable file. Forget it. */
-            std::fclose(fl);
             return nullptr;
         }
 
-        std::rewind(fl);
+        std::rewind(fl.get());
     }
 
     else
     {
         long pos;
-        giblorb_get_resource(giblorb_ID_Pict, id, &fl, &pos, nullptr, &chunktype);
-        if (!fl)
+        FILE *blorb_fl;
+        giblorb_get_resource(giblorb_ID_Pict, id, &blorb_fl, &pos, nullptr, &chunktype);
+        if (!blorb_fl)
             return nullptr;
-        std::fseek(fl, pos, SEEK_SET);
-        closeafter = false;
+        fl = {blorb_fl, [](FILE *) { return 0; }};
+        std::fseek(fl.get(), pos, SEEK_SET);
     }
 
-    pic = std::make_shared<picture_t>();
-    pic->w = 0;
-    pic->h = 0;
-    pic->id = id;
-    pic->scaled = false;
+    const std::map<int, std::function<std::shared_ptr<picture_t>(FILE *, unsigned long)>> loaders = {
+        {giblorb_ID_PNG, load_image_png},
+        {giblorb_ID_JPEG, load_image_jpeg},
+    };
 
-    if (chunktype == giblorb_ID_PNG)
-        load_image_png(fl, pic);
+    try
+    {
+        auto pic = loaders.at(chunktype)(fl.get(), id);
+        if (pic != nullptr)
+        {
+            gli_picture_store(pic);
+            return pic;
+        }
+    }
+    catch (const std::out_of_range &)
+    {
+    }
 
-    if (chunktype == giblorb_ID_JPEG)
-        load_image_jpeg(fl, pic);
-
-    if (closeafter)
-        fclose(fl);
-
-    gli_picture_store(pic);
-
-    return pic;
+    return nullptr;
 }
 
-static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic)
+static std::shared_ptr<picture_t> load_image_jpeg(std::FILE *fl, unsigned long id)
 {
     struct jpeg_decompress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -196,14 +194,16 @@ static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic)
     try
     {
         jpeg_create_decompress(&cinfo);
+        auto jpeg_free = garglk::unique(&cinfo, jpeg_destroy_decompress);
+
         jpeg_stdio_src(&cinfo, fl);
         jpeg_read_header(&cinfo, TRUE);
         jpeg_start_decompress(&cinfo);
 
-        pic->w = cinfo.output_width;
-        pic->h = cinfo.output_height;
+
         n = cinfo.output_components;
-        pic->rgba.resize(pic->w, pic->h, false);
+
+        auto pic = std::make_shared<picture_t>(id, cinfo.output_width, cinfo.output_height, false);
 
         std::vector<JSAMPLE> row(pic->w * n);
         rowarray[0] = row.data();
@@ -225,14 +225,15 @@ static void load_image_jpeg(std::FILE *fl, std::shared_ptr<picture_t> pic)
         }
 
         jpeg_finish_decompress(&cinfo);
+
+        return pic;
     } catch (const jpeg_error_mgr *)
     {
+        return nullptr;
     }
-
-    jpeg_destroy_decompress(&cinfo);
 }
 
-static void load_image_png(std::FILE *fl, std::shared_ptr<picture_t> pic)
+static std::shared_ptr<picture_t> load_image_png(std::FILE *fl, unsigned long id)
 {
     int ix;
     int srcrowbytes;
@@ -245,28 +246,27 @@ static void load_image_png(std::FILE *fl, std::shared_ptr<picture_t> pic)
 
     png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     if (!png_ptr)
-        return;
+        return nullptr;
 
     info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr)
     {
         png_destroy_read_struct(&png_ptr, nullptr, nullptr);
-        return;
+        return nullptr;
     }
 
     if (setjmp(png_jmpbuf(png_ptr)))
     {
         /* If we jump here, we had a problem reading the file */
         png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-        return;
+        return nullptr;
     }
 
     png_init_io(png_ptr, fl);
 
     png_read_info(png_ptr, info_ptr);
 
-    pic->w = png_get_image_width(png_ptr, info_ptr);
-    pic->h = png_get_image_height(png_ptr, info_ptr);
+    auto pic = std::make_shared<picture_t>(id, png_get_image_width(png_ptr, info_ptr), png_get_image_height(png_ptr, info_ptr), false);
 
     png_set_strip_16(png_ptr);
     png_set_packing(png_ptr);
@@ -281,8 +281,6 @@ static void load_image_png(std::FILE *fl, std::shared_ptr<picture_t> pic)
 
     rowarray.resize(pic->h);
     srcdata.resize(pic->w * pic->h * 4);
-
-    pic->rgba.resize(pic->w, pic->h, false);
 
     for (ix=0; ix<pic->h; ix++)
         rowarray[ix] = &srcdata[ix * pic->w * 4];
@@ -302,4 +300,6 @@ static void load_image_png(std::FILE *fl, std::shared_ptr<picture_t> pic)
             pic->rgba[y][x] = Pixel<4>(rowarray[y][x * size + 0], rowarray[y][x * size + 1], rowarray[y][x * size + 2], a);
         }
     }
+
+    return pic;
 }

@@ -325,6 +325,10 @@ struct rect_s
 #ifdef __cplusplus
 struct picture_s
 {
+    picture_s(unsigned int id_, int w_, int h_, bool scaled_) : w(w_), h(h_), id(id_), scaled(scaled_) {
+        rgba.resize(w, h, false);
+    }
+
     int w, h;
     Canvas<4> rgba;
     unsigned long id;

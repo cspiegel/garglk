@@ -69,12 +69,7 @@ gli_picture_scale(picture_t *src, int newcols, int newrows)
 
     /* Allocate destination image and scratch space */
 
-    dst = std::make_shared<picture_t>();
-    dst->w = newcols;
-    dst->h = newrows;
-    dst->rgba.resize(newcols, newrows, false);
-    dst->id = src->id;
-    dst->scaled = true;
+    dst = std::make_shared<picture_t>(src->id, newcols, newrows, true);
 
     std::vector<Pixel<4>> tempxelrow(cols);
     std::vector<long> rs(cols, HALFSCALE);
