@@ -31,7 +31,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <new>
+#include <string>
+#include <vector>
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -501,55 +504,55 @@ static glui32 load_sound_resource(glui32 snd, long *len, std::vector<unsigned ch
         }
         fclose(file);
 
-        /* AIFF */
-        if (*len > 4 && !std::memcmp(buf.data(), "FORM", 4))
-            return giblorb_ID_FORM;
+        const std::map<std::pair<long, std::vector<std::string>>, unsigned long> formats = {
+            /* AIFF */
+            {{0, {"FORM"}}, giblorb_ID_FORM},
 
-        /* WAVE */
-        if (*len > 4 && !std::memcmp(buf.data(), "WAVE", 4))
-            return giblorb_ID_WAVE;
+            /* WAVE */
+            {{0, {"WAVE", "RIFF"}}, giblorb_ID_WAVE},
 
-        if (*len > 4 && !std::memcmp(buf.data(), "RIFF", 4))
-            return giblorb_ID_WAVE;
+            /* midi */
+            {{0, {"MThd"}}, giblorb_ID_MIDI},
 
-        /* midi */
-        if (*len > 4 && !std::memcmp(buf.data(), "MThd", 4))
-            return giblorb_ID_MIDI;
+            /* s3m */
+            {{44, {"SCRM"}}, giblorb_ID_MOD},
 
-        /* s3m */
-        if (*len > 0x30 && !std::memcmp(buf.data() + 0x2c, "SCRM", 4))
-            return giblorb_ID_MOD;
+            /* XM */
+            {{0, {"Extended Module: "}}, giblorb_ID_MOD},
 
-        /* XM */
-        if (*len > 20 && !std::memcmp(buf.data(), "Extended Module: ", 17))
-            return giblorb_ID_MOD;
+            /* IT */
+            {{0, {"IMPM"}}, giblorb_ID_MOD},
 
-        /* IT */
-        if (*len > 4 && !std::memcmp(buf.data(), "IMPM", 4))
-            return giblorb_ID_MOD;
+            /* MOD */
+            {{1080, {"4CHN", "6CHN", "8CHN",
+                     "16CN", "32CN", "M.K.",
+                     "M!K!", "FLT4", "CD81",
+                     "OKTA", "    "}}, giblorb_ID_MOD},
 
-        /* MOD */
-        if (*len > 1084)
+            /* ogg */
+            {{0, {"OggS"}}, giblorb_ID_OGG},
+
+            /* mp3 */
+            {{0, {"\377\372"}}, giblorb_ID_MP3},
+        };
+
+        for (const auto &entry : formats)
         {
-            char resname[5] = { 0 };
-            std::memcpy(resname, (buf.data()) + 1080, 4);
-            if (!std::strcmp(resname+1, "CHN") ||        /* 4CHN, 6CHN, 8CHN */
-                    !std::strcmp(resname+2, "CN") ||         /* 16CN, 32CN */
-                    !std::strcmp(resname, "M.K.") || !std::strcmp(resname, "M!K!") ||
-                    !std::strcmp(resname, "FLT4") || !std::strcmp(resname, "CD81") ||
-                    !std::strcmp(resname, "OKTA") || !std::strcmp(resname, "    "))
-                return giblorb_ID_MOD;
+            auto offset = entry.first.first;
+            auto magics = entry.first.second;
+            auto format = entry.second;
+
+            if (std::any_of(magics.begin(), magics.end(), [&offset, &len, &buf](const auto &magic) {
+                return offset + magic.size() < static_cast<std::size_t>(*len) &&
+                       std::memcmp(buf.data() + offset, magic.data(), magic.size()) == 0;
+            }))
+            {
+                return format;
+            }
         }
 
-        /* ogg */
-        if (*len > 4 && !std::memcmp(buf.data(), "OggS", 4))
-            return giblorb_ID_OGG;
-
-        /* mp3 */
-        if (*len > 2 && !std::memcmp(buf.data(), "\377\372", 2))
-            return giblorb_ID_MP3;
-
         return giblorb_ID_MP3;
+
     }
     else
     {
