@@ -569,7 +569,7 @@ static glui32 load_sound_resource(glui32 snd, long *len, std::vector<unsigned ch
         }
 
         std::fseek(file, pos, SEEK_SET);
-        if (std::fread(buf.data(), 1, *len, file) != static_cast<size_t>(*len) && !feof(file)) return 0;
+        if (std::fread(buf.data(), 1, *len, file) != static_cast<size_t>(*len) && !std::feof(file)) return 0;
         return type;
     }
 }
