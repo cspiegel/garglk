@@ -655,7 +655,7 @@ static glui32 play_mod(schanid_t chan, long len)
     }
 
     /* allocate size of string tempdir + "XXXXXX' + terminator */
-    std::vector<char> tn(strlen(tempdir) + 7);
+    std::vector<char> tn(std::strlen(tempdir) + 7);
     std::sprintf(tn.data(), "%sXXXXXX", tempdir);
     int fd;
     fd = mkstemp(tn.data());
