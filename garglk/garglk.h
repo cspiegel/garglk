@@ -185,6 +185,7 @@ public:
 
         m_width = width;
         m_height = height;
+        m_stride = width * N;
     }
 
     int width() {
@@ -193,6 +194,10 @@ public:
 
     int height() {
         return m_height;
+    }
+
+    int stride() {
+        return m_stride;
     }
 
     void fill(const Pixel<N> &pixel) {
@@ -205,7 +210,7 @@ public:
     }
 
     Row<N> operator[](std::size_t y) {
-        return Row<N>(&m_pixels[y * m_width * N]);
+        return Row<N>(&m_pixels[y * stride()]);
     }
 
     unsigned char *data() {
@@ -229,6 +234,7 @@ private:
     std::vector<unsigned char> m_pixels;
     int m_width = 0;
     int m_height = 0;
+    int m_stride = 0;
 };
 
 using Color = Pixel<3>;

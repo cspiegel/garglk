@@ -285,7 +285,7 @@ void View::refresh()
 
 void View::paintEvent(QPaintEvent *event)
 {
-    QImage image(gli_image_rgb.data(), gli_image_rgb.width(), gli_image_rgb.height(), gli_image_rgb.width() * 3, QImage::Format_RGB888);
+    QImage image(gli_image_rgb.data(), gli_image_rgb.width(), gli_image_rgb.height(), gli_image_rgb.stride(), QImage::Format_RGB888);
     QPainter painter(this);
     painter.drawImage(QPoint(0, 0), image);
     event->accept();
