@@ -627,7 +627,7 @@ static int gli_string_impl(int x, FontFace face, const glui32 *s, size_t n, int 
 int gli_draw_string_uni(int x, int y, FontFace face, const Color &rgb,
         glui32 *s, int n, int spw)
 {
-    return gli_string_impl(x, face, s, n, spw, [y, rgb](int x, const std::array<Bitmap, GLI_SUBPIX> &glyphs) {
+    return gli_string_impl(x, face, s, n, spw, [&y, &rgb](int x, const std::array<Bitmap, GLI_SUBPIX> &glyphs) {
         int px = x / GLI_SUBPIX;
         int sx = x % GLI_SUBPIX;
 
