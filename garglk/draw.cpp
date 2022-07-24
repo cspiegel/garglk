@@ -509,15 +509,11 @@ void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
     int y1 = y0 + h;
     int y;
 
-    if (x0 < 0) x0 = 0;
-    if (y0 < 0) y0 = 0;
-    if (x1 < 0) x1 = 0;
-    if (y1 < 0) y1 = 0;
-
-    if (x0 > gli_image_rgb.width()) x0 = gli_image_rgb.width();
-    if (y0 > gli_image_rgb.height()) y0 = gli_image_rgb.height();
-    if (x1 > gli_image_rgb.width()) x1 = gli_image_rgb.width();
-    if (y1 > gli_image_rgb.height()) y1 = gli_image_rgb.height();
+    // C++17: std::clamp
+    x0 = garglk::clamp(x0, 0, gli_image_rgb.width());
+    y0 = garglk::clamp(y0, 0, gli_image_rgb.height());
+    x1 = garglk::clamp(x1, 0, gli_image_rgb.width());
+    y1 = garglk::clamp(y1, 0, gli_image_rgb.height());
 
     for (y = y0; y < y1; y++)
     {

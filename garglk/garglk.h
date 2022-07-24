@@ -71,6 +71,13 @@ struct ConfigFile {
 
 extern std::vector<garglk::ConfigFile> all_configs;
 
+// C++17: std::clamp
+template <typename T>
+const T &clamp(const T &value, const T &min, const T &max)
+{
+    return value < min ? min : value > max ? max : value;
+}
+
 std::string winopenfile(const char *prompt, enum FILEFILTERS filter);
 std::string winsavefile(const char *prompt, enum FILEFILTERS filter);
 void winabort(const std::string &msg);
