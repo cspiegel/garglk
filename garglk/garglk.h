@@ -110,9 +110,8 @@ public:
     explicit Pixel(unsigned char *data) : m_data(data) {
     }
 
-    Pixel(const Pixel &other) :
-        m_pixel(other.m_pixel),
-        m_data(m_pixel.data()) {
+    Pixel(const Pixel &other) : m_data(m_pixel.data()) {
+        std::memcpy(m_data, other.m_data, N);
     }
 
     Pixel &operator=(const Pixel &other) {
