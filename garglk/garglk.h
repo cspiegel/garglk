@@ -159,6 +159,10 @@ public:
         return *this;
     }
 
+    // The meaning of this is ambiguous: copy the data, or copy the
+    // pointer? To prevent its accidental use, delete it.
+    PixelView &operator=(const PixelView<N> *other) = delete;
+
 private:
     unsigned char *m_data;
 };
