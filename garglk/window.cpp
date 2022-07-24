@@ -65,17 +65,17 @@ static void gli_windows_rearrange()
         {
             /* Lock the number of columns */
             int desired_width = gli_wmarginx_save * 2 + gli_cellw * gli_cols;
-            if (desired_width > gli_image_w)
+            if (desired_width > gli_image_rgb.width())
                 gli_wmarginx = gli_wmarginx_save;
             else
-                gli_wmarginx = (gli_image_w - gli_cellw * gli_cols) / 2;
+                gli_wmarginx = (gli_image_rgb.width() - gli_cellw * gli_cols) / 2;
         }
         else
         {
             /* Limit the maximum number of columns */
             int max_width = gli_wmarginx_save * 2 + gli_cellw * MAX_TEXT_COLUMNS;
-            if (max_width < gli_image_w)
-                gli_wmarginx = (gli_image_w - gli_cellw * MAX_TEXT_COLUMNS) / 2;
+            if (max_width < gli_image_rgb.width())
+                gli_wmarginx = (gli_image_rgb.width() - gli_cellw * MAX_TEXT_COLUMNS) / 2;
             else
                 gli_wmarginx = gli_wmarginx_save;
         }
@@ -84,25 +84,25 @@ static void gli_windows_rearrange()
         {
             /* Lock the number of rows */
             int desired_height = gli_wmarginy_save * 2 + gli_cellh * gli_rows;
-            if (desired_height > gli_image_h)
+            if (desired_height > gli_image_rgb.height())
                 gli_wmarginy = gli_wmarginy_save;
             else
-                gli_wmarginy = (gli_image_h - gli_cellh * gli_rows) / 2;
+                gli_wmarginy = (gli_image_rgb.height() - gli_cellh * gli_rows) / 2;
         }
         else
         {
             /* Limit the maximum number of rows */
             int max_height = gli_wmarginy_save * 2 + gli_cellh * MAX_TEXT_ROWS;
-            if (max_height < gli_image_h)
-                gli_wmarginy = (gli_image_h - gli_cellh * MAX_TEXT_ROWS) / 2;
+            if (max_height < gli_image_rgb.height())
+                gli_wmarginy = (gli_image_rgb.height() - gli_cellh * MAX_TEXT_ROWS) / 2;
             else
                 gli_wmarginy = gli_wmarginy_save;
         }
 
         box.x0 = gli_wmarginx;
         box.y0 = gli_wmarginy;
-        box.x1 = gli_image_w - gli_wmarginx;
-        box.y1 = gli_image_h - gli_wmarginy;
+        box.x1 = gli_image_rgb.width() - gli_wmarginx;
+        box.y1 = gli_image_rgb.height() - gli_wmarginy;
         gli_window_rearrange(gli_rootwin, &box);
     }
 }
@@ -848,12 +848,8 @@ void gli_window_rearrange(window_t *win, rect_t *box)
 
 void gli_windows_size_change(int w, int h)
 {
-    gli_image_w = w;
-    gli_image_h = h;
-
-    gli_resize_mask(gli_image_w, gli_image_h);
-
-    gli_image_rgb.resize(gli_image_w, gli_image_h, false);
+    gli_image_rgb.resize(w, h, false);
+    gli_resize_mask(gli_image_rgb.width(), gli_image_rgb.height());
 
     gli_force_redraw = true;
     gli_windows_rearrange();
@@ -917,7 +913,7 @@ void gli_windows_redraw()
 
     if (gli_force_redraw)
     {
-        winrepaint(0, 0, gli_image_w, gli_image_h);
+        winrepaint(0, 0, gli_image_rgb.width(), gli_image_rgb.height());
         gli_draw_clear(gli_window_color);
     }
 

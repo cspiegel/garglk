@@ -230,7 +230,7 @@ void Window::resizeEvent(QResizeEvent *event)
     int newwid = event->size().width();
     int newhgt = event->size().height();
 
-    if (newwid == gli_image_w && newhgt == gli_image_h)
+    if (newwid == gli_image_rgb.width() && newhgt == gli_image_rgb.height())
         return;
 
     refresh_needed = true;
@@ -285,7 +285,7 @@ void View::refresh()
 
 void View::paintEvent(QPaintEvent *event)
 {
-    QImage image(gli_image_rgb.data(), gli_image_w, gli_image_h, gli_image_w * 3, QImage::Format_RGB888);
+    QImage image(gli_image_rgb.data(), gli_image_rgb.width(), gli_image_rgb.height(), gli_image_rgb.width() * 3, QImage::Format_RGB888);
     QPainter painter(this);
     painter.drawImage(QPoint(0, 0), image);
     event->accept();

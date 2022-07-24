@@ -94,9 +94,6 @@ static std::map<FontFace, Font> gfont_table;
 int gli_cellw = 8;
 int gli_cellh = 8;
 
-int gli_image_s = 0;
-int gli_image_w = 0;
-int gli_image_h = 0;
 Canvas<3> gli_image_rgb;
 
 static FT_Library ftlib;
@@ -419,9 +416,9 @@ void gli_initialize_fonts()
 
 void gli_draw_pixel(int x, int y, const Color &rgb)
 {
-    if (x < 0 || x >= gli_image_w)
+    if (x < 0 || x >= gli_image_rgb.width())
         return;
-    if (y < 0 || y >= gli_image_h)
+    if (y < 0 || y >= gli_image_rgb.height())
         return;
     gli_image_rgb[y][x] = rgb;
 }
@@ -440,9 +437,9 @@ static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Color &rgb
         gammamap[rgb[2]]
     };
 
-    if (x < 0 || x >= gli_image_w)
+    if (x < 0 || x >= gli_image_rgb.width())
         return;
-    if (y < 0 || y >= gli_image_h)
+    if (y < 0 || y >= gli_image_rgb.height())
         return;
     gli_image_rgb[y][x] = Pixel<3>(gammainv[fg[0] + mulhigh(static_cast<int>(bg[0]) - fg[0], invalf)],
                                    gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf)],
@@ -467,9 +464,9 @@ static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const
         gammamap[rgb[2]]
     };
 
-    if (x < 0 || x >= gli_image_w)
+    if (x < 0 || x >= gli_image_rgb.width())
         return;
-    if (y < 0 || y >= gli_image_h)
+    if (y < 0 || y >= gli_image_rgb.height())
         return;
     gli_image_rgb[y][x] = Pixel<3>(gammainv[fg[0] + mulhigh(static_cast<int>(bg[0]) - fg[0], invalf[0])],
                                    gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf[1])],
@@ -517,10 +514,10 @@ void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
     if (x1 < 0) x1 = 0;
     if (y1 < 0) y1 = 0;
 
-    if (x0 > gli_image_w) x0 = gli_image_w;
-    if (y0 > gli_image_h) y0 = gli_image_h;
-    if (x1 > gli_image_w) x1 = gli_image_w;
-    if (y1 > gli_image_h) y1 = gli_image_h;
+    if (x0 > gli_image_rgb.width()) x0 = gli_image_rgb.width();
+    if (y0 > gli_image_rgb.height()) y0 = gli_image_rgb.height();
+    if (x1 > gli_image_rgb.width()) x1 = gli_image_rgb.width();
+    if (y1 > gli_image_rgb.height()) y1 = gli_image_rgb.height();
 
     for (y = y0; y < y1; y++)
     {

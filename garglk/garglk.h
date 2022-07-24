@@ -187,6 +187,14 @@ public:
         m_height = height;
     }
 
+    int width() {
+        return m_width;
+    }
+
+    int height() {
+        return m_height;
+    }
+
     void fill(const Pixel<N> &pixel) {
         for (int i = 0; i < m_width * m_height; i++)
             memcpy(&m_pixels[i * N], pixel.data(), N);
@@ -347,9 +355,6 @@ struct style_s
     bool reverse;
 };
 #endif
-
-extern int gli_image_w;
-extern int gli_image_h;
 
 #ifdef __cplusplus
 extern Canvas<3> gli_image_rgb;
