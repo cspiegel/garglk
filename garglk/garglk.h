@@ -99,43 +99,68 @@ std::unique_ptr<T, Deleter> unique(T *p, Deleter deleter)
 }
 
 template <std::size_t N>
+class PixelView;
+
+// Represents an N-byte pixel, which in reality is just an array of
+// bytes. It is up to the user of this class to determine the layout,
+// e.g. BGR, RGBA, etc. In actuality, as far as Gargoyle is concerned,
+// this will be either RGB or RGBA. An instance of Pixel owns the pixel
+// data; contrast this with PixelView which holds a pointer to a pixel.
+template <std::size_t N>
 class Pixel {
 public:
     template <typename... Args>
-    explicit Pixel(Args... args) :
-        m_pixel{static_cast<unsigned char>(args)...},
-        m_data(m_pixel.data()) {
+    explicit Pixel(Args... args) : m_pixel{static_cast<unsigned char>(args)...} {
     }
 
-    explicit Pixel(unsigned char *data) : m_data(data) {
-    }
-
-    Pixel(const Pixel &other) : m_data(m_pixel.data()) {
-        std::memcpy(m_data, other.m_data, N);
-    }
-
-    Pixel &operator=(const Pixel &other) {
-        if (this != &other)
-            std::memcpy(m_data, other.m_data, N);
-
-        return *this;
+    Pixel(const PixelView<N> &other) {
+        std::copy(other.data(), other.data() + N, m_pixel.begin());
     }
 
     bool operator==(const Pixel<N> &other) {
-        return std::memcmp(m_data, other.m_data, N) == 0;
+        return m_pixel == other.m_pixel;
     }
 
     const unsigned char *data() const {
-        return m_data;
+        return m_pixel.data();
+    }
+
+    unsigned char operator[](std::size_t i) const {
+        return m_pixel[i];
+    }
+
+private:
+    std::array<unsigned char, N> m_pixel;
+};
+
+// Represents a view to existing pixel data (see Pixel). The pixel data
+// is *not* owned by instances of this class. Instead, users of this
+// class must pass in a pointer to an appropriately-sized buffer (at
+// least N bytes) from/to which pixel data will be read/written.
+// Assigning a Pixel to a PixelData will overwrite the passed-in pixel
+// with the new pixel data.
+template <std::size_t N>
+class PixelView {
+public:
+    explicit PixelView(unsigned char *data) : m_data(data) {
     }
 
     unsigned char operator[](std::size_t i) const {
         return m_data[i];
     }
 
+    const unsigned char *data() const {
+        return m_data;
+    }
+
+    PixelView &operator=(const Pixel<N> &other) {
+        std::memcpy(m_data, other.data(), N);
+
+        return *this;
+    }
+
 private:
-    std::array<unsigned char, N> m_pixel;
-    unsigned char *const m_data;
+    unsigned char *m_data;
 };
 
 template <std::size_t N>
@@ -148,8 +173,8 @@ public:
         return Pixel<N>(&m_row[x * N]);
     }
 
-    Pixel<N> operator[](std::size_t x) {
-        return Pixel<N>(&m_row[x * N]);
+    PixelView<N> operator[](std::size_t x) {
+        return PixelView<N>(&m_row[x * N]);
     }
 
     void fill(const Pixel<N> &pixel, int start, int end) {
