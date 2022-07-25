@@ -180,10 +180,6 @@ public:
     explicit Row(unsigned char *row) : m_row(row) {
     }
 
-    const Pixel<N> operator[](std::size_t x) const {
-        return Pixel<N>(&m_row[x * N]);
-    }
-
     PixelView<N> operator[](std::size_t x) {
         return PixelView<N>(&m_row[x * N]);
     }
