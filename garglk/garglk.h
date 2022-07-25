@@ -214,6 +214,8 @@ public:
             m_pixels.resize(width * height * N);
         }
 
+        m_pixels.shrink_to_fit();
+
         m_width = width;
         m_height = height;
         m_stride = width * N;
