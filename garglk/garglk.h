@@ -121,7 +121,7 @@ public:
     }
 
     Pixel(const PixelView<N> &other) {
-        std::copy(other.data(), other.data() + N, m_pixel.begin());
+        memcpy(m_pixel.data(), other.data(), N);
     }
 
     bool operator==(const Pixel<N> &other) {
@@ -191,7 +191,7 @@ public:
     void fill(const Pixel<N> &pixel, int start, int end) {
         auto data = pixel.data();
         for (int i = start; i < end; i++)
-            memcpy(&m_row[i * N], data, N);
+            std::memcpy(&m_row[i * N], data, N);
     }
 
 private:
@@ -237,7 +237,7 @@ public:
 
     void fill(const Pixel<N> &pixel) {
         for (int i = 0; i < m_width * m_height; i++)
-            memcpy(&m_pixels[i * N], pixel.data(), N);
+            std::memcpy(&m_pixels[i * N], pixel.data(), N);
     }
 
     bool empty() const {
