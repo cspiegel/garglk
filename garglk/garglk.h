@@ -124,8 +124,12 @@ public:
         memcpy(m_pixel.data(), other.data(), N);
     }
 
-    bool operator==(const Pixel<N> &other) {
+    bool operator==(const Pixel<N> &other) const {
         return m_pixel == other.m_pixel;
+    }
+
+    bool operator!=(const Pixel<N> &other) const {
+        return !(*this == other);
     }
 
     const unsigned char *data() const {
@@ -424,13 +428,13 @@ extern Color gli_border_save;
 extern Color gli_caret_save;
 extern Color gli_more_save;
 extern Color gli_link_save;
-#endif
 
 extern bool gli_override_fg_set;
-extern glui32 gli_override_fg_val;
+extern Color gli_override_fg_val;
 extern bool gli_override_bg_set;
-extern glui32 gli_override_bg_val;
+extern Color gli_override_bg_val;
 extern bool gli_override_reverse;
+#endif
 
 extern int gli_link_style;
 extern int gli_caret_shape;
@@ -611,8 +615,8 @@ struct attr_t
     bool bgset = false;
     bool reverse = false;
     glui32 style = 0;
-    glui32 fgcolor = 0;
-    glui32 bgcolor = 0;
+    Color fgcolor = Color(0, 0, 0);
+    Color bgcolor = Color(0, 0, 0);
     glui32 hyper = 0;
 };
 #else

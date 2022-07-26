@@ -1086,8 +1086,8 @@ void win_textbuffer_clear(window_t *win)
 
     win->attr.fgset = gli_override_fg_set;
     win->attr.bgset = gli_override_bg_set;
-    win->attr.fgcolor = gli_override_fg_set ? gli_override_fg_val : 0;
-    win->attr.bgcolor = gli_override_bg_set ? gli_override_bg_val : 0;
+    win->attr.fgcolor = gli_override_fg_set ? gli_override_fg_val : Color(0x00, 0x00, 0x00);
+    win->attr.bgcolor = gli_override_bg_set ? gli_override_bg_val : Color(0x00, 0x00, 0x00);
     win->attr.reverse = false;
 
     dwin->ladjw = dwin->radjw = 0;

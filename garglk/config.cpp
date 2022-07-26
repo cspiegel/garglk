@@ -129,9 +129,9 @@ Color gli_more_save(0x00, 0x60, 0x00);
 Color gli_link_save(0x00, 0x00, 0x60);
 
 bool gli_override_fg_set = false;
-glui32 gli_override_fg_val = 0;
+Color gli_override_fg_val(0x00, 0x00, 0x00);
 bool gli_override_bg_set = false;
-glui32 gli_override_bg_val = 0;
+Color gli_override_bg_val(0x00, 0x00, 0x00);
 bool gli_override_reverse = false;
 
 static std::string base_more_prompt = "— more —";

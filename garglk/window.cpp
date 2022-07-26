@@ -1488,8 +1488,8 @@ void attrset(attr_t *attr, glui32 style)
 {
     attr->fgset = false;
     attr->bgset = false;
-    attr->fgcolor = 0;
-    attr->bgcolor = 0;
+    attr->fgcolor = Color(0, 0, 0);
+    attr->bgcolor = Color(0, 0, 0);
     attr->reverse = false;
     attr->style = style;
 }
@@ -1498,8 +1498,8 @@ void attrclear(attr_t *attr)
 {
     attr->fgset = false;
     attr->bgset = false;
-    attr->fgcolor = 0;
-    attr->bgcolor = 0;
+    attr->fgcolor = Color(0, 0, 0);
+    attr->bgcolor = Color(0, 0, 0);
     attr->reverse = false;
     attr->hyper = 0;
     attr->style = 0;
@@ -1514,9 +1514,6 @@ static Color zcolor_LightGrey = Color(181, 181, 181);
 static Color zcolor_Foreground = Color(0, 0, 0);
 static Color zcolor_Background = Color(0, 0, 0);
 static Color zcolor_Bright = Color(0, 0, 0);
-
-static unsigned int zcolor_fg = 0;
-static unsigned int zcolor_bg = 0;
 
 static Color rgbshift(const Color rgb)
 {
@@ -1534,24 +1531,14 @@ Color attrbg(style_t *styles, attr_t *attr)
     bool zfset = attr->fgset ? attr->fgset : gli_override_fg_set;
     bool zbset = attr->bgset ? attr->bgset : gli_override_bg_set;
 
-    glui32 zfore = attr->fgset ? attr->fgcolor : gli_override_fg_val;
-    glui32 zback = attr->bgset ? attr->bgcolor : gli_override_bg_val;
+    Color zfore(attr->fgset ? attr->fgcolor : gli_override_fg_val);
+    Color zback(attr->bgset ? attr->bgcolor : gli_override_bg_val);
 
-    if (zfset && zfore != zcolor_fg)
-    {
-        zcolor_Foreground = Color((zfore >> 16) & 0xff,
-                                  (zfore >> 8) & 0xff,
-                                  (zfore) & 0xff);
-        zcolor_fg = zfore;
-    }
+    if (zfset)
+        zcolor_Foreground = zfore;
 
-    if (zbset && zback != zcolor_bg)
-    {
-        zcolor_Background = Color((zback >> 16) & 0xff,
-                                  (zback >> 8) & 0xff,
-                                  (zback) & 0xff);
-        zcolor_bg = zback;
-    }
+    if (zbset)
+        zcolor_Background = zback;
 
     if (!revset)
     {
@@ -1582,24 +1569,14 @@ Color attrfg(style_t *styles, attr_t *attr)
     bool zfset = attr->fgset ? attr->fgset : gli_override_fg_set;
     bool zbset = attr->bgset ? attr->bgset : gli_override_bg_set;
 
-    glui32 zfore = attr->fgset ? attr->fgcolor : gli_override_fg_val;
-    glui32 zback = attr->bgset ? attr->bgcolor : gli_override_bg_val;
+    Color zfore(attr->fgset ? attr->fgcolor : gli_override_fg_val);
+    Color zback(attr->bgset ? attr->bgcolor : gli_override_bg_val);
 
-    if (zfset && zfore != zcolor_fg)
-    {
-        zcolor_Foreground = Color((zfore >> 16) & 0xff,
-                                  (zfore >> 8) & 0xff,
-                                  (zfore) & 0xff);
-        zcolor_fg = zfore;
-    }
+    if (zfset)
+        zcolor_Foreground = zfore;
 
-    if (zbset && zback != zcolor_bg)
-    {
-        zcolor_Background = Color((zback >> 16) & 0xff,
-                                  (zback >> 8) & 0xff,
-                                  (zback) & 0xff);
-        zcolor_bg = zback;
-    }
+    if (zbset)
+        zcolor_Background = zback;
 
     if (!revset)
     {
