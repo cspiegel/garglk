@@ -21,6 +21,7 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <algorithm>
 #include <array>
 #include <cstring>
 #include <memory>
@@ -1513,15 +1514,12 @@ FontFace attrfont(const style_t *styles, const attr_t *attr)
 static Color zcolor_LightGrey = Color(181, 181, 181);
 static Color zcolor_Foreground = Color(0, 0, 0);
 static Color zcolor_Background = Color(0, 0, 0);
-static Color zcolor_Bright = Color(0, 0, 0);
 
-static Color rgbshift(const Color rgb)
+static Color rgbshift(const Color &rgb)
 {
-    zcolor_Bright = Color((rgb[0] + 0x30) < 0xff ? (rgb[0] + 0x30) : 0xff,
-                          (rgb[1] + 0x30) < 0xff ? (rgb[1] + 0x30) : 0xff,
-                          (rgb[2] + 0x30) < 0xff ? (rgb[2] + 0x30) : 0xff);
-
-    return zcolor_Bright;
+    return Color(std::min(rgb[0] + 0x30, 0xff),
+                 std::min(rgb[1] + 0x30, 0xff),
+                 std::min(rgb[2] + 0x30, 0xff));
 }
 
 Color attrbg(style_t *styles, attr_t *attr)
