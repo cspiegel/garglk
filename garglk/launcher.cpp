@@ -39,6 +39,8 @@
 #include <filesystem>
 #endif
 
+#include "optional.hpp"
+
 #include "glk.h"
 #include "glkstart.h"
 #include "gi_blorb.h"
@@ -92,7 +94,7 @@ enum class Format {
     ZCode6,
 };
 
-static std::unique_ptr<Format> probe(const std::vector<char> &header)
+static nonstd::optional<Format> probe(const std::vector<char> &header)
 {
     std::map<std::string, Format> magic = {
         {R"(^[\x01\x02\x03\x04\x05\x07\x08][\s\S]{17}\d{6})", Format::ZCode},
@@ -114,10 +116,10 @@ static std::unique_ptr<Format> probe(const std::vector<char> &header)
     {
         auto re = std::regex(pair.first);
         if (std::regex_search(header.begin(), header.end(), re))
-            return std::make_unique<Format>(pair.second);
+            return pair.second;
     }
 
-    return nullptr;
+    return nonstd::nullopt;
 }
 
 // Map extensions to formats
@@ -302,7 +304,7 @@ int garglk::rungame(const std::string &path, const std::string &game)
         if (interpreter.terp.empty())
         {
             auto format = probe(header);
-            if (format != nullptr)
+            if (format.has_value())
                 interpreter = interpreters.at(*format);
         }
 
