@@ -55,7 +55,7 @@ window_graphics_t *win_graphics_create(window_t *win)
     res = new window_graphics_t;
 
     res->owner = win;
-    res->bgnd = win->impl->bgcolor;
+    res->bgnd = win->bgcolor;
 
     res->w = 0;
     res->h = 0;

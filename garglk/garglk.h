@@ -633,33 +633,18 @@ typedef struct
 #endif
 
 #ifdef __cplusplus
-// glk_window_struct needs to be visible to cheapglk, which is C, so it
-// stores a pointer to WinImpl for any C++ members; the equivalent C
-// struct is empty.
-struct WinImpl
-{
-    WinImpl(Color &bgcolor_, Color &fgcolor_) : bgcolor(std::move(bgcolor_)), fgcolor(std::move(fgcolor_)) {
-    }
-
-    std::vector<glui32> line_terminators;
-    Color bgcolor;
-    Color fgcolor;
-};
-#else
-struct WinImpl
-{
-};
-#endif
-
 struct glk_window_struct
 {
-    glui32 magicnum;
-    glui32 rock;
-    glui32 type;
+    glk_window_struct(glui32 type_, glui32 rock_);
+    ~glk_window_struct();
 
-    window_t *parent; /* pair window which contains this one */
+    glui32 magicnum = MAGIC_WINDOW_NUM;
+    glui32 type;
+    glui32 rock;
+
+    window_t *parent = nullptr; /* pair window which contains this one */
     rect_t bbox;
-    int yadj;
+    int yadj = 0;
     union {
         window_textgrid_t *textgrid;
         window_textbuffer_t *textbuffer;
@@ -669,26 +654,29 @@ struct glk_window_struct
     } window;
 
     stream_t *str; /* the window stream. */
-    stream_t *echostr; /* the window's echo stream, if any. */
+    stream_t *echostr = nullptr; /* the window's echo stream, if any. */
 
-    bool line_request;
-    bool line_request_uni;
-    bool char_request;
-    bool char_request_uni;
-    bool mouse_request;
-    bool hyper_request;
-    bool more_request;
-    bool scroll_request;
-    bool image_loaded;
+    bool line_request = false;
+    bool line_request_uni = false;
+    bool char_request = false;
+    bool char_request_uni = false;
+    bool mouse_request = false;
+    bool hyper_request = false;
+    bool more_request = false;
+    bool scroll_request = false;
+    bool image_loaded = false;
 
-    bool echo_line_input;
-    struct WinImpl *impl;
+    bool echo_line_input = true;
+    std::vector<glui32> line_terminators;
 
     attr_t attr;
+    Color bgcolor = gli_window_color;
+    Color fgcolor = gli_more_color;
 
     gidispatch_rock_t disprock;
     window_t *next, *prev; /* in the big linked list of windows */
 };
+#endif
 
 struct window_blank_s
 {
@@ -903,8 +891,6 @@ extern void gli_initialize_misc(void);
 extern void gli_initialize_windows(void);
 extern void gli_initialize_babel(void);
 
-extern window_t *gli_new_window(glui32 type, glui32 rock);
-extern void gli_delete_window(window_t *win);
 extern window_t *gli_window_iterate_treeorder(window_t *win);
 
 extern void gli_window_rearrange(window_t *win, rect_t *box);

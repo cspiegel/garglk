@@ -375,7 +375,7 @@ static void win_textgrid_init_impl(window_t *win, void *buf, int maxlen, int ini
         touch(dwin, dwin->inorgy);
     }
 
-    dwin->line_terminators = win->impl->line_terminators;
+    dwin->line_terminators = win->line_terminators;
 
     if (gli_register_arr)
         dwin->inarrayrock = (*gli_register_arr)(dwin->inbuf, dwin->inoriglen, const_cast<char *>(unicode ? "&+#!Iu" : "&+#!Cn"));

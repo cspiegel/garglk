@@ -362,7 +362,7 @@ void win_textbuffer_redraw(window_t *win)
         linelen = ln.len;
 
         /* kill spaces at the end unless they're a different color*/
-        Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+        Color color = gli_override_bg_set ? gli_window_color : win->bgcolor;
         while (i > 0 && linelen > 1 && ln.chars[linelen-1] == ' '
             && dwin->styles[ln.attrs[linelen-1].style].bg == color
             && !dwin->styles[ln.attrs[linelen-1].style].reverse)
@@ -474,7 +474,7 @@ void win_textbuffer_redraw(window_t *win)
         /*
          * fill in background colors
          */
-        color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+        color = gli_override_bg_set ? gli_window_color : win->bgcolor;
         gli_draw_rect(x0/GLI_SUBPIX, y,
                 (x1-x0) / GLI_SUBPIX, gli_leading,
                 color);
@@ -522,7 +522,7 @@ void win_textbuffer_redraw(window_t *win)
         }
         x += w;
 
-        color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+        color = gli_override_bg_set ? gli_window_color : win->bgcolor;
         gli_draw_rect(x/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX - x/GLI_SUBPIX, gli_leading,
                 color);
@@ -574,7 +574,7 @@ void win_textbuffer_redraw(window_t *win)
         gli_put_hyperlink(0, x0/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX, y + gli_leading);
 
-        Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+        Color color = gli_override_bg_set ? gli_window_color : win->bgcolor;
         gli_draw_rect(x/GLI_SUBPIX, y,
                 x1/GLI_SUBPIX - x/GLI_SUBPIX, gli_leading,
                 color);
@@ -587,7 +587,7 @@ void win_textbuffer_redraw(window_t *win)
         if (gli_more_align == 2)    /* right */
             x = x1 - SLOP - w;
 
-        color = gli_override_fg_set ? gli_more_color : win->impl->fgcolor;
+        color = gli_override_fg_set ? gli_more_color : win->fgcolor;
         gli_draw_string_uni(x, y + gli_baseline,
                 gli_more_font, color,
                 gli_more_prompt.data(), gli_more_prompt_len, -1);
@@ -932,7 +932,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     pw = (win->bbox.x1 - win->bbox.x0 - gli_tmarginx * 2 - gli_scroll_width) * GLI_SUBPIX;
     pw = pw - 2 * SLOP - dwin->radjw - dwin->ladjw;
 
-    Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+    Color color = gli_override_bg_set ? gli_window_color : win->bgcolor;
 
     /* oops ... overflow */
     if (dwin->numchars + 1 >= TBLINELEN)
@@ -1162,7 +1162,7 @@ static void win_textbuffer_init_impl(window_t *win, void *buf, int maxlen, int i
     }
 
     dwin->echo_line_input = win->echo_line_input;
-    dwin->line_terminators = win->impl->line_terminators;
+    dwin->line_terminators = win->line_terminators;
 
     if (gli_register_arr)
         dwin->inarrayrock = (*gli_register_arr)(dwin->inbuf, maxlen, const_cast<char *>(unicode ? "&+#!Iu" : "&+#!Cn"));
@@ -1228,7 +1228,7 @@ void win_textbuffer_cancel_line(window_t *win, event_t *ev)
 
     win->line_request = false;
     win->line_request_uni = false;
-    win->impl->line_terminators.clear();
+    win->line_terminators.clear();
     dwin->inbuf = nullptr;
     dwin->inmax = 0;
 

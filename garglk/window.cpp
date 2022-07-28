@@ -112,78 +112,35 @@ static void gli_windows_rearrange()
  * Create, destroy and arrange
  */
 
-window_t *gli_new_window(glui32 type, glui32 rock)
+glk_window_struct::glk_window_struct(glui32 type_, glui32 rock_) : type(type_), rock(rock_)
 {
-    window_t *win = new window_t;
+    str = gli_stream_open_window(this);
+    prev = nullptr;
+    next = gli_windowlist;
+    gli_windowlist = this;
+    if (next != nullptr)
+        next->prev = this;
 
-    win->impl = new WinImpl(gli_window_color, gli_more_color);
-
-    win->magicnum = MAGIC_WINDOW_NUM;
-    win->rock = rock;
-    win->type = type;
-
-    win->parent = nullptr; /* for now */
-    win->yadj = 0;
-
-    win->char_request = false;
-    win->char_request_uni = false;
-    win->line_request = false;
-    win->line_request_uni = false;
-    win->mouse_request = false;
-    win->hyper_request = false;
-    win->more_request = false;
-    win->scroll_request = false;
-    win->image_loaded = false;
-
-    win->echo_line_input = true;
-
-    attrclear(&win->attr);
-
-    win->str = gli_stream_open_window(win);
-    win->echostr = nullptr;
-
-    win->prev = nullptr;
-    win->next = gli_windowlist;
-    gli_windowlist = win;
-    if (win->next)
-        win->next->prev = win;
-
-    if (gli_register_obj)
-        win->disprock = (*gli_register_obj)(win, gidisp_Class_Window);
-
-    return win;
+    if (gli_register_obj != nullptr)
+        disprock = gli_register_obj(this, gidisp_Class_Window);
 }
 
-void gli_delete_window(window_t *win)
+glk_window_struct::~glk_window_struct()
 {
-    window_t *prev, *next;
+    if (gli_unregister_obj != nullptr)
+        gli_unregister_obj(this, gidisp_Class_Window, disprock);
 
-    if (gli_unregister_obj)
-        (*gli_unregister_obj)(win, gidisp_Class_Window, win->disprock);
+    echostr = nullptr;
+    if (str != nullptr)
+        gli_delete_stream(str);
 
-    win->magicnum = 0;
-
-    win->echostr = nullptr;
-    if (win->str)
-    {
-        gli_delete_stream(win->str);
-        win->str = nullptr;
-    }
-
-    prev = win->prev;
-    next = win->next;
-    win->prev = nullptr;
-    win->next = nullptr;
-
-    if (prev)
+    if (prev != nullptr)
         prev->next = next;
     else
         gli_windowlist = next;
-    if (next)
-        next->prev = prev;
 
-    delete win->impl;
-    delete win;
+    if (next != nullptr)
+        next->prev = prev;
 }
 
 winid_t glk_window_open(winid_t splitwin,
@@ -239,8 +196,11 @@ winid_t glk_window_open(winid_t splitwin,
         }
     }
 
-    newwin = gli_new_window(wintype, rock);
-    if (!newwin)
+    try
+    {
+        newwin = new window_t(wintype, rock);
+    }
+    catch (const std::bad_alloc &)
     {
         gli_strict_warning("window_open: unable to create window");
         return nullptr;
@@ -262,12 +222,12 @@ winid_t glk_window_open(winid_t splitwin,
             break;
         case wintype_Pair:
             gli_strict_warning("window_open: cannot open pair window directly");
-            gli_delete_window(newwin);
+            delete newwin;
             return nullptr;
         default:
             /* Unknown window type -- do not print a warning, just return 0
                to indicate that it's not possible. */
-            gli_delete_window(newwin);
+            delete newwin;
             return nullptr;
     }
 
@@ -278,7 +238,7 @@ winid_t glk_window_open(winid_t splitwin,
     else
     {
         /* create pairwin, with newwin as the key */
-        pairwin = gli_new_window(wintype_Pair, 0);
+        pairwin = new window_t(wintype_Pair, 0);
         dpairwin = win_pair_create(pairwin, method, newwin, size);
         pairwin->window.pair = dpairwin;
 
@@ -372,7 +332,7 @@ static void gli_window_close(window_t *win, bool recurse)
         break;
     }
 
-    gli_delete_window(win);
+    delete win;
 }
 
 void glk_window_close(window_t *win, stream_result_t *result)
@@ -861,7 +821,7 @@ void gli_window_redraw(window_t *win)
 {
     if (gli_force_redraw)
     {
-        Color color = gli_override_bg_set ? gli_window_color : win->impl->bgcolor;
+        Color color = gli_override_bg_set ? gli_window_color : win->bgcolor;
         int y0 = win->yadj ? win->bbox.y0 - win->yadj : win->bbox.y0;
         gli_draw_rect(win->bbox.x0, y0,
                 win->bbox.x1 - win->bbox.x0,
@@ -1091,14 +1051,14 @@ void glk_set_terminators_line_event(winid_t win, glui32 *keycodes, glui32 count)
             return;
     }
 
-    win->impl->line_terminators.clear();
+    win->line_terminators.clear();
 
     if (keycodes != nullptr && count != 0)
     {
         try
         {
-            win->impl->line_terminators.resize(count);
-            std::copy(&keycodes[0], &keycodes[count], win->impl->line_terminators.begin());
+            win->line_terminators.resize(count);
+            std::copy(&keycodes[0], &keycodes[count], win->line_terminators.begin());
         }
         catch (const std::bad_alloc &)
         {
