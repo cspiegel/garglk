@@ -31,9 +31,8 @@
 #ifndef GARGLK_GARGLK_H
 #define GARGLK_GARGLK_H
 
-// The order here is significant: for the time being, at least, the
-// macOS code directly indexes an array using these values.
-enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
+#include "glk.h"
+#include "gi_dispa.h"
 
 #ifdef __cplusplus
 #include <array>
@@ -46,6 +45,10 @@ enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
 #include <string>
 #include <utility>
 #include <vector>
+
+// The order here is significant: for the time being, at least, the
+// macOS code directly indexes an array using these values.
+enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
 
 enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
 enum class FontType { Monospace, Proportional };
@@ -280,12 +283,7 @@ Color gli_parse_color(const std::string &str);
 
 #endif
 
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdio.h>
-
-#include "glk.h"
-#include "gi_dispa.h"
 
 /* This macro is called whenever the library code catches an error
  * or illegal operation from the game program.
@@ -297,6 +295,7 @@ Color gli_parse_color(const std::string &str);
     putc('\n', stderr); \
 } while(0)
 
+#ifdef __cplusplus
 extern bool gli_utf8output, gli_utf8input;
 
 /* Callbacks necessary for the dispatch layer.  */
@@ -337,12 +336,10 @@ typedef struct window_graphics_s window_graphics_t;
 #define gli_zoom_int(x) ((x) * gli_zoom + 0.5)
 #define gli_unzoom_int(x) ((x) / gli_zoom + 0.5)
 
-#ifdef __cplusplus
 extern std::string gli_program_name;
 extern std::string gli_program_info;
 extern std::string gli_story_name;
 extern std::string gli_story_title;
-#endif
 
 extern bool gli_terminated;
 
@@ -377,7 +374,6 @@ struct rect_s
     int x1, y1;
 };
 
-#ifdef __cplusplus
 struct picture_s
 {
     picture_s(unsigned int id_, int w_, int h_, bool scaled_) : w(w_), h(h_), id(id_), scaled(scaled_) {
@@ -397,17 +393,13 @@ struct style_s
     Color fg;
     bool reverse;
 };
-#endif
 
-#ifdef __cplusplus
 extern Canvas<3> gli_image_rgb;
-#endif
 
 /*
  * Config globals
  */
 
-#ifdef __cplusplus
 extern std::string gli_workdir;
 extern std::string gli_workfile;
 
@@ -434,7 +426,6 @@ extern Color gli_override_fg_val;
 extern bool gli_override_bg_set;
 extern Color gli_override_bg_val;
 extern bool gli_override_reverse;
-#endif
 
 extern int gli_link_style;
 extern int gli_caret_shape;
@@ -454,9 +445,7 @@ extern float gli_backingscalefactor;
 extern float gli_zoom;
 
 extern bool gli_conf_lcd;
-#ifdef __cplusplus
 extern std::array<unsigned char, 5> gli_conf_lcd_weights;
-#endif
 
 extern bool gli_conf_graphics;
 extern bool gli_conf_sound;
@@ -466,9 +455,7 @@ extern bool gli_conf_fullscreen;
 extern bool gli_conf_speak;
 extern bool gli_conf_speak_input;
 
-#ifdef __cplusplus
 extern std::string gli_conf_speak_language;
-#endif
 
 extern bool gli_conf_stylehint;
 extern bool gli_conf_safeclicks;
@@ -488,16 +475,13 @@ extern bool gli_conf_lockrows;
 extern bool gli_conf_save_window_size;
 extern bool gli_conf_save_window_location;
 
-#ifdef __cplusplus
 extern Color gli_scroll_bg;
 extern Color gli_scroll_fg;
-#endif
 extern int gli_scroll_width;
 
 extern int gli_baseline;
 extern int gli_leading;
 
-#ifdef __cplusplus
 struct gli_font_files {
     std::string r, b, i, z;
 };
@@ -505,7 +489,6 @@ extern std::string gli_conf_propfont;
 extern struct gli_font_files gli_conf_prop, gli_conf_prop_override;
 extern std::string gli_conf_monofont;
 extern struct gli_font_files gli_conf_mono, gli_conf_mono_override;
-#endif
 
 extern float gli_conf_gamma;
 extern float gli_conf_propsize;
@@ -513,12 +496,10 @@ extern float gli_conf_monosize;
 extern float gli_conf_propaspect;
 extern float gli_conf_monoaspect;
 
-#ifdef __cplusplus
 extern std::vector<glui32> gli_more_prompt;
 extern glui32 gli_more_prompt_len;
 extern int gli_more_align;
 extern FontFace gli_more_font;
-#endif
 
 extern bool gli_forceclick;
 extern bool gli_copyselect;
@@ -608,7 +589,6 @@ struct glk_fileref_struct
 // files which include windows.h will not cause build failures.
 #undef hyper
 
-#ifdef __cplusplus
 struct attr_t
 {
     bool fgset = false;
@@ -619,20 +599,7 @@ struct attr_t
     Color bgcolor = Color(0, 0, 0);
     glui32 hyper = 0;
 };
-#else
-typedef struct
-{
-    bool fgset;
-    bool bgset;
-    bool reverse;
-    glui32 style;
-    glui32 fgcolor;
-    glui32 bgcolor;
-    glui32 hyper;
-} attr_t;
-#endif
 
-#ifdef __cplusplus
 struct glk_window_struct
 {
     glk_window_struct(glui32 type_, glui32 rock_);
@@ -838,23 +805,14 @@ struct window_graphics_s
     int w = 0, h = 0;
     Canvas<3> rgb;
 };
-#endif
 
 /* ---------------------------------------------------------------------- */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 extern void gli_initialize_sound(void);
 extern void gli_initialize_tts(void);
 extern void gli_tts_speak(const glui32 *buf, size_t len);
 extern void gli_tts_flush(void);
 extern void gli_tts_purge(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 extern gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan);
 
@@ -945,13 +903,11 @@ extern void gli_stream_echo_line_uni(stream_t *str, glui32 *buf, glui32 len);
 extern void gli_streams_close_all(void);
 
 void gli_initialize_fonts(void);
-#ifdef __cplusplus
 void gli_draw_pixel(int x, int y, const Color &rgb);
 void gli_draw_clear(const Color &rgb);
 void gli_draw_rect(int x, int y, int w, int h, const Color &rgb);
 int gli_draw_string_uni(int x, int y, FontFace face, const Color &rgb, glui32 *text, int len, int spacewidth);
 int gli_string_width_uni(FontFace font, const glui32 *text, int len, int spw);
-#endif
 void gli_draw_caret(int x, int y);
 void gli_draw_picture(picture_t *pic, int x, int y, int x0, int y0, int x1, int y1);
 
@@ -976,12 +932,10 @@ void fontunload(void);
 
 void giblorb_get_resource(glui32 usage, glui32 resnum, FILE **file, long *pos, long *len, glui32 *type);
 
-#ifdef __cplusplus
 std::shared_ptr<picture_t> gli_picture_load(unsigned long id);
 void gli_picture_store(std::shared_ptr<picture_t> pic);
 std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled);
 std::shared_ptr<picture_t> gli_picture_scale(picture_t *src, int destwidth, int destheight);
-#endif
 void gli_piclist_increment(void);
 void gli_piclist_decrement(void);
 
@@ -1038,12 +992,10 @@ void gli_notification_waiting(void);
 void attrset(attr_t *attr, glui32 style);
 void attrclear(attr_t *attr);
 bool attrequal(const attr_t *a1, const attr_t *a2);
-#ifdef __cplusplus
 Color attrfg(style_t *styles, attr_t *attr);
 Color attrbg(style_t *styles, attr_t *attr);
 
 FontFace attrfont(const style_t *styles, const attr_t *attr);
-#endif
 
 /* A macro which reads and decodes one character of UTF-8. Needs no
    explanation, I'm sure.
@@ -1086,5 +1038,6 @@ FontFace attrfont(const style_t *styles, const attr_t *attr);
             )) \
         )) \
     )
+#endif
 
 #endif
