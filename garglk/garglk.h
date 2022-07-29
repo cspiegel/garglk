@@ -715,7 +715,7 @@ struct window_pair_s
 /* One line of the grid window. */
 struct tgline_t
 {
-    bool dirty;
+    bool dirty = false;
     std::array<glui32, 256> chars;
     std::array<attr_t, 256> attrs;
 };
