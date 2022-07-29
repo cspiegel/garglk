@@ -35,7 +35,7 @@ static void touch(window_textgrid_t *dwin, int line)
 {
     window_t *win = dwin->owner;
     int y = win->bbox.y0 + line * gli_leading;
-    dwin->lines[line].dirty = 1;
+    dwin->lines[line].dirty = true;
     winrepaint(win->bbox.x0, y, win->bbox.x1, y + gli_leading);
 }
 
@@ -109,7 +109,7 @@ void win_textgrid_redraw(window_t *win)
         ln = &dwin->lines[i];
         if (ln->dirty || gli_force_redraw)
         {
-            ln->dirty = 0;
+            ln->dirty = false;
 
             x = x0;
             y = y0 + i * gli_leading;
