@@ -826,10 +826,16 @@ struct window_textbuffer_s
 
 struct window_graphics_s
 {
+    window_graphics_s(window_t *win) :
+        owner(win),
+        bgnd(win->bgcolor)
+    {
+    }
+
     window_t *owner;
     Color bgnd;
-    int dirty;
-    int w, h;
+    int dirty = false;
+    int w = 0, h = 0;
     Canvas<3> rgb;
 };
 #endif

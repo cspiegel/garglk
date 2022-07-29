@@ -47,22 +47,10 @@ static void win_graphics_touch(window_graphics_t *dest)
 
 window_graphics_t *win_graphics_create(window_t *win)
 {
-    window_graphics_t *res;
-
     if (!gli_conf_graphics)
         return nullptr;
 
-    res = new window_graphics_t;
-
-    res->owner = win;
-    res->bgnd = win->bgcolor;
-
-    res->w = 0;
-    res->h = 0;
-
-    res->dirty = 0;
-
-    return res;
+    return new window_graphics_t(win);
 }
 
 void win_graphics_destroy(window_graphics_t *dwin)
