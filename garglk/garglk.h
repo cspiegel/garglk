@@ -500,7 +500,7 @@ extern bool gli_claimselect;
 
 #define gli_event_clearevent(evp)  \
     ((evp)->type = evtype_None,    \
-    (evp)->win = NULL,    \
+    (evp)->win = nullptr,    \
     (evp)->val1 = 0,   \
     (evp)->val2 = 0)
 
