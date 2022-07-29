@@ -31,13 +31,11 @@
 #ifndef GARGLK_GARGLK_H
 #define GARGLK_GARGLK_H
 
-#include "glk.h"
-#include "gi_dispa.h"
-
 #ifdef __cplusplus
 #include <array>
-#include <cstring>
 #include <cstddef>
+#include <cstdio>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <regex>
@@ -45,6 +43,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "glk.h"
+#include "gi_dispa.h"
 
 // The order here is significant: for the time being, at least, the
 // macOS code directly indexes an array using these values.
@@ -281,21 +282,6 @@ using Color = Pixel<3>;
 
 Color gli_parse_color(const std::string &str);
 
-#endif
-
-#include <stdio.h>
-
-/* This macro is called whenever the library code catches an error
- * or illegal operation from the game program.
- */
-
-#define gli_strict_warning(...) do { \
-    fputs("Glk library error: ", stderr); \
-    fprintf(stderr, __VA_ARGS__); \
-    putc('\n', stderr); \
-} while(0)
-
-#ifdef __cplusplus
 extern bool gli_utf8output, gli_utf8input;
 
 /* Callbacks necessary for the dispatch layer.  */
@@ -1039,5 +1025,16 @@ FontFace attrfont(const style_t *styles, const attr_t *attr);
         )) \
     )
 #endif
+
+#include <stdio.h>
+
+/* This macro is called whenever the library code catches an error
+ * or illegal operation from the game program.
+ */
+#define gli_strict_warning(...) do { \
+    fputs("Glk library error: ", stderr); \
+    fprintf(stderr, __VA_ARGS__); \
+    putc('\n', stderr); \
+} while(0)
 
 #endif
