@@ -112,11 +112,13 @@ static void gli_windows_rearrange()
  * Create, destroy and arrange
  */
 
-glk_window_struct::glk_window_struct(glui32 type_, glui32 rock_) : type(type_), rock(rock_)
+glk_window_struct::glk_window_struct(glui32 type_, glui32 rock_) :
+    type(type_),
+    rock(rock_),
+    str(gli_stream_open_window(this)),
+    next(gli_windowlist),
+    prev(nullptr)
 {
-    str = gli_stream_open_window(this);
-    prev = nullptr;
-    next = gli_windowlist;
     gli_windowlist = this;
     if (next != nullptr)
         next->prev = this;
@@ -130,7 +132,6 @@ glk_window_struct::~glk_window_struct()
     if (gli_unregister_obj != nullptr)
         gli_unregister_obj(this, gidisp_Class_Window, disprock);
 
-    echostr = nullptr;
     if (str != nullptr)
         gli_delete_stream(str);
 
