@@ -676,7 +676,6 @@ struct glk_window_struct
     gidispatch_rock_t disprock;
     window_t *next, *prev; /* in the big linked list of windows */
 };
-#endif
 
 struct window_blank_s
 {
@@ -698,7 +697,6 @@ struct window_pair_s
     glui32 wborder;  /* winMethod_Border, NoBorder */
 };
 
-#ifdef __cplusplus
 /* One line of the grid window. */
 struct tgline_t
 {
