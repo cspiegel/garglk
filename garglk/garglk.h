@@ -794,11 +794,11 @@ struct window_graphics_s
 
 /* ---------------------------------------------------------------------- */
 
-extern void gli_initialize_sound(void);
-extern void gli_initialize_tts(void);
+extern void gli_initialize_sound();
+extern void gli_initialize_tts();
 extern void gli_tts_speak(const glui32 *buf, size_t len);
-extern void gli_tts_flush(void);
-extern void gli_tts_purge(void);
+extern void gli_tts_flush();
+extern void gli_tts_purge();
 
 extern gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan);
 
@@ -850,9 +850,9 @@ extern bool gcmd_accept_scroll(window_t *win, glui32 arg);
 
 /* Declarations of library internal functions. */
 
-extern void gli_initialize_misc(void);
-extern void gli_initialize_windows(void);
-extern void gli_initialize_babel(void);
+extern void gli_initialize_misc();
+extern void gli_initialize_windows();
+extern void gli_initialize_babel();
 
 extern window_t *gli_window_iterate_treeorder(window_t *win);
 
@@ -863,7 +863,7 @@ extern bool gli_window_unput_char_uni(window_t *win, glui32 ch);
 extern bool gli_window_check_terminator(glui32 ch);
 extern void gli_window_refocus(window_t *win);
 
-extern void gli_windows_redraw(void);
+extern void gli_windows_redraw();
 extern void gli_windows_size_change(int w, int h);
 extern void gli_windows_unechostream(stream_t *str);
 
@@ -886,9 +886,9 @@ extern void gli_stream_fill_result(stream_t *str,
     stream_result_t *result);
 extern void gli_stream_echo_line(stream_t *str, char *buf, glui32 len);
 extern void gli_stream_echo_line_uni(stream_t *str, glui32 *buf, glui32 len);
-extern void gli_streams_close_all(void);
+extern void gli_streams_close_all();
 
-void gli_initialize_fonts(void);
+void gli_initialize_fonts();
 void gli_draw_pixel(int x, int y, const Color &rgb);
 void gli_draw_clear(const Color &rgb);
 void gli_draw_rect(int x, int y, int w, int h, const Color &rgb);
@@ -901,20 +901,20 @@ void gli_startup(int argc, char *argv[]);
 
 extern void gli_select(event_t *event, int polled);
 #ifdef GARGLK_TICK
-extern void gli_tick(void);
+extern void gli_tick();
 #endif
 
 void wininit(int *argc, char **argv);
-void winopen(void);
-void wintitle(void);
-void winmore(void);
+void winopen();
+void wintitle();
+void winmore();
 void winrepaint(int x0, int y0, int x1, int y1);
-bool windark(void);
-void winexit(void);
+bool windark();
+void winexit();
 void winclipstore(glui32 *text, int len);
 
-void fontload(void);
-void fontunload(void);
+void fontload();
+void fontunload();
 
 void giblorb_get_resource(glui32 usage, glui32 resnum, FILE **file, long *pos, long *len, glui32 *type);
 
@@ -922,8 +922,8 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id);
 void gli_picture_store(std::shared_ptr<picture_t> pic);
 std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled);
 std::shared_ptr<picture_t> gli_picture_scale(picture_t *src, int destwidth, int destheight);
-void gli_piclist_increment(void);
-void gli_piclist_decrement(void);
+void gli_piclist_increment();
+void gli_piclist_decrement();
 
 window_graphics_t *win_graphics_create(window_t *win);
 void win_graphics_destroy(window_graphics_t *cutwin);
@@ -966,14 +966,14 @@ glui32 gli_strlen_uni(const glui32 *s);
 
 void gli_put_hyperlink(glui32 linkval, unsigned int x0, unsigned int y0, unsigned int x1, unsigned int y1);
 glui32 gli_get_hyperlink(int x, int y);
-void gli_clear_selection(void);
+void gli_clear_selection();
 bool gli_check_selection(int x0, int y0, int x1, int y1);
 bool gli_get_selection(int x0, int y0, int x1, int y1, int *rx0, int *rx1);
 void gli_clipboard_copy(glui32 *buf, int len);
 void gli_start_selection(int x, int y);
 void gli_resize_mask(unsigned int x, unsigned int y);
 void gli_move_selection(int x, int y);
-void gli_notification_waiting(void);
+void gli_notification_waiting();
 
 void attrset(attr_t *attr, glui32 style);
 void attrclear(attr_t *attr);
