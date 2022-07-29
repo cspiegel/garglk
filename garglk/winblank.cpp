@@ -27,9 +27,7 @@
 
 window_blank_t *win_blank_create(window_t *win)
 {
-    window_blank_t *dwin = new window_blank_t;
-    dwin->owner = win;
-    return dwin;
+    return new window_blank_t(win);
 }
 
 void win_blank_destroy(window_blank_t *dwin)

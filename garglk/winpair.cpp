@@ -25,23 +25,7 @@
 
 window_pair_t *win_pair_create(window_t *win, glui32 method, window_t *key, glui32 size)
 {
-    window_pair_t *dwin = new window_pair_t;
-    dwin->owner = win;
-
-    dwin->dir = method & winmethod_DirMask;
-    dwin->division = method & winmethod_DivisionMask;
-    dwin->key = key;
-    dwin->keydamage = false;
-    dwin->size = size;
-    dwin->wborder = ((method & winmethod_BorderMask) == winmethod_Border);
-
-    dwin->vertical = (dwin->dir == winmethod_Left || dwin->dir == winmethod_Right);
-    dwin->backward = (dwin->dir == winmethod_Left || dwin->dir == winmethod_Above);
-
-    dwin->child1 = nullptr;
-    dwin->child2 = nullptr;
-
-    return dwin;
+    return new window_pair_t(win, method, key, size);
 }
 
 void win_pair_destroy(window_pair_t *dwin)

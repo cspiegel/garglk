@@ -679,20 +679,35 @@ struct glk_window_struct
 
 struct window_blank_s
 {
+    window_blank_s(window_t *win) : owner(win) {
+    }
+
     window_t *owner;
 };
 
 struct window_pair_s
 {
+    window_pair_s(window_t *win, glui32 method, window_t *key_, glui32 size_) :
+        owner(win),
+        dir(method & winmethod_DirMask),
+        vertical(dir == winmethod_Left || dir == winmethod_Right),
+        backward(dir == winmethod_Left || dir == winmethod_Above),
+        division(method & winmethod_DivisionMask),
+        key(key_),
+        size(size_),
+        wborder((method & winmethod_BorderMask) == winmethod_Border)
+    {
+    }
+
     window_t *owner;
-    window_t *child1, *child2;
+    window_t *child1 = nullptr, *child2 = nullptr;
 
     /* split info... */
     glui32 dir; /* winmethod_Left, Right, Above, or Below */
     bool vertical, backward; /* flags */
     glui32 division; /* winmethod_Fixed or winmethod_Proportional */
     window_t *key; /* NULL or a leaf-descendant (not a Pair) */
-    bool keydamage; /* used as scratch space in window closing */
+    bool keydamage = false; /* used as scratch space in window closing */
     glui32 size; /* size value */
     glui32 wborder;  /* winMethod_Border, NoBorder */
 };
