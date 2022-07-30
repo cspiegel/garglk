@@ -160,13 +160,10 @@ public:
     explicit PixelView(unsigned char *data) : m_data(data) {
     }
 
-    unsigned char operator[](std::size_t i) const {
-        return m_data[i];
-    }
-
-    const unsigned char *data() const {
-        return m_data;
-    }
+    // The meaning of these is ambiguous: copy the data, or copy the
+    // pointer? To prevent their accidental use, delete them.
+    PixelView(const PixelView &) = delete;
+    PixelView &operator=(const PixelView &) = delete;
 
     PixelView &operator=(const Pixel<N> &other) {
         std::memcpy(m_data, other.data(), N);
@@ -174,9 +171,13 @@ public:
         return *this;
     }
 
-    // The meaning of this is ambiguous: copy the data, or copy the
-    // pointer? To prevent its accidental use, delete it.
-    PixelView &operator=(const PixelView<N> *other) = delete;
+    unsigned char operator[](std::size_t i) const {
+        return m_data[i];
+    }
+
+    const unsigned char *data() const {
+        return m_data;
+    }
 
 private:
     unsigned char *m_data;
