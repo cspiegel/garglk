@@ -171,12 +171,12 @@ public:
         return *this;
     }
 
-    unsigned char operator[](std::size_t i) const {
-        return m_data[i];
-    }
-
     const unsigned char *data() const {
         return m_data;
+    }
+
+    unsigned char operator[](std::size_t i) const {
+        return m_data[i];
     }
 
 private:
