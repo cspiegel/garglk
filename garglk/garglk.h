@@ -165,6 +165,9 @@ public:
     PixelView(const PixelView &) = delete;
     PixelView &operator=(const PixelView &) = delete;
 
+    PixelView(PixelView &&) = default;
+    PixelView &operator=(PixelView &&) = default;
+
     PixelView &operator=(const Pixel<N> &other) {
         std::memcpy(m_data, other.data(), N);
 
