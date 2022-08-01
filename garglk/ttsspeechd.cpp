@@ -21,6 +21,7 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <cstddef>
 #include <vector>
 
 #include "glk.h"
@@ -191,12 +192,12 @@ void gli_tts_purge()
         spd_cancel(spd);
 }
 
-void gli_tts_speak(const glui32 *buf, size_t len)
+void gli_tts_speak(const glui32 *buf, std::size_t len)
 {
     if (spd == nullptr)
         return;
 
-    for (size_t i = 0; i < len; i++)
+    for (std::size_t i = 0; i < len; i++)
     {
         if (buf[i] == '>' || buf[i] == '*')
             continue;

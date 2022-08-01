@@ -800,7 +800,7 @@ struct window_graphics_s
 
 extern void gli_initialize_sound();
 extern void gli_initialize_tts();
-extern void gli_tts_speak(const glui32 *buf, size_t len);
+extern void gli_tts_speak(const glui32 *buf, std::size_t len);
 extern void gli_tts_flush();
 extern void gli_tts_purge();
 
