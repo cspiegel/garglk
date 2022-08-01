@@ -23,8 +23,8 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <array>
+#include <cstddef>
 
 #include <windows.h>
 #include <sapi.h>
@@ -32,56 +32,56 @@
 #include "glk.h"
 #include "garglk.h"
 
-static ISpVoice *voice = NULL;
+static ISpVoice *voice = nullptr;
 #define TXTSIZE 4096
-static WCHAR txtbuf[TXTSIZE + 1];
-static size_t txtlen;
+static std::array<WCHAR, TXTSIZE + 1> txtbuf;
+static std::size_t txtlen;
 
-void gli_initialize_tts(void)
+void gli_initialize_tts()
 {
     if (gli_conf_speak)
     {
-        if (CoInitialize(NULL) == S_OK)
+        if (CoInitialize(nullptr) == S_OK)
         {
             CoCreateInstance(
-                    &CLSID_SpVoice,		/* rclsid */
-                    NULL,			/* aggregate */
+                    CLSID_SpVoice,		/* rclsid */
+                    nullptr,			/* aggregate */
                     CLSCTX_ALL,			/* dwClsContext */
-                    &IID_ISpVoice,		/* riid */
-                    (void**)&voice);
+                    IID_ISpVoice,		/* riid */
+                    reinterpret_cast<void**>(&voice));
         }
     }
     else
     {
-        voice = NULL;
+        voice = nullptr;
     }
 
     txtlen = 0;
 }
 
-void gli_tts_flush(void)
+void gli_tts_flush()
 {
-    if (voice != NULL)
+    if (voice != nullptr)
     {
         txtbuf[txtlen] = 0;
-        voice->lpVtbl->Speak(voice, txtbuf, SPF_ASYNC, NULL);
+        voice->Speak(txtbuf.data(), SPF_ASYNC, nullptr);
     }
 
     txtlen = 0;
 }
 
-void gli_tts_purge(void)
+void gli_tts_purge()
 {
-    if (voice != NULL)
-        voice->lpVtbl->Speak(voice, NULL, SPF_PURGEBEFORESPEAK, NULL);
+    if (voice != nullptr)
+        voice->Speak(nullptr, SPF_PURGEBEFORESPEAK, nullptr);
 }
 
-void gli_tts_speak(const glui32 *buf, size_t len)
+void gli_tts_speak(const glui32 *buf, std::size_t len)
 {
-    if (voice == NULL)
+    if (voice == nullptr)
         return;
 
-    for (size_t i = 0; i < len; i++)
+    for (std::size_t i = 0; i < len; i++)
     {
         if (txtlen >= TXTSIZE)
             gli_tts_flush();
@@ -97,11 +97,11 @@ void gli_tts_speak(const glui32 *buf, size_t len)
     }
 }
 
-void gli_free_tts(void)
+void gli_free_tts()
 {
-    if (voice != NULL)
+    if (voice != nullptr)
     {
-        voice->lpVtbl->Release(voice);
+        voice->Release();
         CoUninitialize();
     }
 }
