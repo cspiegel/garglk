@@ -308,7 +308,7 @@ void winresize(void)
     unsigned int vw = static_cast<unsigned int>(NSWidth(viewRect) * textureFactor);
     unsigned int vh = static_cast<unsigned int>(NSHeight(viewRect) * textureFactor);
 
-    if (gli_image_w == vw && gli_image_h == vh)
+    if (gli_image_rgb.width() == vw && gli_image_rgb.height() == vh)
         return;
 
     gli_windows_size_change(vw, vh);
@@ -477,8 +477,8 @@ void winrefresh(void)
 
     int refreshed = [gargoyle setWindow: processID
                                contents: frame
-                                  width: gli_image_w
-                                 height: gli_image_h];
+                                  width: gli_image_rgb.width()
+                                 height: gli_image_rgb.height()];
 
     gli_refresh_needed = !refreshed;
 }
@@ -636,10 +636,10 @@ void winmouse(NSEvent *evt)
     NSPoint coords = [gargoyle getWindowPoint: processID forEvent: evt];
 
     int x = coords.x * gli_backingscalefactor;
-    int y = gli_image_h - (coords.y * gli_backingscalefactor);
+    int y = gli_image_rgb.height() - (coords.y * gli_backingscalefactor);
 
     /* disregard most events outside of content window */
-    if ((coords.y < 0 || y < 0 || x < 0 || x > gli_image_w)
+    if ((coords.y < 0 || y < 0 || x < 0 || x > gli_image_rgb.width())
         && !([evt type] == NSEventTypeLeftMouseUp))
         return;
 
