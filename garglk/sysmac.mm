@@ -172,7 +172,7 @@ void winexit(void)
     exit(0);
 }
 
-std::string garglk::winopenfile(const char *prompt, enum FILEFILTERS filter)
+std::string garglk::winopenfile(const char *prompt, FILEFILTERS filter)
 {
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 
@@ -192,7 +192,7 @@ std::string garglk::winopenfile(const char *prompt, enum FILEFILTERS filter)
     return buf;
 }
 
-std::string garglk::winsavefile(const char *prompt, enum FILEFILTERS filter)
+std::string garglk::winsavefile(const char *prompt, FILEFILTERS filter)
 {
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 

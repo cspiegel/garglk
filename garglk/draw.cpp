@@ -252,7 +252,7 @@ static std::string font_path_fallback_local(const std::string &, const std::stri
     return fallback;
 }
 
-static const char *type_to_name(enum FontType type)
+static const char *type_to_name(FontType type)
 {
     if (type == FontType::Monospace)
         return "Mono";

@@ -25,22 +25,22 @@
 #include "glk.h"
 #include "garglk.h"
 
-static bool isprop(enum FontFace f)
+static bool isprop(FontFace f)
 {
     return f == FontFace::PropR || f == FontFace::PropI || f == FontFace::PropB || f == FontFace::PropZ;
 }
 
-static bool isbold(enum FontFace f)
+static bool isbold(FontFace f)
 {
     return f == FontFace::PropB || f == FontFace::PropZ || f == FontFace::MonoB || f == FontFace::MonoZ;
 }
 
-static bool isitalic(enum FontFace f)
+static bool isitalic(FontFace f)
 {
     return f == FontFace::PropI || f == FontFace::PropZ || f == FontFace::MonoI || f == FontFace::MonoZ;
 }
 
-static enum FontFace makefont(bool p, bool b, bool i)
+static FontFace makefont(bool p, bool b, bool i)
 {
     if ( p && !b && !i) return FontFace::PropR;
     if ( p && !b &&  i) return FontFace::PropI;

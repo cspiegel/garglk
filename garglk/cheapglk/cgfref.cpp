@@ -308,7 +308,7 @@ frefid_t glk_fileref_create_by_prompt(glui32 usage, glui32 fmode,
     fileref_t *fref;
 #ifdef GARGLK
     std::string buf;
-    enum FILEFILTERS filter;
+    FILEFILTERS filter;
     const char *prompt;
 
     switch (usage & fileusage_TypeMask)

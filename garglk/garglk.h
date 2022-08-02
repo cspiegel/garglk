@@ -82,8 +82,8 @@ const T &clamp(const T &value, const T &min, const T &max)
     return value < min ? min : value > max ? max : value;
 }
 
-std::string winopenfile(const char *prompt, enum FILEFILTERS filter);
-std::string winsavefile(const char *prompt, enum FILEFILTERS filter);
+std::string winopenfile(const char *prompt, FILEFILTERS filter);
+std::string winsavefile(const char *prompt, FILEFILTERS filter);
 void winabort(const std::string &msg);
 std::string downcase(const std::string &string);
 void fontreplace(const std::string &font, FontType type);
@@ -378,7 +378,7 @@ struct picture_s
 
 struct style_s
 {
-    enum FontFace font;
+    FontFace font;
     Color bg;
     Color fg;
     bool reverse;

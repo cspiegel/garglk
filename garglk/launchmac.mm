@@ -175,9 +175,9 @@ static const char *winfilters[] =
 - (IBAction) performZoom: (id) sender;
 - (void) performRefresh: (NSNotification *) notice;
 - (NSString *) openFileDialog: (NSString *) prompt
-                   fileFilter: (enum FILEFILTERS) filter;
+                   fileFilter: (FILEFILTERS) filter;
 - (NSString *) saveFileDialog: (NSString *) prompt
-                   fileFilter: (enum FILEFILTERS) filter;
+                   fileFilter: (FILEFILTERS) filter;
 - (pid_t) retrieveID;
 - (void) quit;
 @end
@@ -526,7 +526,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 }
 
 - (NSString *) openFileDialog: (NSString *) prompt
-                   fileFilter: (enum FILEFILTERS) filter
+                   fileFilter: (FILEFILTERS) filter
 {
     int result;
 
@@ -553,7 +553,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 }
 
 - (NSString *) saveFileDialog: (NSString *) prompt
-                   fileFilter: (enum FILEFILTERS) filter
+                   fileFilter: (FILEFILTERS) filter
 {
     int result;
 
@@ -820,7 +820,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 
 - (NSString *) openWindowDialog: (pid_t) processID
                          prompt: (NSString *) prompt
-                         filter: (enum FILEFILTERS) filter
+                         filter: (FILEFILTERS) filter
 {
     GargoyleWindow * window = [windows objectForKey: [NSNumber numberWithInt: processID]];
 
@@ -834,7 +834,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 
 - (NSString *) saveWindowDialog: (pid_t) processID
                          prompt: (NSString *) prompt
-                         filter: (enum FILEFILTERS) filter
+                         filter: (FILEFILTERS) filter
 {
     GargoyleWindow * window = [windows objectForKey: [NSNumber numberWithInt: processID]];
 
