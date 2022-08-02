@@ -669,7 +669,7 @@ void gli_tick()
     }
 }
 
-void gli_select(event_t *event, int polled)
+void gli_select(event_t *event, bool polled)
 {
     gli_event_clearevent(event);
 

@@ -34,7 +34,7 @@ static void gli_input_more_focus();
 static void gli_input_next_focus();
 static void gli_input_scroll_focus();
 
-void gli_dispatch_event(event_t *event, int polled)
+void gli_dispatch_event(event_t *event, bool polled)
 {
     std::list<event_t>::iterator it;
 

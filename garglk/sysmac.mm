@@ -786,7 +786,7 @@ std::vector<std::string> garglk::winappdata()
     return paths;
 }
 
-void gli_select(event_t *event, int polled)
+void gli_select(event_t *event, bool polled)
 {
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 

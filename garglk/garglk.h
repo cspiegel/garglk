@@ -508,7 +508,7 @@ extern bool gli_claimselect;
     (evp)->val1 = 0,   \
     (evp)->val2 = 0)
 
-void gli_dispatch_event(event_t *event, int polled);
+void gli_dispatch_event(event_t *event, bool polled);
 
 #define MAGIC_WINDOW_NUM (9876)
 #define MAGIC_STREAM_NUM (8769)
@@ -903,7 +903,7 @@ void gli_draw_picture(picture_t *pic, int x, int y, int x0, int y0, int x1, int 
 
 void gli_startup(int argc, char *argv[]);
 
-extern void gli_select(event_t *event, int polled);
+extern void gli_select(event_t *event, bool polled);
 #ifdef GARGLK_TICK
 extern void gli_tick();
 #endif
