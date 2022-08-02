@@ -87,7 +87,7 @@ std::string join(const Iterable &values, const DType &delim)
     return result.str();
 }
 
-struct Styles {
+struct ThemeStyles {
     std::array<ColorPair, style_NUMSTYLES> colors;
 
     void to(style_t *styles) const {
@@ -98,7 +98,7 @@ struct Styles {
         }
     }
 
-    static Styles from(const style_t *styles) {
+    static ThemeStyles from(const style_t *styles) {
         auto colors = make_array<style_NUMSTYLES>(ColorPair{white, black});
 
         for (int i = 0; i < style_NUMSTYLES; i++)
@@ -118,8 +118,8 @@ struct Theme {
     Color caretcolor;
     Color linkcolor;
     Color morecolor;
-    Styles tstyles;
-    Styles gstyles;
+    ThemeStyles tstyles;
+    ThemeStyles gstyles;
 
     void apply() const {
         gli_window_color = windowcolor;
@@ -165,7 +165,7 @@ struct Theme {
     }
 
 private:
-    static Styles get_user_styles(const json &j, const std::string &color)
+    static ThemeStyles get_user_styles(const json &j, const std::string &color)
     {
         std::array<nonstd::optional<ColorPair>, style_NUMSTYLES> possible_colors;
         std::map<std::string, json> styles = j.at(color);
@@ -227,7 +227,7 @@ static Theme light{
     black,
     Color{0x00, 0x00, 0x60},
     Color{0x00, 0x60, 0x00},
-    Styles{
+    ThemeStyles{
         ColorPair{black, white}, ColorPair{black, white},
         ColorPair{black, white}, ColorPair{black, white},
         ColorPair{black, white}, ColorPair{black, white},
@@ -235,7 +235,7 @@ static Theme light{
         ColorPair{Color{0x00, 0x60, 0x00}, white}, ColorPair{black, white},
         ColorPair{black, white},
     },
-    Styles{make_array<style_NUMSTYLES>(ColorPair{gray, white})},
+    ThemeStyles{make_array<style_NUMSTYLES>(ColorPair{gray, white})},
 };
 
 static const Color darkfg = Color{0xe7, 0xe8, 0xe9};
@@ -248,8 +248,8 @@ static Theme dark{
     Color{0xe7, 0xe8, 0xe9},
     Color{0x1d, 0x99, 0xf3},
     Color{0x00, 0xcc, 0x00},
-    Styles{make_array<style_NUMSTYLES>(ColorPair{darkfg, darkbg})},
-    Styles{make_array<style_NUMSTYLES>(ColorPair{darkfg, darkbg})},
+    ThemeStyles{make_array<style_NUMSTYLES>(ColorPair{darkfg, darkbg})},
+    ThemeStyles{make_array<style_NUMSTYLES>(ColorPair{darkfg, darkbg})},
 };
 
 static std::map<std::string, Theme> themes = {

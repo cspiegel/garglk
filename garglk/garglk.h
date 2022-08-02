@@ -356,6 +356,8 @@ typedef struct rect_s rect_t;
 typedef struct picture_s picture_t;
 typedef struct style_s style_t;
 
+using Styles = std::array<style_t, style_NUMSTYLES>;
+
 struct rect_s
 {
     int x0, y0;
@@ -980,10 +982,10 @@ void gli_notification_waiting();
 void attrset(attr_t *attr, glui32 style);
 void attrclear(attr_t *attr);
 bool attrequal(const attr_t *a1, const attr_t *a2);
-Color attrfg(style_t *styles, attr_t *attr);
-Color attrbg(style_t *styles, attr_t *attr);
+Color attrfg(const Styles &styles, const attr_t &attr);
+Color attrbg(const Styles &styles, const attr_t &attr);
 
-FontFace attrfont(const std::array<style_t, style_NUMSTYLES> &styles, const attr_t &attr);
+FontFace attrfont(const Styles &styles, const attr_t &attr);
 
 /* A macro which reads and decodes one character of UTF-8. Needs no
    explanation, I'm sure.

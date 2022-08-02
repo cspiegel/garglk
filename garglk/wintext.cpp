@@ -487,7 +487,7 @@ void win_textbuffer_redraw(window_t *win)
             {
                 link = ln.attrs[a].hyper;
                 font = attrfont(dwin->styles, ln.attrs[a]);
-                color = attrbg(dwin->styles.data(), &ln.attrs[a]);
+                color = attrbg(dwin->styles, ln.attrs[a]);
                 w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
                 gli_draw_rect(x/GLI_SUBPIX, y,
                         w/GLI_SUBPIX, gli_leading,
@@ -507,7 +507,7 @@ void win_textbuffer_redraw(window_t *win)
         }
         link = ln.attrs[a].hyper;
         font = attrfont(dwin->styles, ln.attrs[a]);
-        color = attrbg(dwin->styles.data(), &ln.attrs[a]);
+        color = attrbg(dwin->styles, ln.attrs[a]);
         w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
         gli_draw_rect(x/GLI_SUBPIX, y, w/GLI_SUBPIX,
                 gli_leading, color);
@@ -550,7 +550,7 @@ void win_textbuffer_redraw(window_t *win)
             {
                 link = ln.attrs[a].hyper;
                 font = attrfont(dwin->styles, ln.attrs[a]);
-                color = link ? gli_link_color : attrfg(dwin->styles.data(), &ln.attrs[a]);
+                color = link ? gli_link_color : attrfg(dwin->styles, ln.attrs[a]);
                 x = gli_draw_string_uni(x, y + gli_baseline,
                         font, color, &ln.chars[a], b - a, spw);
                 a = b;
@@ -558,7 +558,7 @@ void win_textbuffer_redraw(window_t *win)
         }
         link = ln.attrs[a].hyper;
         font = attrfont(dwin->styles, ln.attrs[a]);
-        color = link ? gli_link_color : attrfg(dwin->styles.data(), &ln.attrs[a]);
+        color = link ? gli_link_color : attrfg(dwin->styles, ln.attrs[a]);
         gli_draw_string_uni(x, y + gli_baseline,
                 font, color, &ln.chars[a], linelen - a, spw);
     }

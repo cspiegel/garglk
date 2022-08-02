@@ -1467,7 +1467,7 @@ void attrclear(attr_t *attr)
     attr->style = 0;
 }
 
-FontFace attrfont(const std::array<style_t, style_NUMSTYLES> &styles, const attr_t &attr)
+FontFace attrfont(const Styles &styles, const attr_t &attr)
 {
     return styles[attr.style].font;
 }
@@ -1483,14 +1483,14 @@ static Color rgbshift(const Color &rgb)
                  std::min(rgb[2] + 0x30, 0xff));
 }
 
-Color attrbg(style_t *styles, attr_t *attr)
+Color attrbg(const Styles &styles, const attr_t &attr)
 {
-    bool revset = attr->reverse || (styles[attr->style].reverse && !gli_override_reverse);
-    bool zfset = attr->fgset || gli_override_fg_set;
-    bool zbset = attr->bgset || gli_override_bg_set;
+    bool revset = attr.reverse || (styles[attr.style].reverse && !gli_override_reverse);
+    bool zfset = attr.fgset || gli_override_fg_set;
+    bool zbset = attr.bgset || gli_override_bg_set;
 
-    Color zfore(attr->fgset ? attr->fgcolor : gli_override_fg_val);
-    Color zback(attr->bgset ? attr->bgcolor : gli_override_bg_val);
+    Color zfore(attr.fgset ? attr.fgcolor : gli_override_fg_val);
+    Color zback(attr.bgset ? attr.bgcolor : gli_override_bg_val);
 
     if (zfset)
         zcolor_Foreground = zfore;
@@ -1503,7 +1503,7 @@ Color attrbg(style_t *styles, attr_t *attr)
         if (zbset)
             return zcolor_Background;
         else
-            return styles[attr->style].bg;
+            return styles[attr.style].bg;
     }
     else
     {
@@ -1513,21 +1513,21 @@ Color attrbg(style_t *styles, attr_t *attr)
             else
                 return zcolor_Foreground;
         else
-            if (zbset && styles[attr->style].fg == zcolor_Background)
+            if (zbset && styles[attr.style].fg == zcolor_Background)
                 return zcolor_LightGrey;
             else
-                return styles[attr->style].fg;
+                return styles[attr.style].fg;
     }
 }
 
-Color attrfg(style_t *styles, attr_t *attr)
+Color attrfg(const Styles &styles, const attr_t &attr)
 {
-    bool revset = attr->reverse || (styles[attr->style].reverse && !gli_override_reverse);
-    bool zfset = attr->fgset || gli_override_fg_set;
-    bool zbset = attr->bgset || gli_override_bg_set;
+    bool revset = attr.reverse || (styles[attr.style].reverse && !gli_override_reverse);
+    bool zfset = attr.fgset || gli_override_fg_set;
+    bool zbset = attr.bgset || gli_override_bg_set;
 
-    Color zfore(attr->fgset ? attr->fgcolor : gli_override_fg_val);
-    Color zback(attr->bgset ? attr->bgcolor : gli_override_bg_val);
+    Color zfore(attr.fgset ? attr.fgcolor : gli_override_fg_val);
+    Color zback(attr.bgset ? attr.bgcolor : gli_override_bg_val);
 
     if (zfset)
         zcolor_Foreground = zfore;
@@ -1543,17 +1543,17 @@ Color attrfg(style_t *styles, attr_t *attr)
             else
                 return zcolor_Foreground;
         else
-            if (zbset && styles[attr->style].fg == zcolor_Background)
+            if (zbset && styles[attr.style].fg == zcolor_Background)
                 return zcolor_LightGrey;
             else
-                return styles[attr->style].fg;
+                return styles[attr.style].fg;
     }
     else
     {
         if (zbset)
             return zcolor_Background;
         else
-            return styles[attr->style].bg;
+            return styles[attr.style].bg;
     }
 }
 
