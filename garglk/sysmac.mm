@@ -212,7 +212,7 @@ std::string garglk::winsavefile(const char *prompt, enum FILEFILTERS filter)
     return buf;
 }
 
-void winclipstore(glui32 *text, int len)
+void winclipstore(const glui32 *text, int len)
 {
     if (!len)
         return;

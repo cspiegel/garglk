@@ -185,7 +185,7 @@ std::string garglk::winsavefile(const char *prompt, FILEFILTERS filter)
     return winchoosefile(realprompt, filter, Action::Save);
 }
 
-void winclipstore(glui32 *text, int len)
+void winclipstore(const glui32 *text, int len)
 {
     cliptext = QString::fromUcs4(reinterpret_cast<const char32_t *>(text), len);
 }

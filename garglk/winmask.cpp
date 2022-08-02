@@ -399,8 +399,7 @@ bool gli_get_selection(int x0, int y0,
     return (rx0 && rx1);
 }
 
-void gli_clipboard_copy(glui32 *buf, int len)
+void gli_clipboard_copy(const glui32 *buf, int len)
 {
     winclipstore(buf, len);
-    return;
 }
