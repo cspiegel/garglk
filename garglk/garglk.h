@@ -352,21 +352,15 @@ extern int gli_cellh;
 #define UNI_NDASH	0x2013
 #define UNI_MDASH	0x2014
 
-typedef struct rect_s rect_t;
-typedef struct picture_s picture_t;
-typedef struct style_s style_t;
-
-using Styles = std::array<style_t, style_NUMSTYLES>;
-
-struct rect_s
+struct rect_t
 {
     int x0, y0;
     int x1, y1;
 };
 
-struct picture_s
+struct picture_t
 {
-    picture_s(unsigned int id_, int w_, int h_, bool scaled_) : w(w_), h(h_), id(id_), scaled(scaled_) {
+    picture_t(unsigned int id_, int w_, int h_, bool scaled_) : w(w_), h(h_), id(id_), scaled(scaled_) {
         rgba.resize(w, h, false);
     }
 
@@ -376,13 +370,15 @@ struct picture_s
     bool scaled;
 };
 
-struct style_s
+struct style_t
 {
     FontFace font;
     Color bg;
     Color fg;
     bool reverse;
 };
+
+using Styles = std::array<style_t, style_NUMSTYLES>;
 
 extern Canvas<3> gli_image_rgb;
 
