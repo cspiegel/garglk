@@ -55,9 +55,6 @@
 
 #include GARGLKINI_H
 
-bool gli_utf8input = true;
-bool gli_utf8output = true;
-
 float gli_backingscalefactor = 1.0f;
 float gli_zoom = 1.0f;
 

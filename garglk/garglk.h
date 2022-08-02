@@ -286,8 +286,6 @@ using Color = Pixel<3>;
 
 Color gli_parse_color(const std::string &str);
 
-extern bool gli_utf8output, gli_utf8input;
-
 /* Callbacks necessary for the dispatch layer.  */
 
 extern gidispatch_rock_t (*gli_register_obj)(void *obj, glui32 objclass);

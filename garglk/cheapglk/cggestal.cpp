@@ -38,6 +38,8 @@
 #ifdef GARGLK
 #define TRUE true
 #define FALSE false
+static const bool gli_utf8input = true;
+static const bool gli_utf8output = true;
 #endif
 
 glui32 glk_gestalt(glui32 id, glui32 val)
