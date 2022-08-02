@@ -123,7 +123,7 @@ void win_textgrid_redraw(window_t *win)
                 if (!attrequal(&ln->attrs[a], &ln->attrs[b]))
                 {
                     link = ln->attrs[a].hyper;
-                    font = attrfont(dwin->styles.data(), &ln->attrs[a]);
+                    font = attrfont(dwin->styles, ln->attrs[a]);
                     Color fgcolor = link ? gli_link_color : attrfg(dwin->styles.data(), &ln->attrs[a]);
                     Color bgcolor = attrbg(dwin->styles.data(), &ln->attrs[a]);
                     w = (b - a) * gli_cellw;
@@ -147,7 +147,7 @@ void win_textgrid_redraw(window_t *win)
                 }
             }
             link = ln->attrs[a].hyper;
-            font = attrfont(dwin->styles.data(), &ln->attrs[a]);
+            font = attrfont(dwin->styles, ln->attrs[a]);
             Color fgcolor = link ? gli_link_color : attrfg(dwin->styles.data(), &ln->attrs[a]);
             Color bgcolor = attrbg(dwin->styles.data(), &ln->attrs[a]);
             w = (b - a) * gli_cellw;

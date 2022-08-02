@@ -983,7 +983,7 @@ bool attrequal(const attr_t *a1, const attr_t *a2);
 Color attrfg(style_t *styles, attr_t *attr);
 Color attrbg(style_t *styles, attr_t *attr);
 
-FontFace attrfont(const style_t *styles, const attr_t *attr);
+FontFace attrfont(const std::array<style_t, style_NUMSTYLES> &styles, const attr_t &attr);
 
 /* A macro which reads and decodes one character of UTF-8. Needs no
    explanation, I'm sure.

@@ -1467,9 +1467,9 @@ void attrclear(attr_t *attr)
     attr->style = 0;
 }
 
-FontFace attrfont(const style_t *styles, const attr_t *attr)
+FontFace attrfont(const std::array<style_t, style_NUMSTYLES> &styles, const attr_t &attr)
 {
-    return styles[attr->style].font;
+    return styles[attr.style].font;
 }
 
 static Color zcolor_LightGrey = Color(181, 181, 181);
