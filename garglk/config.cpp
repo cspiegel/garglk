@@ -65,7 +65,7 @@ std::string gli_conf_propfont = "Gargoyle Serif";
 float gli_conf_monosize = 12.6;	/* good size for Gargoyle Mono */
 float gli_conf_propsize = 14.7;	/* good size for Gargoyle Serif */
 
-std::array<style_t, style_NUMSTYLES> gli_tstyles{{
+Styles gli_tstyles{{
     {FontFace::PropR, Color{0xff,0xff,0xff}, Color{0x00,0x00,0x00}, false}, /* Normal */
     {FontFace::PropI, Color{0xff,0xff,0xff}, Color{0x00,0x00,0x00}, false}, /* Emphasized */
     {FontFace::MonoR, Color{0xff,0xff,0xff}, Color{0x00,0x00,0x00}, false}, /* Preformatted */
@@ -79,7 +79,7 @@ std::array<style_t, style_NUMSTYLES> gli_tstyles{{
     {FontFace::PropR, Color{0xff,0xff,0xff}, Color{0x00,0x00,0x00}, false}, /* User2 */
 }};
 
-std::array<style_t, style_NUMSTYLES> gli_gstyles{{
+Styles gli_gstyles{{
     {FontFace::MonoR, Color{0xff,0xff,0xff}, Color{0x60,0x60,0x60}, false}, /* Normal */
     {FontFace::MonoI, Color{0xff,0xff,0xff}, Color{0x60,0x60,0x60}, false}, /* Emphasized */
     {FontFace::MonoR, Color{0xff,0xff,0xff}, Color{0x60,0x60,0x60}, false}, /* Preformatted */
@@ -93,8 +93,8 @@ std::array<style_t, style_NUMSTYLES> gli_gstyles{{
     {FontFace::MonoR, Color{0xff,0xff,0xff}, Color{0x60,0x60,0x60}, false}, /* User2 */
 }};
 
-std::array<style_t, style_NUMSTYLES> gli_tstyles_def = gli_tstyles;
-std::array<style_t, style_NUMSTYLES> gli_gstyles_def = gli_gstyles;
+Styles gli_tstyles_def = gli_tstyles;
+Styles gli_gstyles_def = gli_gstyles;
 
 std::vector<garglk::ConfigFile> garglk::all_configs;
 

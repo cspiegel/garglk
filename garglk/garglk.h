@@ -389,11 +389,11 @@ extern Canvas<3> gli_image_rgb;
 extern std::string gli_workdir;
 extern std::string gli_workfile;
 
-extern std::array<style_t, style_NUMSTYLES> gli_tstyles;
-extern std::array<style_t, style_NUMSTYLES> gli_gstyles;
+extern Styles gli_tstyles;
+extern Styles gli_gstyles;
 
-extern std::array<style_t, style_NUMSTYLES> gli_tstyles_def;
-extern std::array<style_t, style_NUMSTYLES> gli_gstyles_def;
+extern Styles gli_tstyles_def;
+extern Styles gli_gstyles_def;
 
 extern Color gli_window_color;
 extern Color gli_border_color;
@@ -675,7 +675,7 @@ struct tgline_t
 
 struct window_textgrid_s
 {
-    window_textgrid_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> styles_) :
+    window_textgrid_s(window_t *owner_, Styles styles_) :
         owner(owner_),
         styles(std::move(styles_))
     {
@@ -699,7 +699,7 @@ struct window_textgrid_s
     std::vector<glui32> line_terminators;
 
     /* style hints and settings */
-    std::array<style_t, style_NUMSTYLES> styles;
+    Styles styles;
 };
 
 struct tbline_t
@@ -718,7 +718,7 @@ struct tbline_t
 
 struct window_textbuffer_s
 {
-    window_textbuffer_s(window_t *owner_, std::array<style_t, style_NUMSTYLES> styles_, int scrollback_) :
+    window_textbuffer_s(window_t *owner_, Styles styles_, int scrollback_) :
         owner(owner_),
         scrollback(scrollback_),
         styles(std::move(styles_))
@@ -770,7 +770,7 @@ struct window_textbuffer_s
     std::vector<glui32> line_terminators;
 
     /* style hints and settings */
-    std::array<style_t, style_NUMSTYLES> styles;
+    Styles styles;
 
     /* for copy selection */
     std::vector<glui32> copybuf;
