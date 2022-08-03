@@ -471,7 +471,7 @@ void winrefresh(void)
 {
     gli_windows_redraw();
 
-    NSData * frame = [NSData dataWithBytesNoCopy: const_cast<unsigned char *>(gli_image_rgb.data())
+    NSData * frame = [NSData dataWithBytesNoCopy: gli_image_rgb.data()
                                           length: gli_image_rgb.size()
                                     freeWhenDone: NO];
 
