@@ -37,6 +37,7 @@
 #include <cstdio>
 #include <cstring>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <regex>
 #include <sstream>
@@ -46,6 +47,14 @@
 
 #include "glk.h"
 #include "gi_dispa.h"
+
+/* This function is called whenever the library code catches an error
+ * or illegal operation from the game program.
+ */
+inline void gli_strict_warning(const std::string &msg)
+{
+    std::cerr << "Glk library error: " << msg << std::endl;
+}
 
 enum class FileFilter { Save, Text, Data };
 enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
@@ -1020,16 +1029,5 @@ FontFace attrfont(const Styles &styles, const attr_t &attr);
         )) \
     )
 #endif
-
-#include <stdio.h>
-
-/* This macro is called whenever the library code catches an error
- * or illegal operation from the game program.
- */
-#define gli_strict_warning(...) do { \
-    fputs("Glk library error: ", stderr); \
-    fprintf(stderr, __VA_ARGS__); \
-    putc('\n', stderr); \
-} while(0)
 
 #endif

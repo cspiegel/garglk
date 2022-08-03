@@ -36,10 +36,16 @@
 #include <glkstart.h>
 #endif
 
+// JACL used to use gli_strict_warning, but this is internal to
+// Gargoyle, and is not for interpreters.
+static void jacl_strict_warning(const char *msg)
+{
+    fprintf(stderr, "JACL error: %s\n", msg);
+}
+
 #ifndef GARGLK
 #include "glkterm/gi_blorb.h"
 #include "glkterm/glk.h"
-#include "Gargoyle/garglk.h"
 #endif
 
 int convert_to_utf32 (unsigned char *text);
@@ -1620,12 +1626,12 @@ parse_utf8(unsigned char *buf, glui32 buflen,
 
         if ((val0 & 0xe0) == 0xc0) {
             if (pos+1 > buflen) {
-                gli_strict_warning("incomplete two-byte character");
+                jacl_strict_warning("incomplete two-byte character");
                 break;
             }
             val1 = buf[pos++];
             if ((val1 & 0xc0) != 0x80) {
-                gli_strict_warning("malformed two-byte character");
+                jacl_strict_warning("malformed two-byte character");
                 break;
             }
             res = (val0 & 0x1f) << 6;
@@ -1636,17 +1642,17 @@ parse_utf8(unsigned char *buf, glui32 buflen,
 
         if ((val0 & 0xf0) == 0xe0) {
             if (pos+2 > buflen) {
-                gli_strict_warning("incomplete three-byte character");
+                jacl_strict_warning("incomplete three-byte character");
                 break;
             }
             val1 = buf[pos++];
             val2 = buf[pos++];
             if ((val1 & 0xc0) != 0x80) {
-                gli_strict_warning("malformed three-byte character");
+                jacl_strict_warning("malformed three-byte character");
                 break;
             }
             if ((val2 & 0xc0) != 0x80) {
-                gli_strict_warning("malformed three-byte character");
+                jacl_strict_warning("malformed three-byte character");
                 break;
             }
             res = (((val0 & 0xf)<<12)  & 0x0000f000);
@@ -1658,26 +1664,26 @@ parse_utf8(unsigned char *buf, glui32 buflen,
 
         if ((val0 & 0xf0) == 0xf0) {
             if ((val0 & 0xf8) != 0xf0) {
-                gli_strict_warning("malformed four-byte character");
+                jacl_strict_warning("malformed four-byte character");
                 break;        
             }
             if (pos+3 > buflen) {
-                gli_strict_warning("incomplete four-byte character");
+                jacl_strict_warning("incomplete four-byte character");
                 break;
             }
             val1 = buf[pos++];
             val2 = buf[pos++];
             val3 = buf[pos++];
             if ((val1 & 0xc0) != 0x80) {
-                gli_strict_warning("malformed four-byte character");
+                jacl_strict_warning("malformed four-byte character");
                 break;
             }
             if ((val2 & 0xc0) != 0x80) {
-                gli_strict_warning("malformed four-byte character");
+                jacl_strict_warning("malformed four-byte character");
                 break;
             }
             if ((val3 & 0xc0) != 0x80) {
-                gli_strict_warning("malformed four-byte character");
+                jacl_strict_warning("malformed four-byte character");
                 break;
             }
             res = (((val0 & 0x7)<<18)   & 0x1c0000);
@@ -1688,7 +1694,7 @@ parse_utf8(unsigned char *buf, glui32 buflen,
             continue;
         }
 
-        gli_strict_warning("malformed character");
+        jacl_strict_warning("malformed character");
     }
 
     return outpos;

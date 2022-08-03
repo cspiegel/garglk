@@ -114,7 +114,7 @@ void gli_initialize_sound()
         if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_TIMER) == -1)
         {
             gli_strict_warning("SDL init failed\n");
-            gli_strict_warning("%s", SDL_GetError());
+            gli_strict_warning(SDL_GetError());
             gli_conf_sound = false;
             return;
         }
@@ -123,7 +123,7 @@ void gli_initialize_sound()
         if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 4096) == -1)
         {
             gli_strict_warning("SDL Mixer init failed\n");
-            gli_strict_warning("%s", Mix_GetError());
+            gli_strict_warning(Mix_GetError());
             gli_conf_sound = false;
             return;
         }
@@ -602,7 +602,7 @@ static glui32 play_sound(schanid_t chan)
             return 1;
     }
     gli_strict_warning("play sound failed");
-    gli_strict_warning("%s", Mix_GetError());
+    gli_strict_warning(Mix_GetError());
     SDL_LockAudio();
     cleanup_channel(chan);
     SDL_UnlockAudio();
@@ -678,7 +678,7 @@ static glui32 play_mod(schanid_t chan, long len)
             return 1;
     }
     gli_strict_warning("play mod failed");
-    gli_strict_warning("%s", Mix_GetError());
+    gli_strict_warning(Mix_GetError());
     SDL_LockAudio();
     cleanup_channel(chan);
     SDL_UnlockAudio();
