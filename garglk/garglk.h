@@ -121,6 +121,8 @@ public:
     explicit Pixel(Args... args) : m_pixel{static_cast<unsigned char>(args)...} {
     }
 
+    // This is intentionally _not_ explicit so that PixelViews can be
+    // used wherever a Pixel is expected.
     Pixel(const PixelView<N> &other) {
         memcpy(m_pixel.data(), other.data(), N);
     }
@@ -625,7 +627,7 @@ struct glk_window_struct
 
 struct window_blank_s
 {
-    window_blank_s(window_t *win) : owner(win) {
+    explicit window_blank_s(window_t *win) : owner(win) {
     }
 
     window_t *owner;
@@ -772,7 +774,7 @@ struct window_textbuffer_s
 
 struct window_graphics_s
 {
-    window_graphics_s(window_t *win) :
+    explicit window_graphics_s(window_t *win) :
         owner(win),
         bgnd(win->bgcolor)
     {
