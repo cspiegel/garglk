@@ -47,10 +47,7 @@
 #include "glk.h"
 #include "gi_dispa.h"
 
-// The order here is significant: for the time being, at least, the
-// macOS code directly indexes an array using these values.
-enum FILEFILTERS { FILTER_SAVE, FILTER_TEXT, FILTER_DATA };
-
+enum class FileFilter { Save, Text, Data };
 enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
 enum class FontType { Monospace, Proportional };
 enum class FontStyle { Roman, Bold, Italic, BoldItalic };
@@ -82,8 +79,8 @@ const T &clamp(const T &value, const T &min, const T &max)
     return value < min ? min : value > max ? max : value;
 }
 
-std::string winopenfile(const char *prompt, FILEFILTERS filter);
-std::string winsavefile(const char *prompt, FILEFILTERS filter);
+std::string winopenfile(const char *prompt, FileFilter filter);
+std::string winsavefile(const char *prompt, FileFilter filter);
 void winabort(const std::string &msg);
 std::string downcase(const std::string &string);
 void fontreplace(const std::string &font, FontType type);

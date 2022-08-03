@@ -25,6 +25,7 @@
 #include "garversion.h"
 #include "launcher.h"
 
+#include <map>
 #include <sstream>
 #include <string>
 
@@ -46,11 +47,10 @@ static char etc[MaxBuffer];
 
 static void winpath(char *buffer);
 
-static const char *winfilters[] =
-{
-    "glksave",
-    "txt",
-    "glkdata",
+static const std::map<FileFilter, std::string> winfilters = {
+    {FileFilter::Save, "glksave"},
+    {FileFilter::Text, "txt"},
+    {FileFilter::Data, "glkdata"},
 };
 
 @interface GargoyleView : NSOpenGLView
@@ -175,9 +175,9 @@ static const char *winfilters[] =
 - (IBAction) performZoom: (id) sender;
 - (void) performRefresh: (NSNotification *) notice;
 - (NSString *) openFileDialog: (NSString *) prompt
-                   fileFilter: (FILEFILTERS) filter;
+                   fileFilter: (FileFilter) filter;
 - (NSString *) saveFileDialog: (NSString *) prompt
-                   fileFilter: (FILEFILTERS) filter;
+                   fileFilter: (FileFilter) filter;
 - (pid_t) retrieveID;
 - (void) quit;
 @end
@@ -526,7 +526,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 }
 
 - (NSString *) openFileDialog: (NSString *) prompt
-                   fileFilter: (FILEFILTERS) filter
+                   fileFilter: (FileFilter) filter
 {
     int result;
 
@@ -537,9 +537,9 @@ static BOOL isTextbufferEvent(NSEvent * evt)
     [openDlg setAllowsMultipleSelection: NO];
     [openDlg setTitle: prompt];
 
-    if (filter != FILTER_DATA)
+    if (filter != FileFilter::Data)
     {
-        NSArray * filterTypes = [NSArray arrayWithObject: [NSString stringWithCString: winfilters[filter]
+        NSArray * filterTypes = [NSArray arrayWithObject: [NSString stringWithCString: winfilters.at(filter).c_str()
                                                                              encoding: NSUTF8StringEncoding]];
         [openDlg setAllowedFileTypes: filterTypes];
         [openDlg setAllowsOtherFileTypes: NO];
@@ -553,7 +553,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 }
 
 - (NSString *) saveFileDialog: (NSString *) prompt
-                   fileFilter: (FILEFILTERS) filter
+                   fileFilter: (FileFilter) filter
 {
     int result;
 
@@ -562,9 +562,9 @@ static BOOL isTextbufferEvent(NSEvent * evt)
     [saveDlg setCanCreateDirectories: YES];
     [saveDlg setTitle: prompt];
 
-    if (filter != FILTER_DATA)
+    if (filter != FileFilter::Data)
     {
-        NSArray * filterTypes = [NSArray arrayWithObject: [NSString stringWithCString: winfilters[filter]
+        NSArray * filterTypes = [NSArray arrayWithObject: [NSString stringWithCString: winfilters.at(filter).c_str()
                                                                              encoding: NSUTF8StringEncoding]];
         [saveDlg setAllowedFileTypes: filterTypes];
         [saveDlg setAllowsOtherFileTypes: NO];
@@ -820,7 +820,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 
 - (NSString *) openWindowDialog: (pid_t) processID
                          prompt: (NSString *) prompt
-                         filter: (FILEFILTERS) filter
+                         filter: (FileFilter) filter
 {
     GargoyleWindow * window = [windows objectForKey: [NSNumber numberWithInt: processID]];
 
@@ -834,7 +834,7 @@ static BOOL isTextbufferEvent(NSEvent * evt)
 
 - (NSString *) saveWindowDialog: (pid_t) processID
                          prompt: (NSString *) prompt
-                         filter: (FILEFILTERS) filter
+                         filter: (FileFilter) filter
 {
     GargoyleWindow * window = [windows objectForKey: [NSNumber numberWithInt: processID]];
 

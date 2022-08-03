@@ -308,27 +308,27 @@ frefid_t glk_fileref_create_by_prompt(glui32 usage, glui32 fmode,
     fileref_t *fref;
 #ifdef GARGLK
     std::string buf;
-    FILEFILTERS filter;
+    FileFilter filter;
     const char *prompt;
 
     switch (usage & fileusage_TypeMask)
     {
         case fileusage_SavedGame:
             prompt = "Saved game";
-            filter = FILTER_SAVE;
+            filter = FileFilter::Save;
             break;
         case fileusage_Transcript:
             prompt = "Transcript file";
-            filter = FILTER_TEXT;
+            filter = FileFilter::Text;
             break;
         case fileusage_InputRecord:
             prompt = "Command record file";
-            filter = FILTER_TEXT;
+            filter = FileFilter::Text;
             break;
         case fileusage_Data:
         default:
             prompt = "Data file";
-            filter = FILTER_DATA;
+            filter = FileFilter::Data;
             break;
     }
 

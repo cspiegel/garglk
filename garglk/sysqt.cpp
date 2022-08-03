@@ -93,10 +93,10 @@
 static QString cliptext;
 
 /* filters and extensions for file dialogs */
-static const std::map<FILEFILTERS, std::pair<QString, QString>> filters = {
-    { FILTER_SAVE, std::make_pair("Saved game files (*.glksave *.sav)", "glksave") },
-    { FILTER_TEXT, std::make_pair("Text files (*.txt)", "txt") },
-    { FILTER_DATA, std::make_pair("Data files (*.glkdata)", "glkdata") },
+static const std::map<FileFilter, std::pair<QString, QString>> filters = {
+    { FileFilter::Save, std::make_pair("Saved game files (*.glksave *.sav)", "glksave") },
+    { FileFilter::Text, std::make_pair("Text files (*.txt)", "txt") },
+    { FileFilter::Data, std::make_pair("Data files (*.glkdata)", "glkdata") },
 };
 
 static QApplication *app;
@@ -141,7 +141,7 @@ void winexit()
 
 enum class Action { Open, Save };
 
-static std::string winchoosefile(const QString &prompt, FILEFILTERS filter, Action action)
+static std::string winchoosefile(const QString &prompt, FileFilter filter, Action action)
 {
     QString filename;
     QFileDialog::Options options;
@@ -173,13 +173,13 @@ static std::string winchoosefile(const QString &prompt, FILEFILTERS filter, Acti
 #endif
 }
 
-std::string garglk::winopenfile(const char *prompt, FILEFILTERS filter)
+std::string garglk::winopenfile(const char *prompt, FileFilter filter)
 {
     QString realprompt = QString("Open: %1").arg(prompt);
     return winchoosefile(realprompt, filter, Action::Open);
 }
 
-std::string garglk::winsavefile(const char *prompt, FILEFILTERS filter)
+std::string garglk::winsavefile(const char *prompt, FileFilter filter)
 {
     QString realprompt = QString("Save: %1").arg(prompt);
     return winchoosefile(realprompt, filter, Action::Save);
