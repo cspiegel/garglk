@@ -752,7 +752,7 @@ struct window_textbuffer_s
     int radjn = 0;
 
     /* Command history. */
-    glui32 *history[HISTORYLEN] = {nullptr};
+    std::array<glui32 *, HISTORYLEN> history = {nullptr};
     int historypos = 0;
     int historyfirst = 0, historypresent = 0;
 
