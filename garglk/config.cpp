@@ -58,7 +58,7 @@
 float gli_backingscalefactor = 1.0f;
 float gli_zoom = 1.0f;
 
-struct gli_font_files gli_conf_prop, gli_conf_mono, gli_conf_prop_override, gli_conf_mono_override;
+FontFiles gli_conf_prop, gli_conf_mono, gli_conf_prop_override, gli_conf_mono_override;
 
 std::string gli_conf_monofont = "Gargoyle Mono";
 std::string gli_conf_propfont = "Gargoyle Serif";

@@ -472,13 +472,13 @@ extern int gli_scroll_width;
 extern int gli_baseline;
 extern int gli_leading;
 
-struct gli_font_files {
+struct FontFiles {
     std::string r, b, i, z;
 };
 extern std::string gli_conf_propfont;
-extern struct gli_font_files gli_conf_prop, gli_conf_prop_override;
+extern FontFiles gli_conf_prop, gli_conf_prop_override;
 extern std::string gli_conf_monofont;
-extern struct gli_font_files gli_conf_mono, gli_conf_mono_override;
+extern FontFiles gli_conf_mono, gli_conf_mono_override;
 
 extern float gli_conf_gamma;
 extern float gli_conf_propsize;
