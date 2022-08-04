@@ -489,7 +489,8 @@ static void acceptline(window_t *win, glui32 keycode)
 {
     int ix;
     void *inbuf;
-    int inoriglen, inunicode;
+    int inoriglen;
+    bool inunicode;
     gidispatch_rock_t inarrayrock;
     window_textgrid_t *dwin = win->window.textgrid;
     tgline_t *ln = &(dwin->lines[dwin->inorgy]);

@@ -37,7 +37,7 @@ drawpicture(picture_t *src, window_graphics_t *dst,
 
 static void win_graphics_touch(window_graphics_t *dest)
 {
-    dest->dirty = 1;
+    dest->dirty = true;
     winrepaint(
             dest->owner->bbox.x0,
             dest->owner->bbox.y0,
@@ -108,7 +108,7 @@ void win_graphics_redraw(window_t *win)
 
     if (dwin->dirty || gli_force_redraw)
     {
-        dwin->dirty = 0;
+        dwin->dirty = false;
 
         if (dwin->rgb.empty())
             return;

@@ -538,7 +538,7 @@ struct glk_stream_struct
     glui32 lastop; /* 0, filemode_Write, or filemode_Read */
 
     /* for strtype_Resource */
-    int isbinary;
+    bool isbinary;
 
     /* for strtype_Memory and strtype_Resource. Separate pointers for 
        one-byte and four-byte streams */
@@ -694,7 +694,7 @@ struct window_textgrid_s
 
     /* for line input */
     void *inbuf = nullptr;	/* unsigned char* for latin1, glui32* for unicode */
-    int inunicode = false;
+    bool inunicode = false;
     int inorgx = 0, inorgy = 0;
     int inoriglen, inmax;
     int incurs, inlen;
@@ -791,7 +791,7 @@ struct window_graphics_s
 
     window_t *owner;
     Color bgnd;
-    int dirty = false;
+    bool dirty = false;
     int w = 0, h = 0;
     Canvas<3> rgb;
 };
