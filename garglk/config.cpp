@@ -93,8 +93,8 @@ Styles gli_gstyles{{
     {FontFace::MonoR, Color{0xff,0xff,0xff}, Color{0x60,0x60,0x60}, false}, /* User2 */
 }};
 
-Styles gli_tstyles_def = gli_tstyles;
-Styles gli_gstyles_def = gli_gstyles;
+const Styles gli_tstyles_def = gli_tstyles;
+const Styles gli_gstyles_def = gli_gstyles;
 
 std::vector<garglk::ConfigFile> garglk::all_configs;
 
