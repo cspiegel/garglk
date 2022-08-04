@@ -515,9 +515,7 @@ void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
     y1 = garglk::clamp(y1, 0, gli_image_rgb.height());
 
     for (y = y0; y < y1; y++)
-    {
         gli_image_rgb[y].fill(rgb, x0, x1);
-    }
 }
 
 int Font::charkern(glui32 c0, glui32 c1)
