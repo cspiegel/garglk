@@ -60,9 +60,9 @@ Color gli_parse_color(const std::string &str)
                  std::stoul(b, nullptr, 16));
 }
 
-static const Color black = Color{0x00, 0x00, 0x00};
-static const Color white = Color{0xff, 0xff, 0xff};
-static const Color gray = Color{0x60, 0x60, 0x60};
+static const Color black = Color(0x00, 0x00, 0x00);
+static const Color white = Color(0xff, 0xff, 0xff);
+static const Color gray = Color(0x60, 0x60, 0x60);
 
 struct ColorPair {
     Color fg;
@@ -225,29 +225,29 @@ static Theme light{
     white,
     black,
     black,
-    Color{0x00, 0x00, 0x60},
-    Color{0x00, 0x60, 0x00},
+    Color(0x00, 0x00, 0x60),
+    Color(0x00, 0x60, 0x00),
     ThemeStyles{
         ColorPair{black, white}, ColorPair{black, white},
         ColorPair{black, white}, ColorPair{black, white},
         ColorPair{black, white}, ColorPair{black, white},
         ColorPair{black, white}, ColorPair{black, white},
-        ColorPair{Color{0x00, 0x60, 0x00}, white}, ColorPair{black, white},
+        ColorPair{Color(0x00, 0x60, 0x00), white}, ColorPair{black, white},
         ColorPair{black, white},
     },
     ThemeStyles{make_array<style_NUMSTYLES>(ColorPair{gray, white})},
 };
 
-static const Color darkfg = Color{0xe7, 0xe8, 0xe9};
-static const Color darkbg = Color{0x31, 0x36, 0x3b};
+static const Color darkfg = Color(0xe7, 0xe8, 0xe9);
+static const Color darkbg = Color(0x31, 0x36, 0x3b);
 
 static Theme dark{
     "dark",
-    Color{0x31, 0x36, 0x3b},
+    Color(0x31, 0x36, 0x3b),
     black,
-    Color{0xe7, 0xe8, 0xe9},
-    Color{0x1d, 0x99, 0xf3},
-    Color{0x00, 0xcc, 0x00},
+    Color(0xe7, 0xe8, 0xe9),
+    Color(0x1d, 0x99, 0xf3),
+    Color(0x00, 0xcc, 0x00),
     ThemeStyles{make_array<style_NUMSTYLES>(ColorPair{darkfg, darkbg})},
     ThemeStyles{make_array<style_NUMSTYLES>(ColorPair{darkfg, darkbg})},
 };
