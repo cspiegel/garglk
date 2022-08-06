@@ -123,13 +123,13 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
         if (!fl)
             return nullptr;
 
-        if (std::fread(buf.data(), 1, 8, fl.get()) != 8)
+        if (std::fread(buf.data(), 1, buf.size(), fl.get()) != buf.size())
         {
             /* Can't read the first few bytes. Forget it. */
             return nullptr;
         }
 
-        if (!png_sig_cmp(buf.data(), 0, 8))
+        if (!png_sig_cmp(buf.data(), 0, buf.size()))
         {
             chunktype = giblorb_ID_PNG;
         }
