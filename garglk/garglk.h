@@ -380,6 +380,17 @@ struct style_t
     Color bg;
     Color fg;
     bool reverse;
+
+    bool operator==(const style_t &other) {
+        return font == other.font &&
+               bg == other.bg &&
+               fg == other.fg &&
+               reverse == other.reverse;
+    }
+
+    bool operator!=(const style_t &other) {
+        return !(*this == other);
+    }
 };
 
 using Styles = std::array<style_t, style_NUMSTYLES>;

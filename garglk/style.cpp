@@ -20,8 +20,6 @@
  *                                                                            *
  *****************************************************************************/
 
-#include <cstring>
-
 #include "glk.h"
 #include "garglk.h"
 
@@ -191,12 +189,12 @@ glui32 glk_style_distinguish(winid_t win, glui32 styl1, glui32 styl2)
     if (win->type == wintype_TextGrid)
     {
         window_textgrid_t *dwin = win->window.textgrid;
-        return std::memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
+        return dwin->styles[styl1] != dwin->styles[styl2];
     }
     if (win->type == wintype_TextBuffer)
     {
         window_textbuffer_t *dwin = win->window.textbuffer;
-        return std::memcmp(&dwin->styles[styl1], &dwin->styles[styl2], sizeof(style_t));
+        return dwin->styles[styl1] != dwin->styles[styl2];
     }
     return 0;
 }
