@@ -22,11 +22,13 @@
  *****************************************************************************/
 
 #include <array>
-#include <cassert>
 #include <cstdio>
+#include <functional>
 #include <map>
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <jpeglib.h>
 #include <png.h>

@@ -21,6 +21,7 @@
  *****************************************************************************/
 
 #include <algorithm>
+#include <cstdlib>
 #include <new>
 #include <vector>
 
@@ -152,7 +153,7 @@ void gli_move_selection(int x, int y)
 {
     int tx, ty;
 
-    if (abs(x - last_x) < 5 && abs(y - last_y) < 5)
+    if (std::abs(x - last_x) < 5 && std::abs(y - last_y) < 5)
         return;
 
     if (!gli_mask.initialized || !gli_mask.hor || !gli_mask.ver)

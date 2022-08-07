@@ -24,9 +24,9 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <functional>
 #include <map>
-#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -150,7 +150,7 @@ const FontEntry &Font::getglyph(glui32 cid)
         glui32 gid;
         int x;
         FontEntry entry;
-        size_t datasize;
+        std::size_t datasize;
 
         gid = FT_Get_Char_Index(face, cid);
         if (gid == 0)
@@ -558,7 +558,7 @@ static const std::vector<std::pair<std::vector<glui32>, glui32>> ligatures = {
     {{'f', 'l'}, UNI_LIG_FL},
 };
 
-static int gli_string_impl(int x, FontFace face, const glui32 *s, size_t n, int spw, std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> callback)
+static int gli_string_impl(int x, FontFace face, const glui32 *s, std::size_t n, int spw, std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> callback)
 {
     auto &f = gfont_table.at(face);
     bool dolig = !FT_IS_FIXED_WIDTH(f.face);
@@ -575,7 +575,7 @@ static int gli_string_impl(int x, FontFace face, const glui32 *s, size_t n, int 
                 if (ligature.size() > n)
                     return false;
 
-                for (size_t i = 0; i < ligature.size(); i++)
+                for (std::size_t i = 0; i < ligature.size(); i++)
                 {
                     if (s[i] != ligature[i])
                         return false;

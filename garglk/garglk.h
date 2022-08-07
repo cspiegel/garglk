@@ -32,6 +32,7 @@
 #define GARGLK_GARGLK_H
 
 #ifdef __cplusplus
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdio>
@@ -39,8 +40,6 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <regex>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -545,7 +544,7 @@ struct glk_stream_struct
     window_t *win;
 
     /* for strtype_File */
-    FILE *file;
+    std::FILE *file;
     glui32 lastop; /* 0, filemode_Write, or filemode_Read */
 
     /* for strtype_Resource */
@@ -931,7 +930,7 @@ void winclipstore(const glui32 *text, int len);
 void fontload();
 void fontunload();
 
-void giblorb_get_resource(glui32 usage, glui32 resnum, FILE **file, long *pos, long *len, glui32 *type);
+void giblorb_get_resource(glui32 usage, glui32 resnum, std::FILE **file, long *pos, long *len, glui32 *type);
 
 std::shared_ptr<picture_t> gli_picture_load(unsigned long id);
 void gli_picture_store(std::shared_ptr<picture_t> pic);
@@ -973,8 +972,8 @@ typedef glui32 gli_decomp_block_t[2]; /* count, position */
 /* The position points to a subarray of the unigen_decomp_array.
    If the count is zero, there is no decomposition. */
 
-void gli_putchar_utf8(glui32 val, FILE *fl);
-glui32 gli_getchar_utf8(FILE *fl);
+void gli_putchar_utf8(glui32 val, std::FILE *fl);
+glui32 gli_getchar_utf8(std::FILE *fl);
 glui32 gli_parse_utf8(const unsigned char *buf, glui32 buflen, glui32 *out, glui32 outlen);
 
 glui32 gli_strlen_uni(const glui32 *s);

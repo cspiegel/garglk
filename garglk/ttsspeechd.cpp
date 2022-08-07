@@ -22,6 +22,8 @@
  *****************************************************************************/
 
 #include <cstddef>
+#include <cstdint>
+#include <string>
 #include <vector>
 
 #include "glk.h"
@@ -144,9 +146,9 @@ static std::string unicode_to_utf8(const std::vector<glui32> &src)
 
     for (const auto &c : src)
     {
-        uint8_t hi  = (c >> 16) & 0xff,
-                mid = (c >>  8) & 0xff,
-                lo  = (c      ) & 0xff;
+        std::uint8_t hi  = (c >> 16) & 0xff,
+                     mid = (c >>  8) & 0xff,
+                     lo  = (c      ) & 0xff;
 
         if (c < 0x80)
         {

@@ -28,7 +28,6 @@
     It is distributed under the MIT license; see the "LICENSE" file.
 */
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

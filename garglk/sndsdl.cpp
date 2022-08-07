@@ -27,12 +27,15 @@
 #define SDL_MAIN_HANDLED
 #endif
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <new>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <SDL.h>
@@ -57,7 +60,7 @@
 #define GLK_MAXVOLUME 0x10000
 #define FADE_GRANULARITY 100
 
-#define GLK_VOLUME_TO_SDL_VOLUME(x) ((x) < GLK_MAXVOLUME ? (round(pow(((double)x) / GLK_MAXVOLUME, log(4)) * MIX_MAX_VOLUME)) : (MIX_MAX_VOLUME))
+#define GLK_VOLUME_TO_SDL_VOLUME(x) ((x) < GLK_MAXVOLUME ? (std::round(std::pow(((double)x) / GLK_MAXVOLUME, std::log(4)) * MIX_MAX_VOLUME)) : (MIX_MAX_VOLUME))
 
 enum { CHANNEL_IDLE, CHANNEL_SOUND, CHANNEL_MUSIC };
 

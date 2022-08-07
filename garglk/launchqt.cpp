@@ -25,7 +25,7 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <sstream>
+#include <iterator>
 #include <string>
 
 #include <QApplication>

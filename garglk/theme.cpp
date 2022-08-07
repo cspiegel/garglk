@@ -1,13 +1,15 @@
 #include <array>
-#include <cctype>
+#include <exception>
 #include <fstream>
-#include <functional>
 #include <iostream>
-#include <iterator>
 #include <map>
 #include <regex>
 #include <set>
+#include <sstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <dirent.h>
 #include <sys/types.h>

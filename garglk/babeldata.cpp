@@ -22,6 +22,10 @@
 
 #ifdef BABEL_HANDLER
 
+#include <cstdlib>
+#include <memory>
+#include <new>
+#include <string>
 #include <vector>
 
 #include "glk.h"
@@ -48,7 +52,7 @@ void gli_initialize_babel()
                 if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metadata.data(), metadata.size(), ctx) > 0)
                 {
                     auto get_metadata = [&metadata](const std::string &key) {
-                        return garglk::unique(ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>(key.c_str()), nullptr), free);
+                        return garglk::unique(ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>(key.c_str()), nullptr), std::free);
                     };
                     auto story_title = get_metadata("title");
                     auto story_author = get_metadata("author");

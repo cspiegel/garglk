@@ -21,8 +21,9 @@
  *                                                                            *
  *****************************************************************************/
 
-#include <array>
 #include <algorithm>
+#include <array>
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -880,7 +881,7 @@ static void put_text_uni(window_textbuffer_t *dwin, glui32 *buf, int len, int po
  * appear following an open parenthesis, open square bracket, or
  * whitespace.
  */
-static bool leftquote(uint32_t c)
+static bool leftquote(std::uint32_t c)
 {
     switch(c)
     {
