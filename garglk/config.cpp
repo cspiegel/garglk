@@ -24,10 +24,8 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cerrno>
 #include <cmath>
-#include <cstdio>
-#include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <set>

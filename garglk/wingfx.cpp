@@ -21,10 +21,7 @@
  *                                                                            *
  *****************************************************************************/
 
-#include <algorithm>
-#include <cstring>
 #include <memory>
-#include <utility>
 
 #include "glk.h"
 #include "garglk.h"

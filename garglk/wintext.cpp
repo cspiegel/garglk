@@ -21,10 +21,12 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <array>
 #include <algorithm>
 #include <cstring>
 #include <memory>
 #include <new>
+#include <vector>
 
 #include "glk.h"
 #include "garglk.h"

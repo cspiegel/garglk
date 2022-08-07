@@ -22,9 +22,6 @@
  *****************************************************************************/
 
 #include <algorithm>
-#include <array>
-#include <cstring>
-#include <memory>
 #include <new>
 
 #include "glk.h"

@@ -24,10 +24,7 @@
  *****************************************************************************/
 
 #include <algorithm>
-#include <cerrno>
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <sstream>
 #include <string>
 

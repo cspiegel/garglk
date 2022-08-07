@@ -20,9 +20,9 @@
  *                                                                            *
  *****************************************************************************/
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 #include "glk.h"
 #include "glkstart.h"
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 {
     if (argc == 0)
     {
-        std::fprintf(stderr, "argv[0] is NULL, aborting\n");
+        std::cerr << "argv[0] is NULL, aborting\n";
         std::exit(1);
     }
 
