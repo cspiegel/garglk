@@ -271,7 +271,7 @@ void garglk::theme::init()
 {
     for (const auto &themedir : garglk::theme::paths())
     {
-        std::unique_ptr<DIR, std::function<int(DIR *)>> d(opendir(themedir.c_str()), closedir);
+        auto d = garglk::unique(opendir(themedir.c_str()), closedir);
         if (d != nullptr)
         {
             dirent *de;
