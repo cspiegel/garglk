@@ -33,6 +33,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #if __cplusplus >= 201703L
@@ -67,9 +68,9 @@
 #define ID_GLUL (giblorb_make_id('G','L','U','L'))
 
 struct Interpreter {
-    explicit Interpreter(const std::string &terp_, const std::string &flags_ = "") :
-        terp(terp_),
-        flags(flags_) {
+    explicit Interpreter(std::string terp_, std::string flags_ = "") :
+        terp(std::move(terp_)),
+        flags(std::move(flags_)) {
         }
 
     std::string terp;

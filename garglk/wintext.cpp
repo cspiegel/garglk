@@ -902,8 +902,8 @@ static bool leftquote(std::uint32_t c)
 void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
 {
     window_textbuffer_t *dwin = win->window.textbuffer;
-    glui32 bchars[TBLINELEN];
-    attr_t battrs[TBLINELEN];
+    std::array<glui32, TBLINELEN> bchars;
+    std::array<attr_t, TBLINELEN> battrs;
     int pw;
     int bpoint;
     int saved;
@@ -1056,14 +1056,14 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
 
         saved = dwin->numchars - bpoint;
 
-        std::memcpy(bchars, dwin->chars + bpoint, saved * 4);
-        std::memcpy(battrs, dwin->attrs + bpoint, saved * sizeof(attr_t));
+        std::memcpy(bchars.data(), dwin->chars + bpoint, saved * 4);
+        std::memcpy(battrs.data(), dwin->attrs + bpoint, saved * sizeof(attr_t));
         dwin->numchars = bpoint;
 
         scrolloneline(dwin, false);
 
-        std::memcpy(dwin->chars, bchars, saved * 4);
-        std::memcpy(dwin->attrs, battrs, saved * sizeof(attr_t));
+        std::memcpy(dwin->chars, bchars.data(), saved * 4);
+        std::memcpy(dwin->attrs, battrs.data(), saved * sizeof(attr_t));
         dwin->numchars = saved;
     }
 

@@ -64,7 +64,7 @@ namespace garglk {
 
 // This represents a possible configuration file (garglk.ini).
 struct ConfigFile {
-    ConfigFile(const std::string &path_, bool user_) : path(path_), user(user_) {
+    ConfigFile(std::string path_, bool user_) : path(std::move(path_)), user(user_) {
     }
 
     // The path to the file itself.
@@ -960,15 +960,15 @@ void gli_calc_padding(window_t *win, int *x, int *y);
 
 /* unicode case mapping */
 
-typedef glui32 gli_case_block_t[2]; /* upper, lower */
+using gli_case_block_t = glui32[2];
 /* If both are 0xFFFFFFFF, you have to look at the special-case table */
 
-typedef glui32 gli_case_special_t[3]; /* upper, lower, title */
+using gli_case_special_t = glui32[3];
 /* Each of these points to a subarray of the unigen_special_array
 (in cgunicode.c). In that subarray, element zero is the length,
 and that's followed by length unicode values. */
 
-typedef glui32 gli_decomp_block_t[2]; /* count, position */
+using gli_decomp_block_t = glui32[2];
 /* The position points to a subarray of the unigen_decomp_array.
    If the count is zero, there is no decomposition. */
 
