@@ -708,11 +708,11 @@ void gli_draw_picture(picture_t *src, int x0, int y0, int dx0, int dy0, int dx1,
         for (int x = 0; x < w; x++)
         {
             auto existing = gli_image_rgb[y + y0][x + x0];
-            unsigned char sa = src->rgba[y][x][3];
+            unsigned char sa = src->rgba[y + sy0][x + sx0][3];
             unsigned char na = 255 - sa;
-            unsigned char sr = mul255(src->rgba[y][x][0], sa);
-            unsigned char sg = mul255(src->rgba[y][x][1], sa);
-            unsigned char sb = mul255(src->rgba[y][x][2], sa);
+            unsigned char sr = mul255(src->rgba[y + sy0][x + sx0][0], sa);
+            unsigned char sg = mul255(src->rgba[y + sy0][x + sx0][1], sa);
+            unsigned char sb = mul255(src->rgba[y + sy0][x + sx0][2], sa);
             gli_image_rgb[y + y0][x + x0] = Pixel<3>(sr + mul255(existing[0], na),
                                                      sg + mul255(existing[1], na),
                                                      sb + mul255(existing[2], na));
