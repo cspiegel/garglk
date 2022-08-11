@@ -276,7 +276,7 @@ static int calcwidth(window_textbuffer_t *dwin,
 }
 
 static int calcwidth(window_textbuffer_t *dwin,
-    const std::array<glui32, TBLINELEN> &chars, const std::array<attr_t, TBLINELEN> attrs,
+    const std::array<glui32, TBLINELEN> &chars, const std::array<attr_t, TBLINELEN> &attrs,
     int startchar, int numchars, int spw)
 {
     return calcwidth(dwin, chars.data(), attrs.data(), startchar, numchars, spw);
