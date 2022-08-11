@@ -423,6 +423,11 @@ void gli_draw_pixel(int x, int y, const Color &rgb)
 
 static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Color &rgb)
 {
+    if (x < 0 || x >= gli_image_rgb.width())
+        return;
+    if (y < 0 || y >= gli_image_rgb.height())
+        return;
+
     unsigned short invalf = GAMMA_MAX - (alpha * GAMMA_MAX / 255);
     std::array<unsigned short, 3> bg = {
         gammamap[gli_image_rgb[y][x][0]],
@@ -435,10 +440,6 @@ static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Color &rgb
         gammamap[rgb[2]]
     };
 
-    if (x < 0 || x >= gli_image_rgb.width())
-        return;
-    if (y < 0 || y >= gli_image_rgb.height())
-        return;
     gli_image_rgb[y][x] = Pixel<3>(gammainv[fg[0] + mulhigh(static_cast<int>(bg[0]) - fg[0], invalf)],
                                    gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf)],
                                    gammainv[fg[2] + mulhigh(static_cast<int>(bg[2]) - fg[2], invalf)]);
@@ -446,6 +447,11 @@ static void draw_pixel_gamma(int x, int y, unsigned char alpha, const Color &rgb
 
 static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const Color &rgb)
 {
+    if (x < 0 || x >= gli_image_rgb.width())
+        return;
+    if (y < 0 || y >= gli_image_rgb.height())
+        return;
+
     std::array<unsigned short, 3> invalf = {
         static_cast<unsigned short>(GAMMA_MAX - (alpha[0] * GAMMA_MAX / 255)),
         static_cast<unsigned short>(GAMMA_MAX - (alpha[1] * GAMMA_MAX / 255)),
@@ -462,10 +468,6 @@ static void draw_pixel_lcd_gamma(int x, int y, const unsigned char *alpha, const
         gammamap[rgb[2]]
     };
 
-    if (x < 0 || x >= gli_image_rgb.width())
-        return;
-    if (y < 0 || y >= gli_image_rgb.height())
-        return;
     gli_image_rgb[y][x] = Pixel<3>(gammainv[fg[0] + mulhigh(static_cast<int>(bg[0]) - fg[0], invalf[0])],
                                    gammainv[fg[1] + mulhigh(static_cast<int>(bg[1]) - fg[1], invalf[1])],
                                    gammainv[fg[2] + mulhigh(static_cast<int>(bg[2]) - fg[2], invalf[2])]);
