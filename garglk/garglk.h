@@ -584,7 +584,7 @@ struct glk_fileref_struct
  * Windows and all that
  */
 
-// For some reason MinGW does "typedef hyper __int64", which conflicts
+// For some reason MinGW does "#define hyper __int64", which conflicts
 // with attr_s.hyper below. Unconditionally undefine it here so any
 // files which include windows.h will not cause build failures.
 #undef hyper
