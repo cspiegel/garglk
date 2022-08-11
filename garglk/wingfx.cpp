@@ -298,23 +298,23 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     if (y1 <= 0 || y0 >= dy1) return;
     if (x0 < 0)
     {
-      sx0 -= x0;
-      x0 = 0;
+        sx0 -= x0;
+        x0 = 0;
     }
     if (y0 < 0)
     {
-      sy0 -= y0;
-      y0 = 0;
+        sy0 -= y0;
+        y0 = 0;
     }
     if (x1 > dx1)
     {
-      sx1 += dx1 - x1;
-      x1 = dx1;
+        sx1 += dx1 - x1;
+        x1 = dx1;
     }
     if (y1 > dy1)
     {
-      sy1 += dy1 - y1;
-      y1 = dy1;
+        sy1 += dy1 - y1;
+        y1 = dy1;
     }
 
     hx0 = dst->owner->bbox.x0 + x0;
