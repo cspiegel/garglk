@@ -272,7 +272,7 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     int x0, int y0, int width, int height, glui32 linkval)
 {
     int dx1, dy1, x1, y1, sx0, sy0, sx1, sy1;
-    int x, y, w, h;
+    int w, h;
     int hx0, hx1, hy0, hy1;
     std::shared_ptr<picture_t> scaled;
 
@@ -328,9 +328,9 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
     w = sx1 - sx0;
     h = sy1 - sy0;
 
-    for (y = 0; y < h; y++)
+    for (int y = 0; y < h; y++)
     {
-        for (x = 0; x < w; x++)
+        for (int x = 0; x < w; x++)
         {
             auto existing = dst->rgb[y + y0][x + x0];
             unsigned char sa = src->rgba[y + sy0][x + sx0][3];
@@ -338,12 +338,9 @@ static void drawpicture(picture_t *src, window_graphics_t *dst,
             unsigned char sr = mul255(src->rgba[y + sy0][x + sx0][0], sa);
             unsigned char sg = mul255(src->rgba[y + sy0][x + sx0][1], sa);
             unsigned char sb = mul255(src->rgba[y + sy0][x + sx0][2], sa);
-            Pixel<3> rgb(
-                sr + mul255(existing[0], na),
-                sg + mul255(existing[1], na),
-                sb + mul255(existing[2], na)
-            );
-            dst->rgb[y + y0][x + x0] = rgb;
+            dst->rgb[y + y0][x + x0] =Pixel<3>(sr + mul255(existing[0], na),
+                                               sg + mul255(existing[1], na),
+                                               sb + mul255(existing[2], na));
         }
     }
 }
