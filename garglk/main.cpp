@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     if (argc == 0)
     {
         std::cerr << "argv[0] is NULL, aborting\n";
-        std::exit(1);
+        std::exit(EXIT_FAILURE);
     }
 
     glkunix_startup_t startdata;
