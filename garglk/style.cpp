@@ -196,7 +196,7 @@ glui32 glk_style_distinguish(winid_t win, glui32 styl1, glui32 styl2)
         window_textbuffer_t *dwin = win->window.textbuffer;
         return dwin->styles[styl1] != dwin->styles[styl2];
     }
-    return 0;
+    return false;
 }
 
 glui32 glk_style_measure(winid_t win, glui32 style, glui32 hint, glui32 *result)
