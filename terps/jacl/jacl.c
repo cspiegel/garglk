@@ -36,13 +36,6 @@
 #include <glkstart.h>
 #endif
 
-// JACL used to use gli_strict_warning, but this is internal to
-// Gargoyle, and is not for interpreters.
-static void jacl_strict_warning(const char *msg)
-{
-    fprintf(stderr, "JACL error: %s\n", msg);
-}
-
 #ifndef GARGLK
 #include "glkterm/gi_blorb.h"
 #include "glkterm/glk.h"
@@ -183,6 +176,13 @@ struct command_type *completion_list = NULL;
 struct word_type *grammar_table = NULL;
 struct synonym_type *synonym_table = NULL;
 struct filter_type *filter_table = NULL;
+
+// JACL used to use gli_strict_warning, but this is internal to
+// Gargoyle, and is not for interpreters.
+static void jacl_strict_warning(const char *msg)
+{
+	fprintf(stderr, "JACL error: %s\n", msg);
+}
 
 void
 glk_main(void)
