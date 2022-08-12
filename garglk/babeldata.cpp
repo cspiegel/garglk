@@ -40,16 +40,16 @@ void gli_initialize_babel()
     if (gli_workfile.empty())
         return;
 
-    void *ctx = get_babel_ctx();
-    if (babel_init_ctx(const_cast<char *>(gli_workfile.c_str()), ctx))
+    auto ctx = garglk::unique(get_babel_ctx(), release_babel_ctx);
+    if (babel_init_ctx(const_cast<char *>(gli_workfile.c_str()), ctx.get()))
     {
-        int metaSize = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, nullptr, 0, ctx);
+        int metaSize = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, nullptr, 0, ctx.get());
         if (metaSize > 0)
         {
             try
             {
                 std::vector<char> metadata(metaSize);
-                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metadata.data(), metadata.size(), ctx) > 0)
+                if (babel_treaty_ctx(GET_STORY_FILE_METADATA_SEL, metadata.data(), metadata.size(), ctx.get()) > 0)
                 {
                     auto get_metadata = [&metadata](const std::string &key) {
                         return garglk::unique(ifiction_get_tag(metadata.data(), const_cast<char *>("bibliographic"), const_cast<char *>(key.c_str()), nullptr), std::free);
@@ -69,8 +69,7 @@ void gli_initialize_babel()
             }
         }
     }
-    babel_release_ctx(ctx);
-    release_babel_ctx(ctx);
+    babel_release_ctx(ctx.get());
 }
 
 #else
