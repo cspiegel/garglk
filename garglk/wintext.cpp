@@ -1384,6 +1384,9 @@ static void acceptline(window_t *win, glui32 keycode)
         if (dwin->history.empty() || dwin->history.back() != line)
             dwin->history.push_front(line);
 
+        while (dwin->history.size() > HISTORYLEN)
+            dwin->history.pop_back();
+
         dwin->history_it = dwin->history.begin();
     }
 
