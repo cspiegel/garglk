@@ -1374,8 +1374,6 @@ static void acceptline(window_t *win, glui32 keycode)
 
     /*
      * Store in history.
-     * The history is a ring buffer, with historypresent being the index of the most recent
-     * element and historyfirst the index of the oldest element.
      * A history entry should not repeat the string from the entry before it.
      */
     if (len)
