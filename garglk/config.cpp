@@ -617,7 +617,7 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
 
             if (argstream >> style >> fg >> bg)
             {
-                style_t *styles = cmd[0] == 't' ? gli_tstyles.data() : gli_gstyles.data();
+                Styles &styles = cmd[0] == 't' ? gli_tstyles : gli_gstyles;
 
                 if (style == "*")
                 {
