@@ -57,15 +57,15 @@ void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
 {
     bool p, b, i;
 
+    if (!gli_conf_stylehint)
+        return;
+
     if (wintype == wintype_AllTypes)
     {
         glk_stylehint_set(wintype_TextGrid, styl, hint, val);
         glk_stylehint_set(wintype_TextBuffer, styl, hint, val);
         return;
     }
-
-    if (!gli_conf_stylehint)
-        return;
 
     if (wintype != wintype_TextGrid && wintype != wintype_TextBuffer)
         return;
@@ -140,15 +140,15 @@ void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
 
 void glk_stylehint_clear(glui32 wintype, glui32 styl, glui32 hint)
 {
+    if (!gli_conf_stylehint)
+        return;
+
     if (wintype == wintype_AllTypes)
     {
         glk_stylehint_clear(wintype_TextGrid, styl, hint);
         glk_stylehint_clear(wintype_TextBuffer, styl, hint);
         return;
     }
-
-    if (!gli_conf_stylehint)
-        return;
 
     if (wintype != wintype_TextGrid && wintype != wintype_TextBuffer)
         return;
