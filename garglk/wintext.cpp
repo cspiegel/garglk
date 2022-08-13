@@ -1381,7 +1381,7 @@ static void acceptline(window_t *win, glui32 keycode)
     if (len)
     {
         std::vector<glui32> line(&dwin->chars[dwin->infence], &dwin->chars[dwin->infence + len]);
-        if (dwin->history.empty() || dwin->history.back() != line)
+        if (dwin->history.empty() || dwin->history.front() != line)
             dwin->history.push_front(line);
 
         while (dwin->history.size() > HISTORYLEN)
