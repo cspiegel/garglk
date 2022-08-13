@@ -1378,6 +1378,9 @@ static void acceptline(window_t *win, glui32 keycode)
      */
     if (len)
     {
+        // If the iterator's not at the beginning, that means the user is in the
+        // middle of a history cycle. If that's the case, the first history
+        // entry is the currently-typed text, which is no longer relevant. Drop it.
         if (dwin->history_it != dwin->history.begin())
             dwin->history.pop_front();
 
@@ -1482,15 +1485,22 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
         /* History keys (up and down) */
 
         case keycode_Up:
+            // There is no stored history, so do nothing.
             if (dwin->history.empty())
                 return;
 
+            // There is stored history, and this is the start of a cycle through
+            // it. Store the currently-typed text (which may be empty) at the
+            // front of the history buffer, and point the iterator there.
             if (dwin->history_it == dwin->history.begin())
             {
                 dwin->history.emplace_front(&dwin->chars[dwin->infence], &dwin->chars[dwin->numchars]);
                 dwin->history_it = dwin->history.begin();
             }
 
+            // The iterator is on the current history entry, so load the
+            // previous (older) one, if any (if not, that means this is the end
+            // of history, so do nothing).
             if (dwin->history_it + 1 != dwin->history.end())
             {
                 ++dwin->history_it;
@@ -1499,12 +1509,19 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
             break;
 
         case keycode_Down:
+            // Already at the beginning (i.e. not actively cycling through
+            // history), so do nothing.
             if (dwin->history_it == dwin->history.begin())
                 return;
 
+            // Load the next (newer) history entry.
             --dwin->history_it;
             put_text_uni(dwin, dwin->history_it->data(), dwin->history_it->size(), dwin->infence, dwin->numchars - dwin->infence);
 
+            // If we're at the beginning now, we're done cycling, and have
+            // reloaded the user's currently-typed text. Since cycling is over,
+            // drop the text from the history and repoint the iterator to the
+            // previous history entry.
             if (dwin->history_it == dwin->history.begin())
             {
                 dwin->history.pop_front();
