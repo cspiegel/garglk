@@ -1482,7 +1482,7 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
         /* History keys (up and down) */
 
         case keycode_Up:
-            if (dwin->history_it == dwin->history.end())
+            if (dwin->history.empty())
                 return;
 
             if (dwin->history_it == dwin->history.begin())
