@@ -1502,8 +1502,9 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
             if (dwin->history_it == dwin->history.begin())
                 return;
 
-            dwin->history_it--;
+            --dwin->history_it;
             put_text_uni(dwin, dwin->history_it->data(), dwin->history_it->size(), dwin->infence, dwin->numchars - dwin->infence);
+
             if (dwin->history_it == dwin->history.begin())
             {
                 dwin->history.pop_front();
