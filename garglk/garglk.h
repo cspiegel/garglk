@@ -37,6 +37,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <deque>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -762,9 +763,8 @@ struct window_textbuffer_s
     int radjn = 0;
 
     /* Command history. */
-    std::array<glui32 *, HISTORYLEN> history = {nullptr};
-    int historypos = 0;
-    int historyfirst = 0, historypresent = 0;
+    std::deque<std::vector<glui32>> history;
+    std::deque<std::vector<glui32>>::iterator history_it = history.begin();
 
     /* for paging */
     int lastseen = 0;

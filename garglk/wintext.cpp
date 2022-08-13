@@ -1153,8 +1153,6 @@ static void win_textbuffer_init_impl(window_t *win, void *buf, int maxlen, int i
     dwin->origattr = win->attr;
     attrset(&win->attr, style_Input);
 
-    dwin->historypos = dwin->historypresent;
-
     if (initlen)
     {
         touch(dwin, 0);
@@ -1348,9 +1346,8 @@ void gcmd_buffer_accept_readchar(window_t *win, glui32 arg)
 static void acceptline(window_t *win, glui32 keycode)
 {
     int ix;
-    int len, olen;
+    int len;
     void *inbuf;
-    glui32 *s, *o;
     int inmax, inunicode;
     gidispatch_rock_t inarrayrock;
     window_textbuffer_t *dwin = win->window.textbuffer;
@@ -1383,35 +1380,11 @@ static void acceptline(window_t *win, glui32 keycode)
      */
     if (len)
     {
-        s = new glui32[len + 1];
-        std::memcpy(s, dwin->chars + dwin->infence, len * sizeof(glui32));
-        s[len] = 0;
+        std::vector<glui32> line(&dwin->chars[dwin->infence], &dwin->chars[dwin->infence + len]);
+        if (dwin->history.empty() || dwin->history.back() != line)
+            dwin->history.push_front(line);
 
-        delete [] dwin->history[dwin->historypresent];
-        dwin->history[dwin->historypresent] = nullptr;
-
-        o = dwin->history[(dwin->historypresent == 0 ? HISTORYLEN : dwin->historypresent) - 1];
-        olen = o ? gli_strlen_uni(o) : 0;
-
-        if (len != olen || std::memcmp(s, o, olen * sizeof(glui32)))
-        {
-            dwin->history[dwin->historypresent] = s;
-
-            dwin->historypresent++;
-            if (dwin->historypresent == HISTORYLEN)
-                dwin->historypresent = 0;
-
-            if (dwin->historypresent == dwin->historyfirst)
-            {
-                dwin->historyfirst++;
-                if (dwin->historyfirst == HISTORYLEN)
-                    dwin->historyfirst = 0;
-            }
-        }
-        else
-        {
-            delete [] s;
-        }
+        dwin->history_it = dwin->history.begin();
     }
 
     /* Store in event buffer. */
@@ -1475,7 +1448,6 @@ static void acceptline(window_t *win, glui32 keycode)
 void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
 {
     window_textbuffer_t *dwin = win->window.textbuffer;
-    glui32 *cx;
     int len;
 
     if (dwin->height < 2)
@@ -1507,41 +1479,34 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
         /* History keys (up and down) */
 
         case keycode_Up:
-            if (dwin->historypos == dwin->historyfirst)
+            if (dwin->history_it == dwin->history.end())
                 return;
-            if (dwin->historypos == dwin->historypresent)
+
+            if (dwin->history_it == dwin->history.begin())
             {
                 len = dwin->numchars - dwin->infence;
-                if (len > 0)
-                {
-                    cx = new glui32[len + 1];
-                    std::memcpy(cx, &(dwin->chars[dwin->infence]), len * 4);
-                    cx[len] = 0;
-                }
-                else
-                {
-                    cx = nullptr;
-                }
-                delete [] dwin->history[dwin->historypos];
-                dwin->history[dwin->historypos] = cx;
+                dwin->history.emplace_front(&dwin->chars[dwin->infence], &dwin->chars[dwin->infence + len]);
+                dwin->history_it = dwin->history.begin();
             }
-            dwin->historypos--;
-            if (dwin->historypos < 0)
-                dwin->historypos += HISTORYLEN;
-            cx = dwin->history[dwin->historypos];
-            put_text_uni(dwin, cx, cx ? gli_strlen_uni(cx) : 0, dwin->infence,
-                    dwin->numchars - dwin->infence);
+
+            if (dwin->history_it + 1 != dwin->history.end())
+            {
+                ++dwin->history_it;
+                put_text_uni(dwin, dwin->history_it->data(), dwin->history_it->size(), dwin->infence, dwin->numchars - dwin->infence);
+            }
             break;
 
         case keycode_Down:
-            if (dwin->historypos == dwin->historypresent)
+            if (dwin->history_it == dwin->history.begin())
                 return;
-            dwin->historypos++;
-            if (dwin->historypos >= HISTORYLEN)
-                dwin->historypos -= HISTORYLEN;
-            cx = dwin->history[dwin->historypos];
-            put_text_uni(dwin, cx, cx ? gli_strlen_uni(cx) : 0, dwin->infence,
-                    dwin->numchars - dwin->infence);
+
+            dwin->history_it--;
+            put_text_uni(dwin, dwin->history_it->data(), dwin->history_it->size(), dwin->infence, dwin->numchars - dwin->infence);
+            if (dwin->history_it == dwin->history.begin())
+            {
+                dwin->history.pop_front();
+                dwin->history_it = dwin->history.begin();
+            }
             break;
 
             /* Cursor movement keys, during line input. */
