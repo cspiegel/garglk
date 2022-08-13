@@ -1381,7 +1381,7 @@ static void acceptline(window_t *win, glui32 keycode)
         if (dwin->history_it != dwin->history.begin())
             dwin->history.pop_front();
 
-        std::vector<glui32> line(&dwin->chars[dwin->infence], &dwin->chars[dwin->infence + len]);
+        std::vector<glui32> line(&dwin->chars[dwin->infence], &dwin->chars[dwin->numchars]);
         if (dwin->history.empty() || dwin->history.front() != line)
             dwin->history.push_front(line);
 
@@ -1452,7 +1452,6 @@ static void acceptline(window_t *win, glui32 keycode)
 void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
 {
     window_textbuffer_t *dwin = win->window.textbuffer;
-    int len;
 
     if (dwin->height < 2)
         dwin->scrollpos = 0;
@@ -1488,8 +1487,7 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
 
             if (dwin->history_it == dwin->history.begin())
             {
-                len = dwin->numchars - dwin->infence;
-                dwin->history.emplace_front(&dwin->chars[dwin->infence], &dwin->chars[dwin->infence + len]);
+                dwin->history.emplace_front(&dwin->chars[dwin->infence], &dwin->chars[dwin->numchars]);
                 dwin->history_it = dwin->history.begin();
             }
 
