@@ -96,7 +96,7 @@ void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
             case stylehint_Proportional:
                 if (wintype == wintype_TextBuffer)
                 {
-                    p = val > 0;
+                    p = val != 0;
                     b = isbold(style.font);
                     i = isitalic(style.font);
                     style.font = makefont(p, b, i);
@@ -105,7 +105,7 @@ void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
 
             case stylehint_Weight:
                 p = isprop(style.font);
-                b = val > 0;
+                b = val != 0;
                 i = isitalic(style.font);
                 style.font = makefont(p, b, i);
                 break;
@@ -113,7 +113,7 @@ void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
             case stylehint_Oblique:
                 p = isprop(style.font);
                 b = isbold(style.font);
-                i = val > 0;
+                i = val != 0;
                 style.font = makefont(p, b, i);
                 break;
         }
