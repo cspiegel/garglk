@@ -20,6 +20,8 @@
  *                                                                            *
  *****************************************************************************/
 
+#include <stdexcept>
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -51,221 +53,232 @@ static FontFace makefont(bool p, bool b, bool i)
     return FontFace::PropR;
 }
 
-void glk_stylehint_set(glui32 wintype, glui32 style, glui32 hint, glsi32 val)
+void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
 {
-    style_t *styles;
     bool p, b, i;
 
     if (wintype == wintype_AllTypes)
     {
-        glk_stylehint_set(wintype_TextGrid, style, hint, val);
-        glk_stylehint_set(wintype_TextBuffer, style, hint, val);
+        glk_stylehint_set(wintype_TextGrid, styl, hint, val);
+        glk_stylehint_set(wintype_TextBuffer, styl, hint, val);
         return;
     }
-
-    if (wintype == wintype_TextGrid)
-        styles = gli_gstyles.data();
-    else if (wintype == wintype_TextBuffer)
-        styles = gli_tstyles.data();
-    else
-        return;
 
     if (!gli_conf_stylehint)
         return;
 
-    switch (hint)
+    if (wintype != wintype_TextGrid && wintype != wintype_TextBuffer)
+        return;
+
+    try
     {
-        case stylehint_TextColor:
-            styles[style].fg = Color((val >> 16) & 0xff,
-                                     (val >> 8) & 0xff,
-                                     (val) & 0xff);
-            break;
+        style_t &style = wintype == wintype_TextGrid ? gli_gstyles.at(styl) :
+                                                       gli_tstyles.at(styl);
 
-        case stylehint_BackColor:
-            styles[style].bg = Color((val >> 16) & 0xff,
-                                     (val >> 8) & 0xff,
-                                     (val) & 0xff);
-            break;
+        switch (hint)
+        {
+            case stylehint_TextColor:
+                style.fg = Color((val >> 16) & 0xff,
+                                 (val >> 8) & 0xff,
+                                 (val) & 0xff);
+                break;
 
-        case stylehint_ReverseColor:
-            styles[style].reverse = (val != 0);
-            break;
+            case stylehint_BackColor:
+                style.bg = Color((val >> 16) & 0xff,
+                                 (val >> 8) & 0xff,
+                                 (val) & 0xff);
+                break;
 
-        case stylehint_Proportional:
-            if (wintype == wintype_TextBuffer)
-            {
-                p = val > 0;
-                b = isbold(styles[style].font);
-                i = isitalic(styles[style].font);
-                styles[style].font = makefont(p, b, i);
-            }
-            break;
+            case stylehint_ReverseColor:
+                style.reverse = (val != 0);
+                break;
 
-        case stylehint_Weight:
-            p = isprop(styles[style].font);
-            b = val > 0;
-            i = isitalic(styles[style].font);
-            styles[style].font = makefont(p, b, i);
-            break;
+            case stylehint_Proportional:
+                if (wintype == wintype_TextBuffer)
+                {
+                    p = val > 0;
+                    b = isbold(style.font);
+                    i = isitalic(style.font);
+                    style.font = makefont(p, b, i);
+                }
+                break;
 
-        case stylehint_Oblique:
-            p = isprop(styles[style].font);
-            b = isbold(styles[style].font);
-            i = val > 0;
-            styles[style].font = makefont(p, b, i);
-            break;
+            case stylehint_Weight:
+                p = isprop(style.font);
+                b = val > 0;
+                i = isitalic(style.font);
+                style.font = makefont(p, b, i);
+                break;
+
+            case stylehint_Oblique:
+                p = isprop(style.font);
+                b = isbold(style.font);
+                i = val > 0;
+                style.font = makefont(p, b, i);
+                break;
+        }
+
+        if (wintype == wintype_TextBuffer &&
+                styl == style_Normal &&
+                hint == stylehint_BackColor)
+        {
+            gli_window_color = style.bg;
+        }
+
+        if (wintype == wintype_TextBuffer &&
+                styl == style_Normal &&
+                hint == stylehint_TextColor)
+        {
+            gli_more_color = style.fg;
+            gli_caret_color = style.fg;
+        }
     }
-
-    if (wintype == wintype_TextBuffer &&
-            style == style_Normal &&
-            hint == stylehint_BackColor)
+    catch (const std::out_of_range &)
     {
-        gli_window_color = styles[style].bg;
-    }
-
-    if (wintype == wintype_TextBuffer &&
-            style == style_Normal &&
-            hint == stylehint_TextColor)
-    {
-        gli_more_color = styles[style].fg;
-        gli_caret_color = styles[style].fg;
     }
 }
 
-void glk_stylehint_clear(glui32 wintype, glui32 style, glui32 hint)
+void glk_stylehint_clear(glui32 wintype, glui32 styl, glui32 hint)
 {
-    style_t *styles;
-    const style_t *defaults;
-
     if (wintype == wintype_AllTypes)
     {
-        glk_stylehint_clear(wintype_TextGrid, style, hint);
-        glk_stylehint_clear(wintype_TextBuffer, style, hint);
-        return;
-    }
-
-    if (wintype == wintype_TextGrid)
-    {
-        styles = gli_gstyles.data();
-        defaults = gli_gstyles_def.data();
-    }
-    else if (wintype == wintype_TextBuffer)
-    {
-        styles = gli_tstyles.data();
-        defaults = gli_tstyles_def.data();
-    }
-    else
-    {
+        glk_stylehint_clear(wintype_TextGrid, styl, hint);
+        glk_stylehint_clear(wintype_TextBuffer, styl, hint);
         return;
     }
 
     if (!gli_conf_stylehint)
         return;
 
-    switch (hint)
+    if (wintype != wintype_TextGrid && wintype != wintype_TextBuffer)
+        return;
+
+    try
     {
+        style_t &style = wintype == wintype_TextGrid ? gli_gstyles.at(styl) :
+                                                       gli_tstyles.at(styl);
+
+        const style_t &def = wintype == wintype_TextGrid ? gli_gstyles_def.at(styl) :
+                                                           gli_tstyles_def.at(styl);
+
+        switch (hint)
+        {
         case stylehint_TextColor:
-            styles[style].fg = defaults[style].fg;
+            style.fg = def.fg;
             break;
 
         case stylehint_BackColor:
-            styles[style].bg = defaults[style].bg;
+            style.bg = def.bg;
             break;
 
         case stylehint_ReverseColor:
-            styles[style].reverse = defaults[style].reverse;
+            style.reverse = def.reverse;
             break;
 
         case stylehint_Proportional:
         case stylehint_Weight:
         case stylehint_Oblique:
-            styles[style].font = defaults[style].font;
+            style.font = def.font;
             break;
+        }
+    }
+    catch (const std::out_of_range &)
+    {
     }
 }
 
 glui32 glk_style_distinguish(winid_t win, glui32 styl1, glui32 styl2)
 {
-    if (win->type == wintype_TextGrid)
+    try
     {
-        window_textgrid_t *dwin = win->window.textgrid;
-        return dwin->styles[styl1] != dwin->styles[styl2];
+        if (win->type == wintype_TextGrid)
+        {
+            window_textgrid_t *dwin = win->window.textgrid;
+            return dwin->styles.at(styl1) != dwin->styles.at(styl2);
+        }
+        if (win->type == wintype_TextBuffer)
+        {
+            window_textbuffer_t *dwin = win->window.textbuffer;
+            return dwin->styles.at(styl1) != dwin->styles.at(styl2);
+        }
     }
-    if (win->type == wintype_TextBuffer)
+    catch (const std::out_of_range &)
     {
-        window_textbuffer_t *dwin = win->window.textbuffer;
-        return dwin->styles[styl1] != dwin->styles[styl2];
     }
+
     return false;
 }
 
-glui32 glk_style_measure(winid_t win, glui32 style, glui32 hint, glui32 *result)
+glui32 glk_style_measure(winid_t win, glui32 styl, glui32 hint, glui32 *result)
 {
-    style_t *styles;
-
-    if (win->type == wintype_TextGrid)
-        styles = win->window.textgrid->styles.data();
-    else if (win->type == wintype_TextBuffer)
-        styles = win->window.textbuffer->styles.data();
-    else
+    if (win->type != wintype_TextGrid && win->type != wintype_TextBuffer)
         return false;
 
-    switch (hint)
+    try
     {
-        case stylehint_Indentation:
-        case stylehint_ParaIndentation:
-            *result = 0;
-            return true;
+        const style_t &style = win->type == wintype_TextGrid ? win->window.textgrid->styles.at(styl) :
+                                                               win->window.textbuffer->styles.at(styl);
 
-        case stylehint_Justification:
-            *result = stylehint_just_LeftFlush;
-            return true;
+        switch (hint)
+        {
+            case stylehint_Indentation:
+            case stylehint_ParaIndentation:
+                *result = 0;
+                return true;
 
-        case stylehint_Size:
-            *result = 1;
-            return true;
+            case stylehint_Justification:
+                *result = stylehint_just_LeftFlush;
+                return true;
 
-        case stylehint_Weight:
-            *result =
-                (styles[style].font == FontFace::PropB ||
-                 styles[style].font == FontFace::PropZ ||
-                 styles[style].font == FontFace::MonoB ||
-                 styles[style].font == FontFace::MonoZ);
-            return true;
+            case stylehint_Size:
+                *result = 1;
+                return true;
 
-        case stylehint_Oblique:
-            *result =
-                (styles[style].font == FontFace::PropI ||
-                 styles[style].font == FontFace::PropZ ||
-                 styles[style].font == FontFace::MonoI ||
-                 styles[style].font == FontFace::MonoZ);
-            return true;
+            case stylehint_Weight:
+                *result =
+                    style.font == FontFace::PropB ||
+                    style.font == FontFace::PropZ ||
+                    style.font == FontFace::MonoB ||
+                    style.font == FontFace::MonoZ;
+                return true;
 
-        case stylehint_Proportional:
-            *result =
-                (styles[style].font == FontFace::PropR ||
-                 styles[style].font == FontFace::PropI ||
-                 styles[style].font == FontFace::PropB ||
-                 styles[style].font == FontFace::PropZ);
-            return true;
+            case stylehint_Oblique:
+                *result =
+                    style.font == FontFace::PropI ||
+                    style.font == FontFace::PropZ ||
+                    style.font == FontFace::MonoI ||
+                    style.font == FontFace::MonoZ;
+                return true;
 
-        case stylehint_TextColor:
-            *result =
-                (styles[style].fg[0] << 16) |
-                (styles[style].fg[1] << 8) |
-                (styles[style].fg[2]);
-            return true;
+            case stylehint_Proportional:
+                *result =
+                    style.font == FontFace::PropR ||
+                    style.font == FontFace::PropI ||
+                    style.font == FontFace::PropB ||
+                    style.font == FontFace::PropZ;
+                return true;
 
-        case stylehint_BackColor:
-            *result =
-                (styles[style].bg[0] << 16) |
-                (styles[style].bg[1] << 8) |
-                (styles[style].bg[2]);
-            return true;
+            case stylehint_TextColor:
+                *result =
+                    (style.fg[0] << 16) |
+                    (style.fg[1] << 8) |
+                    (style.fg[2]);
+                return true;
 
-        case stylehint_ReverseColor:
-            *result = styles[style].reverse;
-            return true;
+            case stylehint_BackColor:
+                *result =
+                    (style.bg[0] << 16) |
+                    (style.bg[1] << 8) |
+                    (style.bg[2]);
+                return true;
+
+            case stylehint_ReverseColor:
+                *result = style.reverse;
+                return true;
+        }
+    }
+    catch (const std::out_of_range &)
+    {
     }
 
     return false;
