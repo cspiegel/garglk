@@ -227,7 +227,8 @@ static std::shared_ptr<picture_t> load_image_jpeg(std::FILE *fl, unsigned long i
         jpeg_finish_decompress(&cinfo);
 
         return pic;
-    } catch (const jpeg_error_mgr *)
+    }
+    catch (const jpeg_error_mgr *)
     {
         return nullptr;
     }
