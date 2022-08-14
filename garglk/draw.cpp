@@ -498,7 +498,7 @@ static void draw_bitmap_lcd_gamma(const Bitmap *b, int x, int y, const Color &rg
     {
         for (i = 0, j = 0; i < b->w; i += 3, j ++)
         {
-            draw_pixel_lcd_gamma(x + b->lsb + j, y - b->top + k, &b->data[0] + k * b->pitch + i, rgb);
+            draw_pixel_lcd_gamma(x + b->lsb + j, y - b->top + k, b->data.data() + k * b->pitch + i, rgb);
         }
     }
 }
