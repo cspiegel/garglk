@@ -146,31 +146,27 @@ static std::string unicode_to_utf8(const std::vector<glui32> &src)
 
     for (const auto &c : src)
     {
-        std::uint8_t hi  = (c >> 16) & 0xff,
-                     mid = (c >>  8) & 0xff,
-                     lo  = (c      ) & 0xff;
-
         if (c < 0x80)
         {
             dst.push_back(c);
         }
         else if (c < 0x800)
         {
-            dst.push_back(0xc0 | (mid << 2) | (lo >> 6));
-            dst.push_back(0x80 | (lo & 0x3f));
+            dst.push_back(0xc0 | ((c >> 6) & 0x1f));
+            dst.push_back(0x80 | ((c     ) & 0x3f));
         }
         else if (c < 0x10000)
         {
-            dst.push_back(0xe0 | (mid >> 4));
-            dst.push_back(0x80 | ((mid << 2) & 0x3f) | (lo >> 6));
-            dst.push_back(0x80 | (lo & 0x3f));
+            dst.push_back(0xe0 | ((c >> 12) & 0x0f));
+            dst.push_back(0x80 | ((c >>  6) & 0x3f));
+            dst.push_back(0x80 | ((c      ) & 0x3f));
         }
         else if (c < 0x200000)
         {
-            dst.push_back(0xf0 | (hi >> 2));
-            dst.push_back(0x80 | ((hi << 4) & 0x30) | (mid >> 4));
-            dst.push_back(0x80 | ((mid << 2) & 0x3c) | (lo >> 6));
-            dst.push_back(0x80 | (lo & 0x3f));
+            dst.push_back(0xf0 | ((c >> 18) & 0x07));
+            dst.push_back(0x80 | ((c >> 12) & 0x3f));
+            dst.push_back(0x80 | ((c >>  6) & 0x3f));
+            dst.push_back(0x80 | ((c      ) & 0x3f));
         }
     }
 
