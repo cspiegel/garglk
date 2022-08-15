@@ -93,10 +93,26 @@ public:
     explicit SoundSource(int plays) : m_plays(plays) {
     }
 
-    virtual QAudioFormat format() = 0;
-
     virtual qint64 source_read(void *data, qint64 max) = 0;
     virtual void source_rewind() = 0;
+
+    // Sources must use 32-bit floating point audio.
+    void set_format(int samplerate, int channels) {
+        m_format.setSampleRate(samplerate);
+        m_format.setChannelCount(channels);
+#ifdef HAS_QT6
+        m_format.setSampleFormat(QAudioFormat::Float);
+#else
+        m_format.setSampleSize(32);
+        m_format.setCodec("audio/pcm");
+        m_format.setByteOrder(static_cast<QAudioFormat::Endian>(QSysInfo::Endian::ByteOrder));
+        m_format.setSampleType(QAudioFormat::Float);
+#endif
+    }
+
+    QAudioFormat format() {
+        return m_format;
+    }
 
     qint64 readData(char *data, qint64 max) override {
         // QIODevice buffers data; if its buffer is full enough to
@@ -153,6 +169,7 @@ public:
     }
 
 private:
+    QAudioFormat m_format;
     glui32 m_plays;
     qint64 m_buffer_size = 0;
     qint64 m_written = 0;
@@ -169,34 +186,20 @@ public:
         if (!m_mod)
             throw SoundError("can't parse MOD file");
 
-        m_format.setSampleRate(48000);
-        m_format.setChannelCount(2);
-#ifdef HAS_QT6
-        m_format.setSampleFormat(QAudioFormat::Float);
-#else
-        m_format.setSampleSize(32);
-        m_format.setCodec("audio/pcm");
-        m_format.setByteOrder(static_cast<QAudioFormat::Endian>(QSysInfo::Endian::ByteOrder));
-        m_format.setSampleType(QAudioFormat::Float);
-#endif
+        set_format(48000, 2);
     }
 
 protected:
     qint64 source_read(void *data, qint64 max) override {
-        return 8 * openmpt_module_read_interleaved_float_stereo(m_mod.get(), m_format.sampleRate(), max / 8, reinterpret_cast<float *>(data));
+        return 8 * openmpt_module_read_interleaved_float_stereo(m_mod.get(), format().sampleRate(), max / 8, reinterpret_cast<float *>(data));
     }
 
     void source_rewind() override {
         openmpt_module_set_position_seconds(m_mod.get(), 0);
     }
 
-    QAudioFormat format() override {
-        return m_format;
-    }
-
 private:
     std::unique_ptr<openmpt_module, decltype(&openmpt_module_destroy)> m_mod;
-    QAudioFormat m_format;
 };
 
 class SndfileSource : public SoundSource {
@@ -210,16 +213,7 @@ public:
         if (!m_soundfile)
             throw SoundError("can't open with libsndfile");
 
-        m_format.setSampleRate(m_soundfile.samplerate());
-        m_format.setChannelCount(m_soundfile.channels());
-#ifdef HAS_QT6
-        m_format.setSampleFormat(QAudioFormat::Float);
-#else
-        m_format.setSampleSize(32);
-        m_format.setCodec("audio/pcm");
-        m_format.setByteOrder(static_cast<QAudioFormat::Endian>(QSysInfo::Endian::ByteOrder));
-        m_format.setSampleType(QAudioFormat::Float);
-#endif
+        set_format(m_soundfile.samplerate(), m_soundfile.channels());
     }
 
     qint64 source_read(void *data, qint64 max) override {
@@ -232,13 +226,8 @@ public:
         m_soundfile = SndfileHandle(io, this);
     }
 
-    QAudioFormat format() override {
-        return m_format;
-    }
-
 private:
     SndfileHandle m_soundfile;
-    QAudioFormat m_format;
     const QByteArray m_buf;
     ssize_t m_offset = 0;
 
@@ -347,16 +336,7 @@ public:
         if (encoding != MPG123_ENC_FLOAT_32)
             throw SoundError("can't request floating point samples for mp3");
 
-        m_format.setSampleRate(m_rate);
-        m_format.setChannelCount(m_channels);
-#ifdef HAS_QT6
-        m_format.setSampleFormat(QAudioFormat::Float);
-#else
-        m_format.setSampleSize(32);
-        m_format.setCodec("audio/pcm");
-        m_format.setByteOrder(static_cast<QAudioFormat::Endian>(QSysInfo::Endian::ByteOrder));
-        m_format.setSampleType(QAudioFormat::Float);
-#endif
+        set_format(m_rate, m_channels);
     }
 
     qint64 source_read(void *data, qint64 max) override {
@@ -386,15 +366,10 @@ public:
         m_eof = mpg123_open_handle(m_handle.get(), this) != MPG123_OK;
     }
 
-    QAudioFormat format() override {
-        return m_format;
-    }
-
 private:
     std::unique_ptr<mpg123_handle, decltype(&mpg123_delete)> m_handle;
 
     const QByteArray m_buf;
-    QAudioFormat m_format;
     ssize_t m_offset = 0;
     long m_rate;
     int m_channels;
