@@ -212,7 +212,7 @@ public:
     {
         SF_VIRTUAL_IO io = get_io();
         if (raw)
-            m_soundfile = SndfileHandle(io, this, SFM_READ, SF_FORMAT_RAW | SF_FORMAT_PCM_16, 1, 44100);
+            m_soundfile = SndfileHandle(io, this, SFM_READ, SF_FORMAT_RAW | SF_FORMAT_PCM_S8, 1, 22050);
         else
             m_soundfile = SndfileHandle(io, this);
         if (!m_soundfile)
@@ -475,8 +475,8 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
     return chan->disprock;
 }
 
-static std::array<std::int16_t, 17640> beep;
-static std::array<std::int16_t, 35280> boop;
+static std::array<std::int8_t, 2205> beep;
+static std::array<std::int8_t, 4410> boop;
 
 void gli_initialize_sound()
 {
@@ -485,10 +485,10 @@ void gli_initialize_sound()
 #endif
 
     for (std::size_t i = 0; i < beep.size(); i++)
-        beep[i] = 32767 * std::sin(641 * 2 * M_PI * i / 44100.0);
+        beep[i] = 127 * std::sin(641 * 2 * M_PI * i / 22050.0);
 
     for (std::size_t i = 0; i < boop.size(); i++)
-        boop[i] = 32767 * std::sin(641 * 2 * M_PI * i / 44100.0);
+        boop[i] = 127 * std::sin(641 * 2 * M_PI * i / 22050.0);
 }
 
 schanid_t glk_schannel_create(glui32 rock)
