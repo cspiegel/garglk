@@ -300,7 +300,7 @@ int garglk::rungame(const std::string &path, const std::string &game)
     configterp(path, game, interpreter);
 
     std::ifstream f(game, std::ios::binary);
-    if (f.is_open() && f.read(&header[0], header.size()))
+    if (f.is_open() && f.read(header.data(), header.size()))
     {
         if (interpreter.terp.empty())
         {
