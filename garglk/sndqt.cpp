@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -73,6 +74,7 @@
 /* non-standard types */
 #define giblorb_ID_MP3  (giblorb_make_id('M', 'P', '3', ' '))
 #define giblorb_ID_WAVE (giblorb_make_id('W', 'A', 'V', 'E'))
+#define giblorb_ID_RAW  (giblorb_make_id('R', 'A', 'W', ' '))
 
 #define GLK_MAXVOLUME 0x10000
 
@@ -204,12 +206,15 @@ private:
 
 class SndfileSource : public SoundSource {
 public:
-    SndfileSource(QByteArray buf, glui32 plays) :
+    SndfileSource(QByteArray buf, glui32 plays, bool raw = false) :
         SoundSource(plays),
         m_buf(std::move(buf))
     {
         SF_VIRTUAL_IO io = get_io();
-        m_soundfile = SndfileHandle(io, this);
+        if (raw)
+            m_soundfile = SndfileHandle(io, this, SFM_READ, SF_FORMAT_RAW | SF_FORMAT_FLOAT, 1, 44100);
+        else
+            m_soundfile = SndfileHandle(io, this);
         if (!m_soundfile)
             throw SoundError("can't open with libsndfile");
 
@@ -470,11 +475,20 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
     return chan->disprock;
 }
 
+static std::array<float, 17640> beep;
+static std::array<float, 35280> boop;
+
 void gli_initialize_sound()
 {
 #if MPG123_API_VERSION < 46
     mp3_initialized = mpg123_init() == MPG123_OK;
 #endif
+
+    for (std::size_t i = 0; i < beep.size(); i++)
+        beep[i] = std::sin(641 * 2 * M_PI * i / 44100.0);
+
+    for (std::size_t i = 0; i < boop.size(); i++)
+        boop[i] = std::sin(641 * 2 * M_PI * i / 44100.0);
 }
 
 schanid_t glk_schannel_create(glui32 rock)
@@ -636,6 +650,17 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 glk_volume, glui32 durat
 
 static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 {
+    if (snd == 1)
+    {
+        QByteArray data(reinterpret_cast<const char *>(beep.data()), beep.size());;
+        return {giblorb_ID_RAW, data};
+    }
+    else if (snd == 2)
+    {
+        QByteArray data(reinterpret_cast<const char *>(boop.data()), boop.size());;
+        return {giblorb_ID_RAW, data};
+    }
+
     if (giblorb_get_resource_map() == nullptr)
     {
         QString name = QString("%1/SND%2").arg(QString::fromStdString(gli_workdir)).arg(snd);
@@ -766,6 +791,9 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
             case giblorb_ID_OGG:
             case giblorb_ID_WAVE:
                 source.reset(new SndfileSource(data, repeats));
+                break;
+            case giblorb_ID_RAW:
+                source.reset(new SndfileSource(data, repeats, true));
                 break;
             case giblorb_ID_MP3:
                 source.reset(new Mpg123Source(data, repeats));
