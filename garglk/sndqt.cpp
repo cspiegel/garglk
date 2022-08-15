@@ -201,9 +201,9 @@ private:
 
 class SndfileSource : public SoundSource {
 public:
-    SndfileSource(const QByteArray &buf, glui32 plays) :
+    SndfileSource(QByteArray buf, glui32 plays) :
         SoundSource(plays),
-        m_buf(buf)
+        m_buf(std::move(buf))
     {
         SF_VIRTUAL_IO io = get_io();
         m_soundfile = SndfileHandle(io, this);
@@ -309,14 +309,14 @@ private:
 
 class Mpg123Source : public SoundSource {
 public:
-    Mpg123Source(const QByteArray &buf, glui32 plays) :
+    Mpg123Source(QByteArray buf, glui32 plays) :
         SoundSource(plays),
 #if MPG123_API_VERSION < 46
         m_handle(nullptr, mpg123_delete),
 #else
         m_handle(mpg123_new(nullptr, nullptr), mpg123_delete),
 #endif
-        m_buf(buf)
+        m_buf(std::move(buf))
     {
 #if MPG123_API_VERSION < 46
         if (!mp3_initialized)
@@ -677,9 +677,9 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
         };
 
         struct MagicString : public Magic {
-            MagicString(qint64 offset, const QString &string) :
+            MagicString(qint64 offset, QString string) :
                 m_offset(offset),
-                m_string(string)
+                m_string(std::move(string))
             {
             }
 
