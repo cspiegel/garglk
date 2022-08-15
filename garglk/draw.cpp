@@ -397,15 +397,16 @@ void gli_initialize_fonts()
     ftmat.xy = 0x03000L;
     ftmat.yy = 0x10000L;
 
-    gfont_table.clear();
-    gfont_table.insert({FontFace::MonoR, Font(gli_conf_mono.r, "Gargoyle-Mono.ttf", FontType::Monospace, FontStyle::Roman)});
-    gfont_table.insert({FontFace::MonoB, Font(gli_conf_mono.b, "Gargoyle-Mono-Bold.ttf", FontType::Monospace, FontStyle::Bold)});
-    gfont_table.insert({FontFace::MonoI, Font(gli_conf_mono.i, "Gargoyle-Mono-Italic.ttf", FontType::Monospace, FontStyle::Italic)});
-    gfont_table.insert({FontFace::MonoZ, Font(gli_conf_mono.z, "Gargoyle-Mono-Bold-Italic.ttf", FontType::Monospace, FontStyle::BoldItalic)});
-    gfont_table.insert({FontFace::PropR, Font(gli_conf_prop.r, "Gargoyle-Serif.ttf", FontType::Proportional, FontStyle::Roman)});
-    gfont_table.insert({FontFace::PropB, Font(gli_conf_prop.b, "Gargoyle-Serif-Bold.ttf", FontType::Proportional, FontStyle::Bold)});
-    gfont_table.insert({FontFace::PropI, Font(gli_conf_prop.i, "Gargoyle-Serif-Italic.ttf", FontType::Proportional, FontStyle::Italic)});
-    gfont_table.insert({FontFace::PropZ, Font(gli_conf_prop.z, "Gargoyle-Serif-Bold-Italic.ttf", FontType::Proportional, FontStyle::BoldItalic)});
+    gfont_table = {
+        {FontFace::MonoR, Font(gli_conf_mono.r, "Gargoyle-Mono.ttf", FontType::Monospace, FontStyle::Roman)},
+        {FontFace::MonoB, Font(gli_conf_mono.b, "Gargoyle-Mono-Bold.ttf", FontType::Monospace, FontStyle::Bold)},
+        {FontFace::MonoI, Font(gli_conf_mono.i, "Gargoyle-Mono-Italic.ttf", FontType::Monospace, FontStyle::Italic)},
+        {FontFace::MonoZ, Font(gli_conf_mono.z, "Gargoyle-Mono-Bold-Italic.ttf", FontType::Monospace, FontStyle::BoldItalic)},
+        {FontFace::PropR, Font(gli_conf_prop.r, "Gargoyle-Serif.ttf", FontType::Proportional, FontStyle::Roman)},
+        {FontFace::PropB, Font(gli_conf_prop.b, "Gargoyle-Serif-Bold.ttf", FontType::Proportional, FontStyle::Bold)},
+        {FontFace::PropI, Font(gli_conf_prop.i, "Gargoyle-Serif-Italic.ttf", FontType::Proportional, FontStyle::Italic)},
+        {FontFace::PropZ, Font(gli_conf_prop.z, "Gargoyle-Serif-Bold-Italic.ttf", FontType::Proportional, FontStyle::BoldItalic)},
+    };
 
     const auto &entry = gfont_table.at(FontFace::MonoR).getglyph('0');
 
