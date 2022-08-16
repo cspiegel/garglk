@@ -45,7 +45,7 @@ static std::set<K> map_keys(const std::map<K, V> &map)
 
 Color gli_parse_color(const std::string &str)
 {
-    static const std::regex color_re("#?[a-fA-F0-9]{6}");
+    static const std::regex color_re(R"(#?[a-fA-F0-9]{6})");
     std::string r, g, b;
 
     if (!std::regex_match(str, color_re))
