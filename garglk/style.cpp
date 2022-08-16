@@ -235,27 +235,15 @@ glui32 glk_style_measure(winid_t win, glui32 styl, glui32 hint, glui32 *result)
                 return true;
 
             case stylehint_Weight:
-                *result =
-                    style.font == FontFace::PropB ||
-                    style.font == FontFace::PropZ ||
-                    style.font == FontFace::MonoB ||
-                    style.font == FontFace::MonoZ;
+                *result = isbold(style.font);
                 return true;
 
             case stylehint_Oblique:
-                *result =
-                    style.font == FontFace::PropI ||
-                    style.font == FontFace::PropZ ||
-                    style.font == FontFace::MonoI ||
-                    style.font == FontFace::MonoZ;
+                *result = isitalic(style.font);
                 return true;
 
             case stylehint_Proportional:
-                *result =
-                    style.font == FontFace::PropR ||
-                    style.font == FontFace::PropI ||
-                    style.font == FontFace::PropB ||
-                    style.font == FontFace::PropZ;
+                *result = isprop(style.font);
                 return true;
 
             case stylehint_TextColor:
