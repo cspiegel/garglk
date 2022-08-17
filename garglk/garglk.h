@@ -57,9 +57,30 @@ inline void gli_strict_warning(const std::string &msg)
 }
 
 enum class FileFilter { Save, Text, Data };
-enum class FontFace { MonoR, MonoB, MonoI, MonoZ, PropR, PropB, PropI, PropZ };
 enum class FontType { Monospace, Proportional };
-enum class FontStyle { Roman, Bold, Italic, BoldItalic };
+
+struct FontFace {
+    FontFace() = delete;
+
+    static FontFace propr() { return {false, false, false}; }
+    static FontFace propb() { return {false, true, false}; }
+    static FontFace propi() { return {false, false, true}; }
+    static FontFace propz() { return {false, true, true}; }
+    static FontFace monor() { return {true, false, false}; }
+    static FontFace monob() { return {true, true, false}; }
+    static FontFace monoi() { return {true, false, true}; }
+    static FontFace monoz() { return {true, true, true}; }
+
+    bool operator==(const FontFace &other) {
+        return monospace == other.monospace &&
+               bold == other.bold &&
+               italic == other.italic;
+    }
+
+    bool monospace;
+    bool bold;
+    bool italic;
+};
 
 namespace garglk {
 

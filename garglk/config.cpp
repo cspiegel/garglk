@@ -65,31 +65,31 @@ float gli_conf_monosize = 12.6;	/* good size for Gargoyle Mono */
 float gli_conf_propsize = 14.7;	/* good size for Gargoyle Serif */
 
 Styles gli_tstyles{{
-    {FontFace::PropR, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Normal */
-    {FontFace::PropI, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Emphasized */
-    {FontFace::MonoR, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Preformatted */
-    {FontFace::PropB, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Header */
-    {FontFace::PropB, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Subheader */
-    {FontFace::PropZ, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Alert */
-    {FontFace::PropI, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Note */
-    {FontFace::PropR, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* BlockQuote */
-    {FontFace::PropB, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Input */
-    {FontFace::PropR, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* User1 */
-    {FontFace::PropR, Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* User2 */
+    {FontFace::propr(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Normal */
+    {FontFace::propi(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Emphasized */
+    {FontFace::monor(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Preformatted */
+    {FontFace::propb(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Header */
+    {FontFace::propb(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Subheader */
+    {FontFace::propz(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Alert */
+    {FontFace::propi(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Note */
+    {FontFace::propr(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* BlockQuote */
+    {FontFace::propb(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* Input */
+    {FontFace::propr(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* User1 */
+    {FontFace::propr(), Color(0xff,0xff,0xff), Color(0x00,0x00,0x00), false}, /* User2 */
 }};
 
 Styles gli_gstyles{{
-    {FontFace::MonoR, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Normal */
-    {FontFace::MonoI, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Emphasized */
-    {FontFace::MonoR, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Preformatted */
-    {FontFace::MonoB, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Header */
-    {FontFace::MonoB, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Subheader */
-    {FontFace::MonoZ, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Alert */
-    {FontFace::MonoI, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Note */
-    {FontFace::MonoR, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* BlockQuote */
-    {FontFace::MonoB, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Input */
-    {FontFace::MonoR, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* User1 */
-    {FontFace::MonoR, Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* User2 */
+    {FontFace::monor(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Normal */
+    {FontFace::monoi(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Emphasized */
+    {FontFace::monor(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Preformatted */
+    {FontFace::monob(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Header */
+    {FontFace::monob(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Subheader */
+    {FontFace::monoz(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Alert */
+    {FontFace::monoi(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Note */
+    {FontFace::monor(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* BlockQuote */
+    {FontFace::monob(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* Input */
+    {FontFace::monor(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* User1 */
+    {FontFace::monor(), Color(0xff,0xff,0xff), Color(0x60,0x60,0x60), false}, /* User2 */
 }};
 
 const Styles gli_tstyles_def = gli_tstyles;
@@ -99,15 +99,15 @@ std::vector<garglk::ConfigFile> garglk::all_configs;
 
 static FontFace font2idx(const std::string &font)
 {
-    if (font == "monor") return FontFace::MonoR;
-    if (font == "monob") return FontFace::MonoB;
-    if (font == "monoi") return FontFace::MonoI;
-    if (font == "monoz") return FontFace::MonoZ;
-    if (font == "propr") return FontFace::PropR;
-    if (font == "propb") return FontFace::PropB;
-    if (font == "propi") return FontFace::PropI;
-    if (font == "propz") return FontFace::PropZ;
-    return FontFace::MonoR;
+    if (font == "monor") return FontFace::monor();
+    if (font == "monob") return FontFace::monob();
+    if (font == "monoi") return FontFace::monoi();
+    if (font == "monoz") return FontFace::monoz();
+    if (font == "propr") return FontFace::propr();
+    if (font == "propb") return FontFace::propb();
+    if (font == "propi") return FontFace::propi();
+    if (font == "propz") return FontFace::propz();
+    return FontFace::monor();
 }
 
 float gli_conf_gamma = 1.0;
@@ -134,7 +134,7 @@ static std::string base_more_prompt = "— more —";
 std::vector<glui32> gli_more_prompt;
 glui32 gli_more_prompt_len;
 int gli_more_align = 0;
-FontFace gli_more_font = FontFace::PropB;
+FontFace gli_more_font = FontFace::propb();
 
 Color gli_scroll_bg(0xb0, 0xb0, 0xb0);
 Color gli_scroll_fg(0x80, 0x80, 0x80);

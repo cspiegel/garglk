@@ -33,6 +33,8 @@
 #include <utility>
 #include <vector>
 
+#include "optional.hpp"
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -68,7 +70,7 @@ struct FontEntry
 class Font
 {
 public:
-    Font(const std::string &path, const std::string &fallback, FontType type, FontStyle style);
+    Font(FontFace fontface, const std::string &fallback);
 
     const FontEntry &getglyph(glui32 cid);
     int charkern(glui32 c0, glui32 c1);
@@ -76,7 +78,12 @@ public:
         return m_face;
     }
 
+    FontFace fontface() {
+        return m_fontface;
+    }
+
 private:
+    FontFace m_fontface;
     FT_Face m_face = nullptr;
     std::map<glui32, FontEntry> m_entries;
     bool m_make_bold = false;
@@ -92,7 +99,36 @@ private:
 std::array<unsigned short, 256> gammamap;
 std::array<unsigned char, 1 << GAMMA_BITS> gammainv;
 
-static std::map<FontFace, Font> gfont_table;
+class FontTable {
+public:
+    FontTable() {
+        m_table = {
+            Font(FontFace::monor(), "Gargoyle-Mono.ttf"),
+            Font(FontFace::monob(), "Gargoyle-Mono-Bold.ttf"),
+            Font(FontFace::monoi(), "Gargoyle-Mono-Italic.ttf"),
+            Font(FontFace::monoz(), "Gargoyle-Mono-Bold-Italic.ttf"),
+            Font(FontFace::propr(), "Gargoyle-Serif.ttf"),
+            Font(FontFace::propb(), "Gargoyle-Serif-Bold.ttf"),
+            Font(FontFace::propi(), "Gargoyle-Serif-Italic.ttf"),
+            Font(FontFace::propz(), "Gargoyle-Serif-Bold-Italic.ttf"),
+        };
+    }
+
+    Font &at(const FontFace &fontface) {
+        for (auto &font : m_table)
+        {
+            if (font.fontface() == fontface)
+                return font;
+        }
+
+        throw std::out_of_range("internal error: missing font");
+    }
+
+private:
+    std::vector<Font> m_table;
+};
+
+static nonstd::optional<FontTable> gfont_table;
 
 int gli_cellw = 8;
 int gli_cellh = 8;
@@ -255,32 +291,19 @@ static std::string font_path_fallback_local(const std::string &, const std::stri
     return fallback;
 }
 
-static const char *type_to_name(FontType type)
+static const std::string fontface_to_name(FontFace &fontface)
 {
-    if (type == FontType::Monospace)
-        return "Mono";
-    else
-        return "Proportional";
+    std::string type = fontface.monospace ? "Mono" : "Proportional";
+    std::string style = (fontface.bold && fontface.italic) ? "Bold Italic" :
+                        (fontface.bold                   ) ? "Bold" :
+                        (fontface.italic                 ) ? "Italic" :
+                                                             "Regular";
+
+    return type + " " + style;
 }
 
-static std::string style_to_name(FontStyle style)
-{
-    switch (style)
-    {
-        case FontStyle::Roman:
-            return "Regular";
-        case FontStyle::Bold:
-            return "Bold";
-        case FontStyle::Italic:
-            return "Italic";
-        case FontStyle::BoldItalic:
-            return "Bold Italic";;
-    }
-
-    return "";
-}
-
-Font::Font(const std::string &path, const std::string &fallback, FontType type, FontStyle style)
+Font::Font(FontFace fontface, const std::string &fallback) :
+    m_fontface(fontface)
 {
     int err = 0;
     std::string fontpath;
@@ -293,7 +316,18 @@ Font::Font(const std::string &path, const std::string &fallback, FontType type, 
         font_path_fallback_local,
     };
 
-    if (type == FontType::Monospace)
+    std::string path =
+        fontface == FontFace::monor() ? gli_conf_mono.r :
+        fontface == FontFace::monob() ? gli_conf_mono.b :
+        fontface == FontFace::monoi() ? gli_conf_mono.i :
+        fontface == FontFace::monoz() ? gli_conf_mono.z :
+        fontface == FontFace::propr() ? gli_conf_prop.r :
+        fontface == FontFace::propb() ? gli_conf_prop.b :
+        fontface == FontFace::propi() ? gli_conf_prop.i :
+        fontface == FontFace::propz() ? gli_conf_prop.z :
+                                        gli_conf_mono.r;
+
+    if (fontface.monospace)
     {
         aspect = gli_conf_monoaspect;
         size = gli_conf_monosize;
@@ -311,7 +345,7 @@ Font::Font(const std::string &path, const std::string &fallback, FontType type, 
         return !fontpath.empty() && FT_New_Face(ftlib, fontpath.c_str(), 0, &m_face) == 0;
     }))
     {
-        garglk::winabort("Unable to find font " + family + " for " + type_to_name(type) + " " + style_to_name(style) + ", and fallback " + fallback + " not found");
+        garglk::winabort("Unable to find font " + family + " for " + fontface_to_name(fontface) + ", and fallback " + fallback + " not found");
     }
 
     auto dot = fontpath.rfind(".");
@@ -338,28 +372,8 @@ Font::Font(const std::string &path, const std::string &fallback, FontType type, 
 
     m_kerned = FT_HAS_KERNING(m_face);
 
-    switch (style)
-    {
-        case FontStyle::Roman:
-            m_make_bold = false;
-            m_make_oblique = false;
-            break;
-
-        case FontStyle::Bold:
-            m_make_bold = !(m_face->style_flags & FT_STYLE_FLAG_BOLD);
-            m_make_oblique = false;
-            break;
-
-        case FontStyle::Italic:
-            m_make_bold = false;
-            m_make_oblique = !(m_face->style_flags & FT_STYLE_FLAG_ITALIC);
-            break;
-
-        case FontStyle::BoldItalic:
-            m_make_bold = !(m_face->style_flags & FT_STYLE_FLAG_BOLD);
-            m_make_oblique = !(m_face->style_flags & FT_STYLE_FLAG_ITALIC);
-            break;
-    }
+    m_make_bold = fontface.bold && !(m_face->style_flags & FT_STYLE_FLAG_BOLD);
+    m_make_oblique = fontface.italic && !(m_face->style_flags & FT_STYLE_FLAG_ITALIC);
 }
 
 void gli_initialize_fonts()
@@ -397,18 +411,9 @@ void gli_initialize_fonts()
     ftmat.xy = 0x03000L;
     ftmat.yy = 0x10000L;
 
-    gfont_table = {
-        {FontFace::MonoR, Font(gli_conf_mono.r, "Gargoyle-Mono.ttf", FontType::Monospace, FontStyle::Roman)},
-        {FontFace::MonoB, Font(gli_conf_mono.b, "Gargoyle-Mono-Bold.ttf", FontType::Monospace, FontStyle::Bold)},
-        {FontFace::MonoI, Font(gli_conf_mono.i, "Gargoyle-Mono-Italic.ttf", FontType::Monospace, FontStyle::Italic)},
-        {FontFace::MonoZ, Font(gli_conf_mono.z, "Gargoyle-Mono-Bold-Italic.ttf", FontType::Monospace, FontStyle::BoldItalic)},
-        {FontFace::PropR, Font(gli_conf_prop.r, "Gargoyle-Serif.ttf", FontType::Proportional, FontStyle::Roman)},
-        {FontFace::PropB, Font(gli_conf_prop.b, "Gargoyle-Serif-Bold.ttf", FontType::Proportional, FontStyle::Bold)},
-        {FontFace::PropI, Font(gli_conf_prop.i, "Gargoyle-Serif-Italic.ttf", FontType::Proportional, FontStyle::Italic)},
-        {FontFace::PropZ, Font(gli_conf_prop.z, "Gargoyle-Serif-Bold-Italic.ttf", FontType::Proportional, FontStyle::BoldItalic)},
-    };
+    gfont_table = FontTable();
 
-    const auto &entry = gfont_table.at(FontFace::MonoR).getglyph('0');
+    auto &entry = gfont_table->at(FontFace::monor()).getglyph('0');
 
     gli_cellh = gli_leading;
     gli_cellw = (entry.adv + GLI_SUBPIX - 1) / GLI_SUBPIX;
@@ -568,7 +573,7 @@ static const std::vector<std::pair<std::vector<glui32>, glui32>> ligatures = {
 
 static int gli_string_impl(int x, FontFace face, const glui32 *s, std::size_t n, int spw, std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> callback)
 {
-    auto &f = gfont_table.at(face);
+    auto &f = gfont_table->at(face);
     bool dolig = !FT_IS_FIXED_WIDTH(f.face());
     int prev = -1;
     glui32 c;

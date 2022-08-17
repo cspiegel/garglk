@@ -29,6 +29,8 @@
 #include "glk.h"
 #include "garglk.h"
 
+enum class FontStyle { Roman, Bold, Italic, BoldItalic };
+
 static bool gli_sys_monor = false;
 static bool gli_sys_monob = false;
 static bool gli_sys_monoi = false;

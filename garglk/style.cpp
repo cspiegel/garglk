@@ -25,38 +25,8 @@
 #include "glk.h"
 #include "garglk.h"
 
-static bool isprop(FontFace f)
-{
-    return f == FontFace::PropR || f == FontFace::PropI || f == FontFace::PropB || f == FontFace::PropZ;
-}
-
-static bool isbold(FontFace f)
-{
-    return f == FontFace::PropB || f == FontFace::PropZ || f == FontFace::MonoB || f == FontFace::MonoZ;
-}
-
-static bool isitalic(FontFace f)
-{
-    return f == FontFace::PropI || f == FontFace::PropZ || f == FontFace::MonoI || f == FontFace::MonoZ;
-}
-
-static FontFace makefont(bool p, bool b, bool i)
-{
-    if ( p && !b && !i) return FontFace::PropR;
-    if ( p && !b &&  i) return FontFace::PropI;
-    if ( p &&  b && !i) return FontFace::PropB;
-    if ( p &&  b &&  i) return FontFace::PropZ;
-    if (!p && !b && !i) return FontFace::MonoR;
-    if (!p && !b &&  i) return FontFace::MonoI;
-    if (!p &&  b && !i) return FontFace::MonoB;
-    if (!p &&  b &&  i) return FontFace::MonoZ;
-    return FontFace::PropR;
-}
-
 void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
 {
-    bool p, b, i;
-
     if (!gli_conf_stylehint)
         return;
 
@@ -95,26 +65,15 @@ void glk_stylehint_set(glui32 wintype, glui32 styl, glui32 hint, glsi32 val)
 
             case stylehint_Proportional:
                 if (wintype == wintype_TextBuffer)
-                {
-                    p = val != 0;
-                    b = isbold(style.font);
-                    i = isitalic(style.font);
-                    style.font = makefont(p, b, i);
-                }
+                    style.font.monospace = val == 0;
                 break;
 
             case stylehint_Weight:
-                p = isprop(style.font);
-                b = val != 0;
-                i = isitalic(style.font);
-                style.font = makefont(p, b, i);
+                style.font.bold = val != 0;
                 break;
 
             case stylehint_Oblique:
-                p = isprop(style.font);
-                b = isbold(style.font);
-                i = val != 0;
-                style.font = makefont(p, b, i);
+                style.font.italic = val != 0;
                 break;
         }
 
@@ -235,15 +194,15 @@ glui32 glk_style_measure(winid_t win, glui32 styl, glui32 hint, glui32 *result)
                 return true;
 
             case stylehint_Weight:
-                *result = isbold(style.font);
+                *result = style.font.bold;
                 return true;
 
             case stylehint_Oblique:
-                *result = isitalic(style.font);
+                *result = style.font.italic;
                 return true;
 
             case stylehint_Proportional:
-                *result = isprop(style.font);
+                *result = !style.font.monospace;
                 return true;
 
             case stylehint_TextColor:

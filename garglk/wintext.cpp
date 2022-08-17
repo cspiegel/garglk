@@ -292,7 +292,6 @@ void win_textbuffer_redraw(window_t *win)
     int x, y, w;
     int a, b;
     glui32 link;
-    FontFace font;
     int i;
     int hx0, hx1, hy0, hy1;
     bool selbuf, selrow, selchar;
@@ -489,7 +488,7 @@ void win_textbuffer_redraw(window_t *win)
             if (!attrequal(&ln.attrs[a], &ln.attrs[b]))
             {
                 link = ln.attrs[a].hyper;
-                font = attrfont(dwin->styles, ln.attrs[a]);
+                auto font = attrfont(dwin->styles, ln.attrs[a]);
                 color = attrbg(dwin->styles, ln.attrs[a]);
                 w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
                 gli_draw_rect(x/GLI_SUBPIX, y,
@@ -509,7 +508,7 @@ void win_textbuffer_redraw(window_t *win)
             }
         }
         link = ln.attrs[a].hyper;
-        font = attrfont(dwin->styles, ln.attrs[a]);
+        auto font = attrfont(dwin->styles, ln.attrs[a]);
         color = attrbg(dwin->styles, ln.attrs[a]);
         w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
         gli_draw_rect(x/GLI_SUBPIX, y, w/GLI_SUBPIX,
