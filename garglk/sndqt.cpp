@@ -81,8 +81,6 @@
 
 static std::set<schanid_t> gli_channellist;
 
-static bool zbleep_enabled = false;
-
 #if MPG123_API_VERSION < 46
 static bool mp3_initialized;
 #endif
@@ -543,11 +541,6 @@ void gli_parse_zbleep_file(int number, const char *path)
     bleeps.update(number, path);
 }
 
-void garglk_enable_zbleep(bool enable)
-{
-    zbleep_enabled = enable;
-}
-
 void gli_initialize_sound()
 {
 #if MPG123_API_VERSION < 46
@@ -781,19 +774,24 @@ static int detect_format(const QByteArray &data)
     throw SoundError("no matching magic");
 }
 
+static std::pair<int, QByteArray> load_bleep_resource(glui32 snd)
+{
+    if (snd != 1 && snd != 2)
+        throw SoundError("invalid bleep selected");
+
+    const auto &pair = bleeps.at(snd);
+    QByteArray data(reinterpret_cast<const char *>(pair.second.data()), pair.second.size());
+
+    if (pair.first == Bleeps::Format::Raw)
+        return {giblorb_ID_RAW, data};
+    else if (pair.first == Bleeps::Format::Detect)
+        return {detect_format(data), data};
+
+    throw SoundError("unreachable");
+}
+
 static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 {
-    if ((snd == 1 || snd == 2) && zbleep_enabled)
-    {
-        const auto &pair = bleeps.at(snd);
-        QByteArray data(reinterpret_cast<const char *>(pair.second.data()), pair.second.size());
-
-        if (pair.first == Bleeps::Format::Raw)
-            return {giblorb_ID_RAW, data};
-        else if (pair.first == Bleeps::Format::Detect)
-            return {detect_format(data), data};
-    }
-
     if (giblorb_get_resource_map() == nullptr)
     {
         QString name = QString("%1/SND%2").arg(QString::fromStdString(gli_workdir)).arg(snd);
@@ -828,7 +826,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
     }
 }
 
-glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify)
+glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify, bool is_zbleep)
 {
     if (chan == nullptr)
     {
@@ -846,7 +844,11 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     {
         int type;
         QByteArray data;
-        std::tie(type, data) = load_sound_resource(snd);
+
+        if (is_zbleep)
+            std::tie(type, data) = load_bleep_resource(snd);
+        else
+            std::tie(type, data) = load_sound_resource(snd);
 
         try
         {
@@ -929,6 +931,16 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     {
         return 0;
     }
+}
+
+glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify)
+{
+    return glk_schannel_play_ext_impl(chan, snd, repeats, notify, false);
+}
+
+glui32 garglk_schannel_zbleep(schanid_t chan, glui32 snd)
+{
+    return glk_schannel_play_ext_impl(chan, snd, 1, 0, true);
 }
 
 void glk_schannel_pause(schanid_t chan)
