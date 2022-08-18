@@ -80,7 +80,7 @@
 
 static std::set<schanid_t> gli_channellist;
 
-static bool zbeep_enabled = false;
+static bool zbleep_enabled = false;
 
 #if MPG123_API_VERSION < 46
 static bool mp3_initialized;
@@ -483,7 +483,7 @@ static std::map<int, std::vector<std::int8_t>> beeps = {
 };
 
 // 22050Hz, 8 bits per sample, mono
-void gli_parse_zbeep(int number, double duration, int pitch)
+void gli_parse_zbleep(int number, double duration, int pitch)
 {
     if (number != 1 && number != 2)
         return;
@@ -495,9 +495,9 @@ void gli_parse_zbeep(int number, double duration, int pitch)
         vec.push_back(127 * std::sin(pitch * 2 * M_PI * i / 22050.0));
 }
 
-void garglk_enable_zbeep(bool enable)
+void garglk_enable_zbleep(bool enable)
 {
-    zbeep_enabled = enable;
+    zbleep_enabled = enable;
 }
 
 void gli_initialize_sound()
@@ -666,7 +666,7 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 glk_volume, glui32 durat
 
 static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 {
-    if ((snd == 1 || snd == 2) && zbeep_enabled)
+    if ((snd == 1 || snd == 2) && zbleep_enabled)
     {
         const auto &beep = beeps.at(snd);
         QByteArray data(reinterpret_cast<const char *>(beep.data()), beep.size());
