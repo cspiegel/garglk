@@ -80,6 +80,8 @@
 
 static std::set<schanid_t> gli_channellist;
 
+static bool zbeep_enabled = false;
+
 #if MPG123_API_VERSION < 46
 static bool mp3_initialized;
 #endif
@@ -475,20 +477,34 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
     return chan->disprock;
 }
 
-static std::array<std::int8_t, 2205> beep;
-static std::array<std::int8_t, 4410> boop;
+static std::map<int, std::vector<std::int8_t>> beeps = {
+    {1, {}},
+    {2, {}},
+};
+
+// 22050Hz, 8 bits per sample, mono
+void gli_parse_zbeep(int number, double duration, int pitch)
+{
+    if (number != 1 && number != 2)
+        return;
+
+    auto &vec = beeps.at(number);
+    vec.clear();
+
+    for (std::size_t i = 0; i < duration * 22050U; i++)
+        vec.push_back(127 * std::sin(pitch * 2 * M_PI * i / 22050.0));
+}
+
+void garglk_enable_zbeep(bool enable)
+{
+    zbeep_enabled = enable;
+}
 
 void gli_initialize_sound()
 {
 #if MPG123_API_VERSION < 46
     mp3_initialized = mpg123_init() == MPG123_OK;
 #endif
-
-    for (std::size_t i = 0; i < beep.size(); i++)
-        beep[i] = 127 * std::sin(641 * 2 * M_PI * i / 22050.0);
-
-    for (std::size_t i = 0; i < boop.size(); i++)
-        boop[i] = 127 * std::sin(641 * 2 * M_PI * i / 22050.0);
 }
 
 schanid_t glk_schannel_create(glui32 rock)
@@ -650,14 +666,10 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 glk_volume, glui32 durat
 
 static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 {
-    if (snd == 1)
+    if ((snd == 1 || snd == 2) && zbeep_enabled)
     {
-        QByteArray data(reinterpret_cast<const char *>(beep.data()), beep.size());;
-        return {giblorb_ID_RAW, data};
-    }
-    else if (snd == 2)
-    {
-        QByteArray data(reinterpret_cast<const char *>(boop.data()), boop.size());;
+        const auto &beep = beeps.at(snd);
+        QByteArray data(reinterpret_cast<const char *>(beep.data()), beep.size());
         return {giblorb_ID_RAW, data};
     }
 

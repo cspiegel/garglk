@@ -35,6 +35,8 @@ extern "C" {
     distributed under the MIT license; see the "LICENSE" file.
 */
 
+#include <stdbool.h>
+
 /* If your system does not have <stdint.h>, you'll have to remove this
     include line. Then edit the definition of glui32 to make sure it's
     really a 32-bit unsigned integer type, and glsi32 to make sure
@@ -508,6 +510,9 @@ extern void garglk_set_zcolors(glui32 fg, glui32 bg);
 extern void garglk_set_zcolors_stream(strid_t str, glui32 fg, glui32 bg);
 extern void garglk_set_reversevideo(glui32 reverse);
 extern void garglk_set_reversevideo_stream(strid_t str, glui32 reverse);
+
+extern void garglk_enable_zbeep(bool enable);
+#define GARGLK_HAS_ZBEEP
 
 /* non standard keycodes */
 #define keycode_Erase               (0xffffef7f)
