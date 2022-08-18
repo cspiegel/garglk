@@ -104,6 +104,11 @@ static channel_t *music_channel;
 static const int FREE = 1;
 static const int BUSY = 2;
 
+// XXX Temporary wrapper
+void gli_parse_zbleep(int number, double duration, int pitch)
+{
+}
+
 gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 {
     return chan->disprock;
