@@ -477,22 +477,42 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
     return chan->disprock;
 }
 
-static std::map<int, std::vector<std::int8_t>> beeps = {
-    {1, {}},
-    {2, {}},
+class Bleeps {
+public:
+    Bleeps() {
+        update(1, 0.1, 1175);
+        update(2, 0.1, 440);
+    }
+
+    // 22050Hz, 8 bits per sample, mono
+    void update(int number, double duration, int pitch) {
+        if (number != 1 && number != 2)
+            return;
+
+        auto &vec = m_bleeps.at(number);
+        vec.clear();
+
+        for (std::size_t i = 0; i < duration * m_samplerate; i++)
+            vec.push_back(127 * std::sin(pitch * 2 * M_PI * i / static_cast<double>(m_samplerate)));
+    }
+
+    std::vector<std::int8_t> &at(int number) {
+        return m_bleeps.at(number);
+    }
+
+private:
+    unsigned int m_samplerate = 22050;
+    std::map<int, std::vector<std::int8_t>> m_bleeps = {
+        {1, {}},
+        {2, {}},
+    };
 };
 
-// 22050Hz, 8 bits per sample, mono
+static Bleeps bleeps;
+
 void gli_parse_zbleep(int number, double duration, int pitch)
 {
-    if (number != 1 && number != 2)
-        return;
-
-    auto &vec = beeps.at(number);
-    vec.clear();
-
-    for (std::size_t i = 0; i < duration * 22050U; i++)
-        vec.push_back(127 * std::sin(pitch * 2 * M_PI * i / 22050.0));
+    bleeps.update(number, duration, pitch);
 }
 
 void garglk_enable_zbleep(bool enable)
@@ -668,7 +688,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 {
     if ((snd == 1 || snd == 2) && zbleep_enabled)
     {
-        const auto &beep = beeps.at(snd);
+        const auto &beep = bleeps.at(snd);
         QByteArray data(reinterpret_cast<const char *>(beep.data()), beep.size());
         return {giblorb_ID_RAW, data};
     }
