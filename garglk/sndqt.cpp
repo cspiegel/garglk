@@ -27,6 +27,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <memory>
 #include <new>
 #include <set>
@@ -479,6 +480,11 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 
 class Bleeps {
 public:
+    enum class Format {
+        Raw,
+        Detect,
+    };
+
     Bleeps() {
         update(1, 0.1, 1175);
         update(2, 0.1, 440);
@@ -489,22 +495,39 @@ public:
         if (number != 1 && number != 2)
             return;
 
-        auto &vec = m_bleeps.at(number);
+        auto &pair = m_bleeps.at(number);
+        auto &vec = pair.second;
         vec.clear();
 
         for (std::size_t i = 0; i < duration * m_samplerate; i++)
             vec.push_back(127 * std::sin(frequency * 2 * M_PI * i / static_cast<double>(m_samplerate)));
+
+        pair.first = Format::Raw;
     }
 
-    std::vector<std::int8_t> &at(int number) {
+    void update(int number, const std::string &path) {
+        std::ifstream f(path, std::ios::binary);
+
+        std::vector<char> data((std::istreambuf_iterator<char>(f)),
+                                std::istreambuf_iterator<char>());
+
+        if (!f.fail())
+        {
+            auto &pair = m_bleeps.at(number);
+            pair.second.assign(data.begin(), data.end());
+            pair.first = Format::Detect;
+        }
+    }
+
+    std::pair<Format, std::vector<std::int8_t>> &at(int number) {
         return m_bleeps.at(number);
     }
 
 private:
     unsigned int m_samplerate = 22050;
-    std::map<int, std::vector<std::int8_t>> m_bleeps = {
-        {1, {}},
-        {2, {}},
+    std::map<int, std::pair<Format, std::vector<std::int8_t>>> m_bleeps = {
+        {1, {Format::Raw, {}}},
+        {2, {Format::Raw, {}}},
     };
 };
 
@@ -684,13 +707,86 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 glk_volume, glui32 durat
     chan->last_volume_bump = std::chrono::steady_clock::now();
 }
 
+static int detect_format(const QByteArray &data)
+{
+    struct Magic {
+        virtual ~Magic() = default;
+        virtual bool matches(const QByteArray &data) const = 0;
+    };
+
+    struct MagicString : public Magic {
+        MagicString(qint64 offset, QString string) :
+            m_offset(offset),
+            m_string(std::move(string))
+        {
+        }
+
+        bool matches(const QByteArray &data) const override {
+            QByteArray subarray = data.mid(m_offset, m_string.size());
+
+            return QString(subarray) == m_string;
+        }
+
+    private:
+        const qint64 m_offset;
+        const QString m_string;
+    };
+
+    struct MagicMod : public Magic {
+        bool matches(const QByteArray &data) const override {
+            std::size_t size = std::min(openmpt_probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
+
+            return openmpt_probe_file_header(OPENMPT_PROBE_FILE_HEADER_FLAGS_DEFAULT,
+                    data.data(), size, data.size(),
+                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) == OPENMPT_PROBE_FILE_HEADER_RESULT_SUCCESS;
+        }
+    };
+
+    std::vector<std::pair<std::shared_ptr<Magic>, int>> magics = {
+        { std::make_shared<MagicString>(0, "FORM"), giblorb_ID_FORM },
+        { std::make_shared<MagicString>(0, "RIFF"), giblorb_ID_WAVE },
+        { std::make_shared<MagicString>(0, "OggS"), giblorb_ID_OGG },
+
+        { std::make_shared<MagicMod>(), giblorb_ID_MOD },
+
+        // ID3-tagged MP3s have a magic string, but untagged MP3
+        // files don't, as they are just collections of frames, each
+        // with a sync header. All MP3 sync headers start with an
+        // 11-bit frame sync which is set to all ones. The next 4
+        // bits can be anything except all zeros, and the bit
+        // following that can be 0 or 1, giving 6 possible values
+        // for the first 2 bytes of the frame. This may well have
+        // false positives, but mpg123 will then hopefully fail to
+        // load the file.
+        { std::make_shared<MagicString>(0, "ID3"), giblorb_ID_MP3 },
+        { std::make_shared<MagicString>(0, "\xff\xe2"), giblorb_ID_MP3 },
+        { std::make_shared<MagicString>(0, "\xff\xe3"), giblorb_ID_MP3 },
+        { std::make_shared<MagicString>(0, "\xff\xf2"), giblorb_ID_MP3 },
+        { std::make_shared<MagicString>(0, "\xff\xf3"), giblorb_ID_MP3 },
+        { std::make_shared<MagicString>(0, "\xff\xfa"), giblorb_ID_MP3 },
+        { std::make_shared<MagicString>(0, "\xff\xfb"), giblorb_ID_MP3 },
+    };
+
+    for (const auto &pair : magics)
+    {
+        if (pair.first->matches(data))
+            return pair.second;
+    }
+
+    throw SoundError("no matching magic");
+}
+
 static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 {
     if ((snd == 1 || snd == 2) && zbleep_enabled)
     {
-        const auto &beep = bleeps.at(snd);
-        QByteArray data(reinterpret_cast<const char *>(beep.data()), beep.size());
-        return {giblorb_ID_RAW, data};
+        const auto &pair = bleeps.at(snd);
+        QByteArray data(reinterpret_cast<const char *>(pair.second.data()), pair.second.size());
+
+        if (pair.first == Bleeps::Format::Raw)
+            return {giblorb_ID_RAW, data};
+        else if (pair.first == Bleeps::Format::Detect)
+            return {detect_format(data), data};
     }
 
     if (giblorb_get_resource_map() == nullptr)
@@ -703,71 +799,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 
         QByteArray data = file.readAll();
 
-        struct Magic {
-            virtual ~Magic() = default;
-            virtual bool matches(const QByteArray &data) const = 0;
-        };
-
-        struct MagicString : public Magic {
-            MagicString(qint64 offset, QString string) :
-                m_offset(offset),
-                m_string(std::move(string))
-            {
-            }
-
-            bool matches(const QByteArray &data) const override {
-                QByteArray subarray = data.mid(m_offset, m_string.size());
-
-                return QString(subarray) == m_string;
-            }
-
-        private:
-            const qint64 m_offset;
-            const QString m_string;
-        };
-
-        struct MagicMod : public Magic {
-            bool matches(const QByteArray &data) const override {
-                std::size_t size = std::min(openmpt_probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
-
-                return openmpt_probe_file_header(OPENMPT_PROBE_FILE_HEADER_FLAGS_DEFAULT,
-                        data.data(), size, data.size(),
-                        nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) == OPENMPT_PROBE_FILE_HEADER_RESULT_SUCCESS;
-            }
-        };
-
-        std::vector<std::pair<std::shared_ptr<Magic>, int>> magics = {
-            { std::make_shared<MagicString>(0, "FORM"), giblorb_ID_FORM },
-            { std::make_shared<MagicString>(0, "RIFF"), giblorb_ID_WAVE },
-            { std::make_shared<MagicString>(0, "OggS"), giblorb_ID_OGG },
-
-            { std::make_shared<MagicMod>(), giblorb_ID_MOD },
-
-            // ID3-tagged MP3s have a magic string, but untagged MP3
-            // files don't, as they are just collections of frames, each
-            // with a sync header. All MP3 sync headers start with an
-            // 11-bit frame sync which is set to all ones. The next 4
-            // bits can be anything except all zeros, and the bit
-            // following that can be 0 or 1, giving 6 possible values
-            // for the first 2 bytes of the frame. This may well have
-            // false positives, but mpg123 will then hopefully fail to
-            // load the file.
-            { std::make_shared<MagicString>(0, "ID3"), giblorb_ID_MP3 },
-            { std::make_shared<MagicString>(0, "\xff\xe2"), giblorb_ID_MP3 },
-            { std::make_shared<MagicString>(0, "\xff\xe3"), giblorb_ID_MP3 },
-            { std::make_shared<MagicString>(0, "\xff\xf2"), giblorb_ID_MP3 },
-            { std::make_shared<MagicString>(0, "\xff\xf3"), giblorb_ID_MP3 },
-            { std::make_shared<MagicString>(0, "\xff\xfa"), giblorb_ID_MP3 },
-            { std::make_shared<MagicString>(0, "\xff\xfb"), giblorb_ID_MP3 },
-        };
-
-        for (const auto &pair : magics)
-        {
-            if (pair.first->matches(data))
-                return std::make_pair(pair.second, data);
-        }
-
-        throw SoundError("no matching magic");
+        return {detect_format(data), data};
     }
     else
     {
