@@ -485,7 +485,7 @@ public:
     }
 
     // 22050Hz, 8 bits per sample, mono
-    void update(int number, double duration, int pitch) {
+    void update(int number, double duration, int frequency) {
         if (number != 1 && number != 2)
             return;
 
@@ -493,7 +493,7 @@ public:
         vec.clear();
 
         for (std::size_t i = 0; i < duration * m_samplerate; i++)
-            vec.push_back(127 * std::sin(pitch * 2 * M_PI * i / static_cast<double>(m_samplerate)));
+            vec.push_back(127 * std::sin(frequency * 2 * M_PI * i / static_cast<double>(m_samplerate)));
     }
 
     std::vector<std::int8_t> &at(int number) {
@@ -510,9 +510,9 @@ private:
 
 static Bleeps bleeps;
 
-void gli_parse_zbleep(int number, double duration, int pitch)
+void gli_parse_zbleep(int number, double duration, int frequency)
 {
-    bleeps.update(number, duration, pitch);
+    bleeps.update(number, duration, frequency);
 }
 
 void garglk_enable_zbleep(bool enable)

@@ -105,7 +105,7 @@ static const int FREE = 1;
 static const int BUSY = 2;
 
 // XXX Temporary wrapper
-void gli_parse_zbleep(int number, double duration, int pitch)
+void gli_parse_zbleep(int number, double duration, int frequency)
 {
 }
 
