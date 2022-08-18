@@ -111,6 +111,10 @@ void gli_parse_zbleep(int number, double duration, int frequency)
 void gli_parse_zbleep_file(int number, const char *path)
 {
 }
+glui32 garglk_schannel_zbleep(schanid_t chan, glui32 snd)
+{
+    return 0;
+}
 
 gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 {
