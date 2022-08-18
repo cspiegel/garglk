@@ -538,6 +538,11 @@ void gli_parse_zbleep(int number, double duration, int frequency)
     bleeps.update(number, duration, frequency);
 }
 
+void gli_parse_zbleep_file(int number, const char *path)
+{
+    bleeps.update(number, path);
+}
+
 void garglk_enable_zbleep(bool enable)
 {
     zbleep_enabled = enable;

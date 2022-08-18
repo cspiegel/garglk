@@ -602,6 +602,13 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
 
             if (argstream >> number >> duration >> frequency)
                 gli_parse_zbleep(number, duration, frequency);
+        } else if (cmd == "zbleep_file") {
+            std::istringstream argstream(arg);
+            int number;
+            std::string path;
+
+            if (argstream >> number >> path)
+                gli_parse_zbleep_file(number, path.c_str());
         } else if (cmd == "fullscreen") {
             gli_conf_fullscreen = !!std::stoi(arg);
         } else if (cmd == "zoom") {

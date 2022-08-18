@@ -104,8 +104,11 @@ static channel_t *music_channel;
 static const int FREE = 1;
 static const int BUSY = 2;
 
-// XXX Temporary wrapper
+// XXX Temporary wrappers
 void gli_parse_zbleep(int number, double duration, int frequency)
+{
+}
+void gli_parse_zbleep_file(int number, const char *path)
 {
 }
 
