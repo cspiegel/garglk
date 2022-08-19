@@ -507,6 +507,9 @@ public:
     }
 
     void update(int number, const std::string &path) {
+        if (number != 1 && number != 2)
+            return;
+
         std::ifstream f(path, std::ios::binary);
 
         std::vector<char> data((std::istreambuf_iterator<char>(f)),
