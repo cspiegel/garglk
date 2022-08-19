@@ -75,7 +75,6 @@
 /* non-standard types */
 #define giblorb_ID_MP3  (giblorb_make_id('M', 'P', '3', ' '))
 #define giblorb_ID_WAVE (giblorb_make_id('W', 'A', 'V', 'E'))
-#define giblorb_ID_RAW  (giblorb_make_id('R', 'A', 'W', ' '))
 
 #define GLK_MAXVOLUME 0x10000
 
@@ -207,15 +206,12 @@ private:
 
 class SndfileSource : public SoundSource {
 public:
-    SndfileSource(QByteArray buf, glui32 plays, bool raw = false) :
+    SndfileSource(QByteArray buf, glui32 plays) :
         SoundSource(plays),
         m_buf(std::move(buf))
     {
         SF_VIRTUAL_IO io = get_io();
-        if (raw)
-            m_soundfile = SndfileHandle(io, this, SFM_READ, SF_FORMAT_RAW | SF_FORMAT_PCM_U8, 1, 22050);
-        else
-            m_soundfile = SndfileHandle(io, this);
+        m_soundfile = SndfileHandle(io, this);
         if (!m_soundfile)
             throw SoundError("can't open with libsndfile");
 
@@ -478,11 +474,6 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 
 class Bleeps {
 public:
-    enum class Format {
-        Raw,
-        Detect,
-    };
-
     Bleeps() {
         update(1, 0.1, 1175);
         update(2, 0.1, 440);
@@ -493,17 +484,57 @@ public:
         if (number != 1 && number != 2)
             return;
 
-        auto &pair = m_bleeps.at(number);
-        auto &vec = pair.second;
-        vec.clear();
+        std::uint32_t samplerate = 22050;
 
-        for (std::size_t i = 0; i < duration * m_samplerate; i++)
+        std::vector<std::uint8_t> data;
+        for (std::size_t i = 0; i < duration * samplerate; i++)
         {
-            auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(m_samplerate));
-            vec.push_back(127 * point);
+            auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(samplerate));
+            data.push_back(127 * point);
         }
 
-        pair.first = Format::Raw;
+        // Turn the data into a WAV file
+        std::uint32_t size = data.size();
+        if (size % 2 == 1)
+            size++;
+        std::uint32_t channels = 1;
+        std::uint32_t bytes = 1;
+        std::uint32_t byterate = samplerate * channels * bytes;
+
+#define n16(n) \
+        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  0) & 0xff), \
+        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  8) & 0xff)
+
+#define n32(n) \
+        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  0) & 0xff), \
+        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  8) & 0xff), \
+        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >> 16) & 0xff), \
+        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >> 24) & 0xff)
+
+        auto &vec = m_bleeps.at(number);
+        vec = {
+            'R', 'I', 'F', 'F',    // RIFF
+            n32(size + 36),        // RIFF size
+            'W', 'A', 'V', 'E',    // WAVE
+            'f', 'm', 't', ' ',    // fmt
+            n32(16),               // fmt size
+            n16(1),                // 1 = PCM
+            n16(channels),         // Channels
+            n32(samplerate),       // Sample rate
+            n32(byterate),         // Byte rate
+            n16(channels * bytes), // Block align
+            n16(8 * bytes),        // Bits per sample
+            'd', 'a', 't', 'a',    // data
+            n32(data.size()),      // data size
+        };
+
+#undef n32
+#undef n16
+
+        vec.insert(vec.end(), data.begin(), data.end());
+
+        if (data.size() % 2 == 1)
+            vec.push_back(0);
     }
 
     void update(int number, const std::string &path) {
@@ -516,22 +547,17 @@ public:
                                 std::istreambuf_iterator<char>());
 
         if (!f.fail())
-        {
-            auto &pair = m_bleeps.at(number);
-            pair.second.assign(data.begin(), data.end());
-            pair.first = Format::Detect;
-        }
+            m_bleeps.at(number).assign(data.begin(), data.end());
     }
 
-    std::pair<Format, std::vector<std::int8_t>> &at(int number) {
+    std::vector<std::uint8_t> &at(int number) {
         return m_bleeps.at(number);
     }
 
 private:
-    unsigned int m_samplerate = 22050;
-    std::map<int, std::pair<Format, std::vector<std::int8_t>>> m_bleeps = {
-        {1, {Format::Raw, {}}},
-        {2, {Format::Raw, {}}},
+    std::map<int, std::vector<std::uint8_t>> m_bleeps = {
+        {1, {}},
+        {2, {}},
     };
 };
 
@@ -785,15 +811,10 @@ static std::pair<int, QByteArray> load_bleep_resource(glui32 snd)
     if (snd != 1 && snd != 2)
         throw SoundError("invalid bleep selected");
 
-    const auto &pair = bleeps.at(snd);
-    QByteArray data(reinterpret_cast<const char *>(pair.second.data()), pair.second.size());
+    const auto &bleep = bleeps.at(snd);
+    QByteArray data(reinterpret_cast<const char *>(bleep.data()), bleep.size());
 
-    if (pair.first == Bleeps::Format::Raw)
-        return {giblorb_ID_RAW, data};
-    else if (pair.first == Bleeps::Format::Detect)
-        return {detect_format(data), data};
-
-    throw SoundError("unreachable");
+    return {detect_format(data), data};
 }
 
 static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
@@ -868,9 +889,6 @@ glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, gl
             case giblorb_ID_OGG:
             case giblorb_ID_WAVE:
                 source.reset(new SndfileSource(data, repeats));
-                break;
-            case giblorb_ID_RAW:
-                source.reset(new SndfileSource(data, repeats, true));
                 break;
             case giblorb_ID_MP3:
                 source.reset(new Mpg123Source(data, repeats));
