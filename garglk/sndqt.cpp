@@ -213,7 +213,7 @@ public:
     {
         SF_VIRTUAL_IO io = get_io();
         if (raw)
-            m_soundfile = SndfileHandle(io, this, SFM_READ, SF_FORMAT_RAW | SF_FORMAT_PCM_S8, 1, 22050);
+            m_soundfile = SndfileHandle(io, this, SFM_READ, SF_FORMAT_RAW | SF_FORMAT_PCM_U8, 1, 22050);
         else
             m_soundfile = SndfileHandle(io, this);
         if (!m_soundfile)
@@ -488,7 +488,7 @@ public:
         update(2, 0.1, 440);
     }
 
-    // 22050Hz, 8 bits per sample, mono
+    // 22050Hz, unsigned 8 bits per sample, mono
     void update(int number, double duration, int frequency) {
         if (number != 1 && number != 2)
             return;
@@ -498,7 +498,10 @@ public:
         vec.clear();
 
         for (std::size_t i = 0; i < duration * m_samplerate; i++)
-            vec.push_back(127 * std::sin(frequency * 2 * M_PI * i / static_cast<double>(m_samplerate)));
+        {
+            auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(m_samplerate));
+            vec.push_back(127 * point);
+        }
 
         pair.first = Format::Raw;
     }
