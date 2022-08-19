@@ -505,8 +505,8 @@ public:
         std::uint16_t bits_per_sample = 8 * bytes;
 
 #define n16(n) \
-        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  0) & 0xff), \
-        static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  8) & 0xff)
+        static_cast<std::uint8_t>((static_cast<std::uint16_t>(n) >>  0) & 0xff), \
+        static_cast<std::uint8_t>((static_cast<std::uint16_t>(n) >>  8) & 0xff)
 
 #define n32(n) \
         static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  0) & 0xff), \
