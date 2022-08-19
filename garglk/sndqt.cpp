@@ -546,11 +546,11 @@ public:
 
         std::ifstream f(path, std::ios::binary);
 
-        std::vector<char> data((std::istreambuf_iterator<char>(f)),
-                                std::istreambuf_iterator<char>());
+        std::vector<std::uint8_t> data((std::istreambuf_iterator<char>(f)),
+                                        std::istreambuf_iterator<char>());
 
         if (!f.fail())
-            m_bleeps.at(number).assign(data.begin(), data.end());
+            m_bleeps.at(number) = std::move(data);
     }
 
     std::vector<std::uint8_t> &at(int number) {
