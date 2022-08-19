@@ -497,9 +497,12 @@ public:
         std::uint32_t size = data.size();
         if (size % 2 == 1)
             size++;
-        std::uint32_t channels = 1;
-        std::uint32_t bytes = 1;
+        std::uint16_t pcm = 1;
+        std::uint16_t channels = 1;
+        std::uint16_t bytes = 1;
         std::uint32_t byterate = samplerate * channels * bytes;
+        std::uint16_t blockalign = channels * bytes;
+        std::uint16_t bits_per_sample = 8 * bytes;
 
 #define n16(n) \
         static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  0) & 0xff), \
@@ -513,19 +516,19 @@ public:
 
         auto &vec = m_bleeps.at(number);
         vec = {
-            'R', 'I', 'F', 'F',    // RIFF
-            n32(size + 36),        // RIFF size
-            'W', 'A', 'V', 'E',    // WAVE
-            'f', 'm', 't', ' ',    // fmt
-            n32(16),               // fmt size
-            n16(1),                // 1 = PCM
-            n16(channels),         // Channels
-            n32(samplerate),       // Sample rate
-            n32(byterate),         // Byte rate
-            n16(channels * bytes), // Block align
-            n16(8 * bytes),        // Bits per sample
-            'd', 'a', 't', 'a',    // data
-            n32(data.size()),      // data size
+            'R', 'I', 'F', 'F',
+            n32(size + 36),
+            'W', 'A', 'V', 'E',
+            'f', 'm', 't', ' ',
+            n32(16),
+            n16(pcm),
+            n16(channels),
+            n32(samplerate),
+            n32(byterate),
+            n16(blockalign),
+            n16(bits_per_sample),
+            'd', 'a', 't', 'a',
+            n32(data.size()),
         };
 
 #undef n32
