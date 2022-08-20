@@ -77,7 +77,7 @@ void Bleeps::update(int number, double duration, int frequency) {
         data.push_back(127 * point);
     }
 
-    if (data.size() % 2 == 1)
+    if (frames % 2 == 1)
         data.push_back(0);
 
     m_bleeps.at(number) = std::move(data);
