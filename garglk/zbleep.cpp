@@ -20,6 +20,7 @@ void Bleeps::update(int number, double duration, int frequency) {
     std::uint32_t samplerate = 22050;
 
     std::vector<std::uint8_t> data;
+    data.reserve(duration * samplerate);
     for (std::size_t i = 0; i < duration * samplerate; i++)
     {
         auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(samplerate));
@@ -71,6 +72,8 @@ void Bleeps::update(int number, double duration, int frequency) {
 
     if (data.size() % 2 == 1)
         vec.push_back(0);
+
+    vec.shrink_to_fit();
 }
 
 void Bleeps::update(int number, const std::string &path) {
