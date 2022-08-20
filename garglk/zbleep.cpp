@@ -35,13 +35,11 @@ void Bleeps::update(int number, double duration, int frequency) {
     std::uint32_t byterate = samplerate * channels * bytes;
     std::uint16_t blockalign = channels * bytes;
     std::uint16_t bits_per_sample = 8 * bytes;
-
-    std::size_t size = frames * bytes * channels;
-    if (size % 2 == 1)
-        size++;
+    std::uint32_t datasize = frames * bytes * channels;
+    bool need_padding = datasize % 2 == 1;
 
     std::vector<std::uint8_t> data;
-    data.reserve(size + 44);
+    data.reserve(datasize + 44 + (need_padding ? 1 : 0));
 
 #define n16(n) \
     static_cast<std::uint8_t>((static_cast<std::uint16_t>(n) >>  0) & 0xff), \
@@ -55,7 +53,7 @@ void Bleeps::update(int number, double duration, int frequency) {
 
     data = {
         'R', 'I', 'F', 'F',
-        n32(size + 36),
+        n32(datasize + 36 + (need_padding ? 1 : 0)),
         'W', 'A', 'V', 'E',
         'f', 'm', 't', ' ',
         n32(16),
@@ -66,7 +64,7 @@ void Bleeps::update(int number, double duration, int frequency) {
         n16(blockalign),
         n16(bits_per_sample),
         'd', 'a', 't', 'a',
-        n32(frames * bytes * channels),
+        n32(datasize),
     };
 
 #undef n32
@@ -78,7 +76,7 @@ void Bleeps::update(int number, double duration, int frequency) {
         data.push_back(127 * point);
     }
 
-    if ((frames * bytes * channels) % 2 == 1)
+    if (need_padding)
         data.push_back(0);
 
     m_bleeps.at(number) = std::move(data);
