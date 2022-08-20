@@ -9,6 +9,21 @@
 
 #include "garglk.h"
 
+// C++20: std::numbers::pi
+// M_PI is POSIX, but C++ can't request a POSIX environment via
+// _XOPEN_SOURCE. Compilers on Unix systems seem to provide a POSIX
+// environment regardless of "standard" C++ settings (e.g. "g++
+// -std=c++14" will still expose POSIX functionality, whereas "gcc
+// -std=c11" won't).
+//
+// But on Windows, if a standard C++ environment is requested, M_PI is
+// _not_ defined. It requires _USE_MATH_DEFINES to be defined first.
+//
+// Rather than trying to coax POSIX out of various platforms, just
+// define a suitable pi here. Maybe some day Gargoyle won't require
+// POSIX at all.
+static constexpr double pi = 3.14159265358979323846;
+
 Bleeps::Bleeps() {
     update(1, 0.1, 1175);
     update(2, 0.1, 440);
@@ -72,7 +87,7 @@ void Bleeps::update(int number, double duration, int frequency) {
 
     for (std::size_t i = 0; i < frames; i++)
     {
-        auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(samplerate));
+        auto point = 1 + std::sin(frequency * 2 * pi * i / static_cast<double>(samplerate));
         data.push_back(127 * point);
     }
 
