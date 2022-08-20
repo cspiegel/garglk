@@ -767,9 +767,9 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     return glk_schannel_play_ext_impl(chan, snd, repeats, notify, load_sound_resource);
 }
 
-glui32 garglk_schannel_zbleep(schanid_t chan, glui32 snd)
+void garglk_schannel_zbleep(schanid_t chan, glui32 snd)
 {
-    return glk_schannel_play_ext_impl(chan, snd, 1, 0, load_bleep_resource);
+    glk_schannel_play_ext_impl(chan, snd, 1, 0, load_bleep_resource);
 }
 
 void glk_schannel_pause(schanid_t chan)
