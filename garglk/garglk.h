@@ -40,6 +40,7 @@
 #include <deque>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
@@ -310,6 +311,22 @@ private:
 using Color = Pixel<3>;
 
 Color gli_parse_color(const std::string &str);
+
+class Bleeps {
+public:
+    Bleeps();
+    void update(int number, double duration, int frequency);
+    void update(int number, const std::string &path);
+    std::vector<std::uint8_t> &at(int number);
+
+private:
+    std::map<int, std::vector<std::uint8_t>> m_bleeps = {
+        {1, {}},
+        {2, {}},
+    };
+};
+
+extern Bleeps gli_bleeps;
 
 /* Callbacks necessary for the dispatch layer.  */
 
