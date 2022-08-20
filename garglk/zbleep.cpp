@@ -20,31 +20,27 @@ void Bleeps::update(int number, double duration, int frequency) {
         return;
 
     std::uint32_t samplerate = 22050;
+    std::size_t frames = duration * samplerate;
 
-    std::vector<std::uint8_t> data;
-    data.reserve(duration * samplerate);
-    for (std::size_t i = 0; i < duration * samplerate; i++)
-    {
-        auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(samplerate));
-        data.push_back(127 * point);
-    }
-
-    if (data.empty())
+    if (frames == 0)
     {
         m_bleeps.at(number) = nonstd::nullopt;
         return;
     }
 
-    // Turn the data into a WAV file
-    std::uint32_t size = data.size();
-    if (size % 2 == 1)
-        size++;
+    // Construct the WAV header
+    std::vector<std::uint8_t> data;
+    data.reserve(frames + 44);
     std::uint16_t pcm = 1;
     std::uint16_t channels = 1;
     std::uint16_t bytes = 1;
     std::uint32_t byterate = samplerate * channels * bytes;
     std::uint16_t blockalign = channels * bytes;
     std::uint16_t bits_per_sample = 8 * bytes;
+
+    std::size_t size = frames * bytes * channels;
+    if (size % 2 == 1)
+        size++;
 
 #define n16(n) \
     static_cast<std::uint8_t>((static_cast<std::uint16_t>(n) >>  0) & 0xff), \
@@ -56,8 +52,7 @@ void Bleeps::update(int number, double duration, int frequency) {
     static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >> 16) & 0xff), \
     static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >> 24) & 0xff)
 
-    auto &vec = m_bleeps.at(number);
-    vec = {
+    data = {
         'R', 'I', 'F', 'F',
         n32(size + 36),
         'W', 'A', 'V', 'E',
@@ -70,16 +65,22 @@ void Bleeps::update(int number, double duration, int frequency) {
         n16(blockalign),
         n16(bits_per_sample),
         'd', 'a', 't', 'a',
-        n32(data.size()),
+        n32(frames * bytes * channels),
     };
 
 #undef n32
 #undef n16
 
-    vec->insert(vec->end(), data.begin(), data.end());
+    for (std::size_t i = 0; i < frames; i++)
+    {
+        auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(samplerate));
+        data.push_back(127 * point);
+    }
 
     if (data.size() % 2 == 1)
-        vec->push_back(0);
+        data.push_back(0);
+
+    m_bleeps.at(number) = std::move(data);
 }
 
 void Bleeps::update(int number, const std::string &path) {
