@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <new>
 #include <set>
@@ -752,7 +753,7 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
     }
 }
 
-glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify, bool is_zbleep)
+glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify, std::function<std::pair<int, QByteArray>(glui32)> load_resource)
 {
     if (chan == nullptr)
     {
@@ -771,10 +772,7 @@ glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, gl
         int type;
         QByteArray data;
 
-        if (is_zbleep)
-            std::tie(type, data) = load_bleep_resource(snd);
-        else
-            std::tie(type, data) = load_sound_resource(snd);
+        std::tie(type, data) = load_resource(snd);
 
         try
         {
@@ -858,12 +856,12 @@ glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, gl
 
 glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify)
 {
-    return glk_schannel_play_ext_impl(chan, snd, repeats, notify, false);
+    return glk_schannel_play_ext_impl(chan, snd, repeats, notify, load_sound_resource);
 }
 
 glui32 garglk_schannel_zbleep(schanid_t chan, glui32 snd)
 {
-    return glk_schannel_play_ext_impl(chan, snd, 1, 0, true);
+    return glk_schannel_play_ext_impl(chan, snd, 1, 0, load_bleep_resource);
 }
 
 void glk_schannel_pause(schanid_t chan)

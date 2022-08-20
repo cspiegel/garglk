@@ -33,6 +33,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <new>
 #include <string>
 #include <utility>
@@ -704,7 +705,7 @@ static glui32 play_mod(schanid_t chan, long len)
     return 0;
 }
 
-glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify, bool is_zbleep)
+glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify, std::function<glui32(glui32, std::vector<unsigned char> &)> load_resource)
 {
     glui32 type;
     glui32 result = 0;
@@ -726,10 +727,7 @@ glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, gl
         return 1;
 
     /* load sound resource into memory */
-    if (is_zbleep)
-        type = load_bleep_resource(snd, chan->sdl_memory);
-    else
-        type = load_sound_resource(snd, chan->sdl_memory);
+    type = load_resource(snd, chan->sdl_memory);
 
     chan->sdl_rwops = SDL_RWFromConstMem(chan->sdl_memory.data(), chan->sdl_memory.size());
     chan->notify = notify;
@@ -766,12 +764,12 @@ glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, gl
 
 glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 notify)
 {
-    return glk_schannel_play_ext_impl(chan, snd, repeats, notify, false);
+    return glk_schannel_play_ext_impl(chan, snd, repeats, notify, load_sound_resource);
 }
 
 glui32 garglk_schannel_zbleep(schanid_t chan, glui32 snd)
 {
-    return glk_schannel_play_ext_impl(chan, snd, 1, 0, true);
+    return glk_schannel_play_ext_impl(chan, snd, 1, 0, load_bleep_resource);
 }
 
 void glk_schannel_pause(schanid_t chan)
