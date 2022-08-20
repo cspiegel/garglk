@@ -29,8 +29,6 @@ void Bleeps::update(int number, double duration, int frequency) {
     }
 
     // Construct the WAV header
-    std::vector<std::uint8_t> data;
-    data.reserve(frames + 44);
     std::uint16_t pcm = 1;
     std::uint16_t channels = 1;
     std::uint16_t bytes = 1;
@@ -41,6 +39,9 @@ void Bleeps::update(int number, double duration, int frequency) {
     std::size_t size = frames * bytes * channels;
     if (size % 2 == 1)
         size++;
+
+    std::vector<std::uint8_t> data;
+    data.reserve(size + 44);
 
 #define n16(n) \
     static_cast<std::uint8_t>((static_cast<std::uint16_t>(n) >>  0) & 0xff), \
