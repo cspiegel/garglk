@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "optional.hpp"
+
 #include "garglk.h"
 
 Bleeps::Bleeps() {
@@ -25,6 +27,12 @@ void Bleeps::update(int number, double duration, int frequency) {
     {
         auto point = 1 + std::sin(frequency * 2 * M_PI * i / static_cast<double>(samplerate));
         data.push_back(127 * point);
+    }
+
+    if (data.empty())
+    {
+        m_bleeps.at(number) = nonstd::nullopt;
+        return;
     }
 
     // Turn the data into a WAV file
@@ -68,12 +76,10 @@ void Bleeps::update(int number, double duration, int frequency) {
 #undef n32
 #undef n16
 
-    vec.insert(vec.end(), data.begin(), data.end());
+    vec->insert(vec->end(), data.begin(), data.end());
 
     if (data.size() % 2 == 1)
-        vec.push_back(0);
-
-    vec.shrink_to_fit();
+        vec->push_back(0);
 }
 
 void Bleeps::update(int number, const std::string &path) {
@@ -90,7 +96,11 @@ void Bleeps::update(int number, const std::string &path) {
 }
 
 std::vector<std::uint8_t> &Bleeps::at(int number) {
-    return m_bleeps.at(number);
+    auto &vec = m_bleeps.at(number);
+    if (!vec.has_value())
+        throw Empty();
+
+    return vec.value();
 }
 
 Bleeps gli_bleeps;

@@ -733,7 +733,14 @@ glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, gl
         return 1;
 
     /* load sound resource into memory */
-    type = load_resource(snd, chan->sdl_memory);
+    try
+    {
+        type = load_resource(snd, chan->sdl_memory);
+    }
+    catch (const Bleeps::Empty &)
+    {
+        return 1;
+    }
 
     chan->sdl_rwops = SDL_RWFromConstMem(chan->sdl_memory.data(), chan->sdl_memory.size());
     chan->notify = notify;

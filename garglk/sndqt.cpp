@@ -778,7 +778,14 @@ glui32 glk_schannel_play_ext_impl(schanid_t chan, glui32 snd, glui32 repeats, gl
         int type;
         QByteArray data;
 
-        std::tie(type, data) = load_resource(snd);
+        try
+        {
+            std::tie(type, data) = load_resource(snd);
+        }
+        catch (const Bleeps::Empty &)
+        {
+            return 1;
+        }
 
         try
         {

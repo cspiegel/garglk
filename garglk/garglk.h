@@ -38,6 +38,7 @@
 #include <cstdio>
 #include <cstring>
 #include <deque>
+#include <exception>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -45,6 +46,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "optional.hpp"
 
 #include "glk.h"
 #include "gi_dispa.h"
@@ -314,15 +317,17 @@ Color gli_parse_color(const std::string &str);
 
 class Bleeps {
 public:
+    class Empty : public std::exception { };
+
     Bleeps();
     void update(int number, double duration, int frequency);
     void update(int number, const std::string &path);
     std::vector<std::uint8_t> &at(int number);
 
 private:
-    std::map<int, std::vector<std::uint8_t>> m_bleeps = {
-        {1, {}},
-        {2, {}},
+    std::map<int, nonstd::optional<std::vector<std::uint8_t>>> m_bleeps = {
+        {1, nonstd::nullopt},
+        {2, nonstd::nullopt},
     };
 };
 
