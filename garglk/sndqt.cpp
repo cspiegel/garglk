@@ -81,6 +81,8 @@
 
 static std::set<schanid_t> gli_channellist;
 
+static schanid_t gli_bleep_channel;
+
 #if MPG123_API_VERSION < 46
 static bool mp3_initialized;
 #endif
@@ -478,6 +480,10 @@ void gli_initialize_sound()
 #if MPG123_API_VERSION < 46
     mp3_initialized = mpg123_init() == MPG123_OK;
 #endif
+
+    gli_bleep_channel = glk_schannel_create(0);
+    if (gli_bleep_channel != nullptr)
+        glk_schannel_set_volume(gli_bleep_channel, 0x8000);
 }
 
 schanid_t glk_schannel_create(glui32 rock)
@@ -859,9 +865,10 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     return glk_schannel_play_ext_impl(chan, snd, repeats, notify, load_sound_resource);
 }
 
-void garglk_schannel_zbleep(schanid_t chan, glui32 snd)
+void garglk_zbleep(glui32 snd)
 {
-    glk_schannel_play_ext_impl(chan, snd, 1, 0, load_bleep_resource);
+    if (gli_bleep_channel != nullptr)
+        glk_schannel_play_ext_impl(gli_bleep_channel, snd, 1, 0, load_bleep_resource);
 }
 
 void glk_schannel_pause(schanid_t chan)

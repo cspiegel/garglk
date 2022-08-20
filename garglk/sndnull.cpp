@@ -77,7 +77,7 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats,
     return 0;
 }
 
-void garglk_schannel_zbleep(schanid_t chan, glui32 snd)
+void garglk_schannel_zbleep(glui32 snd)
 {
 }
 

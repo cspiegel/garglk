@@ -102,6 +102,8 @@ static channel_t *gli_channellist = nullptr;
 static std::array<channel_t *, SDL_CHANNELS> sound_channels;
 static channel_t *music_channel;
 
+static schanid_t gli_bleep_channel;
+
 static const int FREE = 1;
 static const int BUSY = 2;
 
@@ -136,6 +138,10 @@ void gli_initialize_sound()
         Mix_GroupChannels(0, channels - 1 , FREE);
         Mix_ChannelFinished(nullptr);
     }
+
+    gli_bleep_channel = glk_schannel_create(0);
+    if (gli_bleep_channel != nullptr)
+        glk_schannel_set_volume(gli_bleep_channel, 0x8000);
 }
 
 schanid_t glk_schannel_create(glui32 rock)
@@ -767,9 +773,10 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     return glk_schannel_play_ext_impl(chan, snd, repeats, notify, load_sound_resource);
 }
 
-void garglk_schannel_zbleep(schanid_t chan, glui32 snd)
+void garglk_zbleep(glui32 snd)
 {
-    glk_schannel_play_ext_impl(chan, snd, 1, 0, load_bleep_resource);
+    if (gli_bleep_channel != nullptr)
+        glk_schannel_play_ext_impl(gli_bleep_channel, snd, 1, 0, load_bleep_resource);
 }
 
 void glk_schannel_pause(schanid_t chan)
