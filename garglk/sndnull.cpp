@@ -77,6 +77,11 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats,
     return 0;
 }
 
+glui32 garglk_schannel_zbleep(schanid_t chan, glui32 snd)
+{
+    return 0;
+}
+
 glui32 glk_schannel_play_multi(schanid_t *chanarray, glui32 chancount,
         glui32 *sndarray, glui32 soundcount, glui32 notify)
 {
