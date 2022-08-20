@@ -773,12 +773,6 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, glui32 
     return glk_schannel_play_ext_impl(chan, snd, repeats, notify, load_sound_resource);
 }
 
-void garglk_zbleep(glui32 snd)
-{
-    if (gli_bleep_channel != nullptr)
-        glk_schannel_play_ext_impl(gli_bleep_channel, snd, 1, 0, load_bleep_resource);
-}
-
 void glk_schannel_pause(schanid_t chan)
 {
     if (!chan)
@@ -848,4 +842,10 @@ void glk_schannel_stop(schanid_t chan)
     SDL_LockAudio();
     cleanup_channel(chan);
     SDL_UnlockAudio();
+}
+
+void garglk_zbleep(glui32 snd)
+{
+    if (gli_bleep_channel != nullptr)
+        glk_schannel_play_ext_impl(gli_bleep_channel, snd, 1, 0, load_bleep_resource);
 }

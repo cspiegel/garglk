@@ -77,10 +77,6 @@ glui32 glk_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats,
     return 0;
 }
 
-void garglk_schannel_zbleep(glui32 snd)
-{
-}
-
 glui32 glk_schannel_play_multi(schanid_t *chanarray, glui32 chancount,
         glui32 *sndarray, glui32 soundcount, glui32 notify)
 {
@@ -117,6 +113,10 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 vol,
 void glk_sound_load_hint(glui32 snd, glui32 flag)
 {
     gli_strict_warning("schannel_sound_load_hint: invalid id.");
+}
+
+void garglk_schannel_zbleep(glui32 snd)
+{
 }
 
 #endif /* GLK_MODULE_SOUND */
