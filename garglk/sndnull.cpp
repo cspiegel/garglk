@@ -115,7 +115,7 @@ void glk_sound_load_hint(glui32 snd, glui32 flag)
     gli_strict_warning("schannel_sound_load_hint: invalid id.");
 }
 
-void garglk_schannel_zbleep(glui32 snd)
+void garglk_zbleep(glui32 snd)
 {
 }
 
