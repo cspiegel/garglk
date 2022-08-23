@@ -851,8 +851,8 @@ void glk_schannel_stop(schanid_t chan)
     SDL_UnlockAudio();
 }
 
-void garglk_zbleep(glui32 snd)
+void garglk_zbleep(glui32 number)
 {
     if (gli_bleep_channel != nullptr)
-        glk_schannel_play_ext_impl(gli_bleep_channel, snd, 1, 0, load_bleep_resource);
+        glk_schannel_play_ext_impl(gli_bleep_channel, number, 1, 0, load_bleep_resource);
 }
