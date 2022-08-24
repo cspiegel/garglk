@@ -56,11 +56,11 @@ void Bleeps::update(int number, double duration, int frequency) {
     std::vector<std::uint8_t> data;
     data.reserve(datasize + 44 + (need_padding ? 1 : 0));
 
-#define n16(n) \
+#define le16(n) \
     static_cast<std::uint8_t>((static_cast<std::uint16_t>(n) >>  0) & 0xff), \
     static_cast<std::uint8_t>((static_cast<std::uint16_t>(n) >>  8) & 0xff)
 
-#define n32(n) \
+#define le32(n) \
     static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  0) & 0xff), \
     static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >>  8) & 0xff), \
     static_cast<std::uint8_t>((static_cast<std::uint32_t>(n) >> 16) & 0xff), \
@@ -68,22 +68,22 @@ void Bleeps::update(int number, double duration, int frequency) {
 
     data = {
         'R', 'I', 'F', 'F',
-        n32(datasize + 36 + (need_padding ? 1 : 0)),
+        le32(datasize + 36 + (need_padding ? 1 : 0)),
         'W', 'A', 'V', 'E',
         'f', 'm', 't', ' ',
-        n32(16),
-        n16(pcm),
-        n16(channels),
-        n32(samplerate),
-        n32(byterate),
-        n16(blockalign),
-        n16(bits_per_sample),
+        le32(16),
+        le16(pcm),
+        le16(channels),
+        le32(samplerate),
+        le32(byterate),
+        le16(blockalign),
+        le16(bits_per_sample),
         'd', 'a', 't', 'a',
-        n32(datasize),
+        le32(datasize),
     };
 
-#undef n32
-#undef n16
+#undef le32
+#undef le16
 
     for (std::size_t i = 0; i < frames; i++)
     {
