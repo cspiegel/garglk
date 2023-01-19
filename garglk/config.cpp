@@ -127,6 +127,17 @@ const Styles gli_gstyles_def = gli_gstyles;
 
 std::vector<garglk::ConfigFile> garglk::all_configs;
 
+void garglk_get_text_buffer_colors(glui32 *fg, glui32 *bg)
+{
+    *fg = (gli_tstyles[0].fg[0] << 16) |
+          (gli_tstyles[0].fg[1] <<  8) |
+          (gli_tstyles[0].fg[2] <<  0);
+
+    *bg = (gli_tstyles[0].bg[0] << 16) |
+          (gli_tstyles[0].bg[1] <<  8) |
+          (gli_tstyles[0].bg[2] <<  0);
+}
+
 static FontFace font2idx(const std::string &font)
 {
     const static std::unordered_map<std::string, FontFace> facemap = {
