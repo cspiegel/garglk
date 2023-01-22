@@ -30,12 +30,7 @@
 #include <utility>
 #include <vector>
 
-#if __cplusplus >= 201703L
-#include <filesystem>
-#else
-#include <dirent.h>
-#include <sys/types.h>
-#endif
+#include <boost/filesystem.hpp>
 
 #define JSON_DIAGNOSTICS 1
 #include "json.hpp"
@@ -257,37 +252,19 @@ std::vector<std::string> garglk::theme::paths()
     return theme_paths;
 }
 
-#if __cplusplus >= 201703
 static std::vector<std::string> directory_entries(const std::string &dir)
 {
     std::vector<std::string> entries;
 
     try {
-        for (const auto &entry : std::filesystem::directory_iterator(dir)) {
+        for (const auto &entry : boost::filesystem::directory_iterator(dir)) {
             entries.push_back(entry.path().string());
         }
-    } catch (const std::filesystem::filesystem_error &) {
+    } catch (const boost::filesystem::filesystem_error &) {
     }
 
     return entries;
 }
-#else
-static std::vector<std::string> directory_entries(const std::string &dir)
-{
-    auto d = garglk::unique(opendir(dir.c_str()), closedir);
-    if (d == nullptr) {
-        return {};
-    }
-
-    std::vector<std::string> entries;
-    dirent *de;
-    while ((de = readdir(d.get())) != nullptr) {
-        entries.push_back(dir + "/" + de->d_name);
-    }
-
-    return entries;
-}
-#endif
 
 void garglk::theme::init()
 {
