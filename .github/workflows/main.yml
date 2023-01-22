@@ -35,6 +35,7 @@ jobs:
           gcc-7
           git
           grep
+          libboost-all-dev
           libfontconfig1-dev
           libfreetype-dev
           libjpeg-dev

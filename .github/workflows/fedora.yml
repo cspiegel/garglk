@@ -29,6 +29,7 @@ jobs:
         run: yum -y install
           SDL2-devel
           SDL2_mixer-devel
+          boost-devel
           cmake
           fontconfig-devel
           freetype-devel
