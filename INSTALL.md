@@ -104,7 +104,9 @@ In addition, Gargoyle supports the following options:
   the absolute path of the Unifont (or, in fact, any font) file. By default this
   is empty, which means Gargoyle will install its own copy of Unifont and use
   that. Otherwise, if this is set to any value, Gargoyle will not install
-  Unifont, and will only try loading from the specified file.
+  Unifont, and will only try loading from the specified file. At the moment,
+  only a Roman font should be specified. Gargoyle will generate bold and italic
+  (oblique) versions as necessary.
 
 As with any standard CMake-based project, DESTDIR can be used to install to a
 staging area:
