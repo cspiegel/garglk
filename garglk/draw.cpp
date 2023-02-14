@@ -63,8 +63,7 @@ struct FontEntry {
 
 class Font {
 public:
-    Font(FontFace fontface, const std::string &fallback);
-    explicit Font(FontFace);
+    Font(FontFace fontface, FT_Face face, const std::string &fontpath);
 
     const FontEntry &getglyph(glui32 cid);
     int charkern(glui32 c0, glui32 c1);
@@ -95,18 +94,139 @@ private:
 static std::array<std::uint16_t, 256> gammamap;
 static std::array<unsigned char, 1 << GAMMA_BITS> gammainv;
 
+int gli_cellw = 8;
+int gli_cellh = 8;
+
+Canvas<3> gli_image_rgb;
+
+static FT_Library ftlib;
+static FT_Matrix ftmat;
+
+static bool use_freetype_preset_filter = false;
+static FT_LcdFilter freetype_preset_filter = FT_LCD_FILTER_DEFAULT;
+
+static std::unordered_map<FontFace, Font> unicode_fonts;
+
+Font make_unifont(FontFace fontface)
+{
+    FT_Face face;
+
+#ifdef GARGLK_UNIFONT
+    if (FT_New_Face(ftlib, GARGLK_UNIFONT, 0, &face) == 0) {
+        return {fontface, face, GARGLK_UNIFONT};
+    }
+#else
+    auto dirs = garglk::winappdata();
+    dirs.emplace_back(".");
+    for (const auto &appdata : dirs) {
+        std::string fontpath = appdata + "/unifont.otf";
+        if (FT_New_Face(ftlib, fontpath.c_str(), 0, &face) == 0) {
+            return {fontface, face, fontpath};
+        }
+    }
+#endif
+
+    throw std::runtime_error("no unicode");
+}
+
+// Look for a user-specified font. This will be either based on a font
+// family (propfont or monofont), or specific font files (e.g. propr,
+// monor, etc).
+static std::string font_path_user(const std::string &path, const std::string &)
+{
+    return path;
+}
+
+// Look in a system-wide location for the fallback Gargoyle fonts; on
+// Unix this is generally somewhere like /usr/share/fonts/gargoyle
+// (although this can be changed at build time), and on Windows it's the
+// install directory (e.g. "C:\Program Files (x86)\Gargoyle").
+static std::string font_path_fallback_system(const std::string &, const std::string &fallback)
+{
+#ifdef _WIN32
+    char directory[256];
+    DWORD dsize = sizeof directory;
+    if (RegGetValueA(HKEY_LOCAL_MACHINE, "Software\\Tor Andersson\\Gargoyle", "Directory", RRF_RT_REG_SZ, nullptr, directory, &dsize) != ERROR_SUCCESS) {
+        return "";
+    }
+
+    return std::string(directory) + "\\" + fallback;
+#elif defined(GARGLK_CONFIG_FONT_PATH)
+    return std::string(GARGLK_CONFIG_FONT_PATH) + "/" + fallback;
+#else
+    return "";
+#endif
+}
+
+// Look in a platform-specific location for the fonts. This is typically
+// the same directory that the executable is in, but can be anything the
+// platform code deems appropriate.
+static std::string font_path_fallback_platform(const std::string &, const std::string &fallback)
+{
+    return garglk::winfontpath(fallback);
+}
+
+// As a last-ditch effort, look in the current directory for the fonts.
+static std::string font_path_fallback_local(const std::string &, const std::string &fallback)
+{
+    return fallback;
+}
+
+static std::string fontface_to_name(FontFace &fontface)
+{
+    std::string type = fontface.monospace ? "Mono" : "Proportional";
+    std::string style = (fontface.bold && fontface.italic) ? "Bold Italic" :
+                        (fontface.bold                   ) ? "Bold" :
+                        (fontface.italic                 ) ? "Italic" :
+                                                             "Regular";
+
+    return type + " " + style;
+}
+
+Font make_font(FontFace fontface, const std::string &fallback)
+{
+    std::string fontpath;
+    std::vector<std::function<std::string(const std::string &path, const std::string &fallback)>> font_paths = {
+        font_path_user,
+        font_path_fallback_system,
+        font_path_fallback_platform,
+        font_path_fallback_local,
+    };
+
+    std::string path =
+        fontface == FontFace::monor() ? gli_conf_mono.r :
+        fontface == FontFace::monob() ? gli_conf_mono.b :
+        fontface == FontFace::monoi() ? gli_conf_mono.i :
+        fontface == FontFace::monoz() ? gli_conf_mono.z :
+        fontface == FontFace::propr() ? gli_conf_prop.r :
+        fontface == FontFace::propb() ? gli_conf_prop.b :
+        fontface == FontFace::propi() ? gli_conf_prop.i :
+        fontface == FontFace::propz() ? gli_conf_prop.z :
+                                        gli_conf_mono.r;
+
+    FT_Face face;
+    if (!std::any_of(font_paths.begin(), font_paths.end(), [&](const auto &get_font_path) {
+            fontpath = get_font_path(path, fallback);
+            return !fontpath.empty() && FT_New_Face(ftlib, fontpath.c_str(), 0, &face) == 0;
+        })) {
+        garglk::winabort("Unable to find font " + (fontface.monospace ? gli_conf_monofont : gli_conf_propfont) + " for " + fontface_to_name(fontface) + ", and fallback " + fallback + " not found");
+    }
+
+    return {fontface, face, fontpath};
+}
+
 class FontTable {
 public:
     FontTable() {
         m_table = {
-            Font(FontFace::monor(), "Gargoyle-Mono.ttf"),
-            Font(FontFace::monob(), "Gargoyle-Mono-Bold.ttf"),
-            Font(FontFace::monoi(), "Gargoyle-Mono-Italic.ttf"),
-            Font(FontFace::monoz(), "Gargoyle-Mono-Bold-Italic.ttf"),
-            Font(FontFace::propr(), "Gargoyle-Serif.ttf"),
-            Font(FontFace::propb(), "Gargoyle-Serif-Bold.ttf"),
-            Font(FontFace::propi(), "Gargoyle-Serif-Italic.ttf"),
-            Font(FontFace::propz(), "Gargoyle-Serif-Bold-Italic.ttf"),
+            make_font(FontFace::monor(), "Gargoyle-Mono.ttf"),
+            make_font(FontFace::monob(), "Gargoyle-Mono-Bold.ttf"),
+            make_font(FontFace::monoi(), "Gargoyle-Mono-Italic.ttf"),
+            make_font(FontFace::monoz(), "Gargoyle-Mono-Bold-Italic.ttf"),
+            make_font(FontFace::propr(), "Gargoyle-Serif.ttf"),
+            make_font(FontFace::propb(), "Gargoyle-Serif-Bold.ttf"),
+            make_font(FontFace::propi(), "Gargoyle-Serif-Italic.ttf"),
+            make_font(FontFace::propz(), "Gargoyle-Serif-Bold-Italic.ttf"),
         };
     }
 
@@ -125,19 +245,6 @@ private:
 };
 
 static nonstd::optional<FontTable> gfont_table;
-
-int gli_cellw = 8;
-int gli_cellh = 8;
-
-Canvas<3> gli_image_rgb;
-
-static FT_Library ftlib;
-static FT_Matrix ftmat;
-
-static bool use_freetype_preset_filter = false;
-static FT_LcdFilter freetype_preset_filter = FT_LCD_FILTER_DEFAULT;
-
-static std::unordered_map<FontFace, Font> unicode_fonts;
 
 void garglk::set_lcdfilter(const std::string &filter)
 {
@@ -250,116 +357,10 @@ const FontEntry &Font::getglyph(glui32 cid)
     return it->second;
 }
 
-// Look for a user-specified font. This will be either based on a font
-// family (propfont or monofont), or specific font files (e.g. propr,
-// monor, etc).
-static std::string font_path_user(const std::string &path, const std::string &)
+Font::Font(FontFace fontface, FT_Face face, const std::string &fontpath) :
+    m_fontface(fontface),
+    m_face(face)
 {
-    return path;
-}
-
-// Look in a system-wide location for the fallback Gargoyle fonts; on
-// Unix this is generally somewhere like /usr/share/fonts/gargoyle
-// (although this can be changed at build time), and on Windows it's the
-// install directory (e.g. "C:\Program Files (x86)\Gargoyle").
-static std::string font_path_fallback_system(const std::string &, const std::string &fallback)
-{
-#ifdef _WIN32
-    char directory[256];
-    DWORD dsize = sizeof directory;
-    if (RegGetValueA(HKEY_LOCAL_MACHINE, "Software\\Tor Andersson\\Gargoyle", "Directory", RRF_RT_REG_SZ, nullptr, directory, &dsize) != ERROR_SUCCESS) {
-        return "";
-    }
-
-    return std::string(directory) + "\\" + fallback;
-#elif defined(GARGLK_CONFIG_FONT_PATH)
-    return std::string(GARGLK_CONFIG_FONT_PATH) + "/" + fallback;
-#else
-    return "";
-#endif
-}
-
-// Look in a platform-specific location for the fonts. This is typically
-// the same directory that the executable is in, but can be anything the
-// platform code deems appropriate.
-static std::string font_path_fallback_platform(const std::string &, const std::string &fallback)
-{
-    return garglk::winfontpath(fallback);
-}
-
-// As a last-ditch effort, look in the current directory for the fonts.
-static std::string font_path_fallback_local(const std::string &, const std::string &fallback)
-{
-    return fallback;
-}
-
-static std::string fontface_to_name(FontFace &fontface)
-{
-    std::string type = fontface.monospace ? "Mono" : "Proportional";
-    std::string style = (fontface.bold && fontface.italic) ? "Bold Italic" :
-                        (fontface.bold                   ) ? "Bold" :
-                        (fontface.italic                 ) ? "Italic" :
-                                                             "Regular";
-
-    return type + " " + style;
-}
-
-Font::Font(FontFace fontface) :
-    m_fontface(fontface)
-{
-#ifdef GARGLK_UNIFONT
-    if (FT_New_Face(ftlib, GARGLK_UNIFONT, 0, &m_face) == 0) {
-        init_font(GARGLK_UNIFONT);
-        return;
-    }
-#else
-    auto dirs = garglk::winappdata();
-    dirs.emplace_back(".");
-    for (const auto &appdata : dirs) {
-        std::string fontpath = appdata + "/unifont.otf";
-        if (FT_New_Face(ftlib, fontpath.c_str(), 0, &m_face) == 0) {
-            init_font(fontpath);
-            return;
-        }
-    }
-#endif
-
-    throw std::runtime_error("no unicode");
-}
-
-Font::Font(FontFace fontface, const std::string &fallback) :
-    m_fontface(fontface)
-{
-    std::string fontpath;
-    std::vector<std::function<std::string(const std::string &path, const std::string &fallback)>> font_paths = {
-        font_path_user,
-        font_path_fallback_system,
-        font_path_fallback_platform,
-        font_path_fallback_local,
-    };
-
-    std::string path =
-        fontface == FontFace::monor() ? gli_conf_mono.r :
-        fontface == FontFace::monob() ? gli_conf_mono.b :
-        fontface == FontFace::monoi() ? gli_conf_mono.i :
-        fontface == FontFace::monoz() ? gli_conf_mono.z :
-        fontface == FontFace::propr() ? gli_conf_prop.r :
-        fontface == FontFace::propb() ? gli_conf_prop.b :
-        fontface == FontFace::propi() ? gli_conf_prop.i :
-        fontface == FontFace::propz() ? gli_conf_prop.z :
-                                        gli_conf_mono.r;
-
-    if (!std::any_of(font_paths.begin(), font_paths.end(), [&](const auto &get_font_path) {
-            fontpath = get_font_path(path, fallback);
-            return !fontpath.empty() && FT_New_Face(ftlib, fontpath.c_str(), 0, &m_face) == 0;
-        })) {
-        garglk::winabort("Unable to find font " + (fontface.monospace ? gli_conf_monofont : gli_conf_propfont) + " for " + fontface_to_name(fontface) + ", and fallback " + fallback + " not found");
-    }
-
-    init_font(fontpath);
-}
-
-void Font::init_font(const std::string &fontpath) {
     int err = 0;
     float aspect, size;
 
@@ -452,7 +453,7 @@ void gli_initialize_fonts()
                   FontFace::monor(), FontFace::monoi(), FontFace::monob(), FontFace::monoz()};
     for (const auto &fontface : faces) {
         try {
-            unicode_fonts.insert({fontface, Font(fontface)});
+            unicode_fonts.insert({fontface, make_unifont(fontface)});
         } catch (const std::runtime_error &) {
         }
     }
