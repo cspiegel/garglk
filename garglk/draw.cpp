@@ -92,38 +92,8 @@ private:
 static std::array<std::uint16_t, 256> gammamap;
 static std::array<unsigned char, 1 << GAMMA_BITS> gammainv;
 
-static Font make_font(FontFace fontface, const std::string &fallback);
-
-class FontTable {
-public:
-    FontTable() {
-        m_table = {
-            make_font(FontFace::monor(), "Gargoyle-Mono.ttf"),
-            make_font(FontFace::monob(), "Gargoyle-Mono-Bold.ttf"),
-            make_font(FontFace::monoi(), "Gargoyle-Mono-Italic.ttf"),
-            make_font(FontFace::monoz(), "Gargoyle-Mono-Bold-Italic.ttf"),
-            make_font(FontFace::propr(), "Gargoyle-Serif.ttf"),
-            make_font(FontFace::propb(), "Gargoyle-Serif-Bold.ttf"),
-            make_font(FontFace::propi(), "Gargoyle-Serif-Italic.ttf"),
-            make_font(FontFace::propz(), "Gargoyle-Serif-Bold-Italic.ttf"),
-        };
-    }
-
-    Font &at(const FontFace &fontface) {
-        for (auto &font : m_table) {
-            if (font.fontface() == fontface) {
-                return font;
-            }
-        }
-
-        throw std::out_of_range("internal error: missing font");
-    }
-
-private:
-    std::vector<Font> m_table;
-};
-
-static nonstd::optional<FontTable> gfont_table;
+static std::unordered_map<FontFace, Font> gfont_table;
+static std::unordered_map<FontFace, Font> unicode_fonts;
 
 int gli_cellw = 8;
 int gli_cellh = 8;
@@ -135,8 +105,6 @@ static FT_Matrix ftmat;
 
 static bool use_freetype_preset_filter = false;
 static FT_LcdFilter freetype_preset_filter = FT_LCD_FILTER_DEFAULT;
-
-static std::unordered_map<FontFace, Font> unicode_fonts;
 
 void garglk::set_lcdfilter(const std::string &filter)
 {
@@ -464,9 +432,20 @@ void gli_initialize_fonts()
     ftmat.xy = 0x03000L;
     ftmat.yy = 0x10000L;
 
-    gfont_table = FontTable();
+    auto make_entry = [](FontFace face, const std::string &filename) {
+        return std::make_pair(face, make_font(face, filename));
+    };
 
-    const auto &entry = gfont_table->at(FontFace::monor()).getglyph('0');
+    gfont_table.insert(make_entry(FontFace::monor(), "Gargoyle-Mono.ttf"));
+    gfont_table.insert(make_entry(FontFace::monob(), "Gargoyle-Mono-Bold.ttf"));
+    gfont_table.insert(make_entry(FontFace::monoi(), "Gargoyle-Mono-Italic.ttf"));
+    gfont_table.insert(make_entry(FontFace::monoz(), "Gargoyle-Mono-Bold-Italic.ttf"));
+    gfont_table.insert(make_entry(FontFace::propr(), "Gargoyle-Serif.ttf"));
+    gfont_table.insert(make_entry(FontFace::propb(), "Gargoyle-Serif-Bold.ttf"));
+    gfont_table.insert(make_entry(FontFace::propi(), "Gargoyle-Serif-Italic.ttf"));
+    gfont_table.insert(make_entry(FontFace::propz(), "Gargoyle-Serif-Bold-Italic.ttf"));
+
+    const auto &entry = gfont_table.at(FontFace::monor()).getglyph('0');
 
     gli_cellh = gli_leading;
     gli_cellw = (entry.adv + GLI_SUBPIX - 1) / GLI_SUBPIX;
@@ -629,7 +608,7 @@ static const std::vector<std::pair<std::vector<glui32>, glui32>> ligatures = {
 
 static int gli_string_impl(int x, FontFace face, const glui32 *s, std::size_t n, int spw, const std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> &callback)
 {
-    auto &f = gfont_table->at(face);
+    auto &f = gfont_table.at(face);
     bool dolig = !FT_IS_FIXED_WIDTH(f.face());
     int prev = -1;
     glui32 c;
