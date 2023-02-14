@@ -97,6 +97,15 @@ In addition, Gargoyle supports the following options:
   "QT", for Qt sound support, and "none" (or any other value), for no
   sound support.
 
+- `UNIFONT`: By default, Gargoyle installs a copy of GNU Unifont to be used for
+  glyph substitution if a user's font is missing glyphs that a game wants to
+  use. Distributors may want to avoid the extra disk usage, and make a Gargoyle
+  package depend on an existing Unifont package. To do this, set `UNIFONT` to
+  the absolute path of the Unifont (or, in fact, any font) file. By default this
+  is empty, which means Gargoyle will install its own copy of Unifont and use
+  that. Otherwise, if this is set to any value, Gargoyle will not install
+  Unifont, and will only try loading from the specified file.
+
 As with any standard CMake-based project, DESTDIR can be used to install to a
 staging area:
 
