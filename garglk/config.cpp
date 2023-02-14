@@ -696,6 +696,14 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
                 gli_conf_per_game_config = asbool(arg);
             } else if (cmd == "redraw_hack") {
                 gli_conf_redraw_hack = asbool(arg);
+            } else if (cmd == "glyph_substitution_files") {
+                std::istringstream argstream(arg);
+                std::string file;
+
+                gli_conf_glyph_substitution_files.clear();
+                while (argstream >> std::quoted(file)) {
+                    gli_conf_glyph_substitution_files.push_back(file);
+                }
             }
 
         // For now just ignore failure; in the future, probably log it.

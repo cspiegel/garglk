@@ -89,11 +89,13 @@ private:
 // Globals
 //
 
+std::vector<std::string> gli_conf_glyph_substitution_files;
+
 static std::array<std::uint16_t, 256> gammamap;
 static std::array<unsigned char, 1 << GAMMA_BITS> gammainv;
 
 static std::unordered_map<FontFace, Font> gfont_table;
-static std::unordered_map<FontFace, Font> unicode_fonts;
+static std::unordered_map<FontFace, std::vector<Font>> unicode_fonts;
 
 int gli_cellw = 8;
 int gli_cellh = 8;
@@ -303,26 +305,30 @@ static Font make_font(FontFace fontface, const std::string &fallback)
     return {fontface, face, fontpath};
 }
 
-static Font make_unifont(FontFace fontface)
+static std::vector<Font> make_unifonts(FontFace fontface)
 {
     FT_Face face;
+    std::vector<Font> fonts;
+
+    auto files = gli_conf_glyph_substitution_files;
 
 #ifdef GARGLK_UNIFONT
-    if (FT_New_Face(ftlib, GARGLK_UNIFONT, 0, &face) == 0) {
-        return {fontface, face, GARGLK_UNIFONT};
-    }
+    dirs.push_back(GARGLK_UNIFONT);
 #else
-    auto dirs = garglk::winappdata();
-    dirs.emplace_back(".");
-    for (const auto &appdata : dirs) {
-        std::string fontpath = appdata + "/unifont.otf";
-        if (FT_New_Face(ftlib, fontpath.c_str(), 0, &face) == 0) {
-            return {fontface, face, fontpath};
-        }
+    for (const auto &datadir : garglk::winappdata()) {
+        files.push_back(datadir + "/unifont.otf");
     }
+
+    files.emplace_back("./unifont.otf");
 #endif
 
-    throw std::runtime_error("no unicode");
+    for (const auto &file : files) {
+        if (FT_New_Face(ftlib, file.c_str(), 0, &face) == 0) {
+            fonts.emplace_back(fontface, face, file);
+        }
+    }
+
+    return fonts;
 }
 
 Font::Font(FontFace fontface, FT_Face face, const std::string &fontpath) :
@@ -421,7 +427,7 @@ void gli_initialize_fonts()
                   FontFace::monor(), FontFace::monoi(), FontFace::monob(), FontFace::monoz()};
     for (const auto &fontface : faces) {
         try {
-            unicode_fonts.insert({fontface, make_unifont(fontface)});
+            unicode_fonts.insert({fontface, make_unifonts(fontface)});
         } catch (const std::runtime_error &) {
         }
     }
@@ -645,8 +651,18 @@ static int gli_string_impl(int x, FontFace face, const glui32 *s, std::size_t n,
             try {
                 return &f.getglyph(c);
             } catch (const std::out_of_range &) {
-                return &unicode_fonts.at(face).getglyph(c);
+                try {
+                    for (auto &font : unicode_fonts.at(face)) {
+                        try {
+                            return &font.getglyph(c);
+                        } catch (const std::out_of_range &) {
+                        }
+                    }
+                } catch (const std::out_of_range &) {
+                }
             }
+
+            throw std::out_of_range("no font found");
         };
 
         const FontEntry *entry;
