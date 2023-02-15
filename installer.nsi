@@ -87,7 +87,7 @@ Section "DoInstall"
     File "build\dist\*.dll"
     File "licenses\*.txt"
     File "fonts\*.ttf"
-    File "fonts\unifont.otf"
+    File "fonts\unifont*.otf"
     File "/oname=garglk.ini.tmp" "garglk\garglk.ini"
     Push "garglk.ini.tmp"
     Push "garglk.ini"
@@ -172,7 +172,7 @@ Section "Uninstall"
     Delete $INSTDIR\*.dll
     Delete $INSTDIR\*.txt
     Delete $INSTDIR\*.ttf
-    Delete $INSTDIR\unifont.otf
+    Delete $INSTDIR\unifont*.otf
     Delete $INSTDIR\plugins\platforms\*.*
     RMDir $INSTDIR\plugins\platforms
     RMDir $INSTDIR\plugins
