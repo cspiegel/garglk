@@ -696,12 +696,11 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
                 gli_conf_per_game_config = asbool(arg);
             } else if (cmd == "redraw_hack") {
                 gli_conf_redraw_hack = asbool(arg);
-            } else if (cmd == "glyph_substitution_files") {
+            } else if (cmd == "glyph_substitution_file") {
                 std::istringstream argstream(arg);
                 std::string file;
 
-                gli_conf_glyph_substitution_files.clear();
-                while (argstream >> std::quoted(file)) {
+                if (argstream >> std::quoted(file)) {
                     gli_conf_glyph_substitution_files.push_back(file);
                 }
             }
