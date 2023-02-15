@@ -701,9 +701,9 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
                 std::string spacing, file;
 
                 if (argstream >> spacing >> std::quoted(file)) {
-                    if (spacing == "prop") {
+                    if (spacing == "prop" || spacing == "*") {
                         gli_conf_glyph_substitution_files_prop.push_back(file);
-                    } else if (spacing == "mono") {
+                    } else if (spacing == "mono" || spacing == "*") {
                         gli_conf_glyph_substitution_files_mono.push_back(file);
                     }
                 }
