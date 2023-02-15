@@ -590,7 +590,8 @@ extern bool gli_claimselect;
 
 extern bool gli_conf_per_game_config;
 
-extern std::vector<std::string> gli_conf_glyph_substitution_files;
+extern std::vector<std::string> gli_conf_glyph_substitution_files_prop;
+extern std::vector<std::string> gli_conf_glyph_substitution_files_mono;
 
 // XXX See issue #730.
 extern bool gli_conf_redraw_hack;

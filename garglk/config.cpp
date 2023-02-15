@@ -698,10 +698,14 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
                 gli_conf_redraw_hack = asbool(arg);
             } else if (cmd == "glyph_substitution_file") {
                 std::istringstream argstream(arg);
-                std::string file;
+                std::string spacing, file;
 
-                if (argstream >> std::quoted(file)) {
-                    gli_conf_glyph_substitution_files.push_back(file);
+                if (argstream >> spacing >> std::quoted(file)) {
+                    if (spacing == "prop") {
+                        gli_conf_glyph_substitution_files_prop.push_back(file);
+                    } else if (spacing == "mono") {
+                        gli_conf_glyph_substitution_files_mono.push_back(file);
+                    }
                 }
             }
 

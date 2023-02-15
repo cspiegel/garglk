@@ -89,7 +89,8 @@ private:
 // Globals
 //
 
-std::vector<std::string> gli_conf_glyph_substitution_files;
+std::vector<std::string> gli_conf_glyph_substitution_files_prop;
+std::vector<std::string> gli_conf_glyph_substitution_files_mono;
 
 static std::array<std::uint16_t, 256> gammamap;
 static std::array<unsigned char, 1 << GAMMA_BITS> gammainv;
@@ -310,7 +311,9 @@ static std::vector<Font> make_unifonts(FontFace fontface)
     FT_Face face;
     std::vector<Font> fonts;
 
-    auto files = gli_conf_glyph_substitution_files;
+    auto files = fontface.monospace ?
+        gli_conf_glyph_substitution_files_mono :
+        gli_conf_glyph_substitution_files_prop;
 
 #ifdef GARGLK_UNIFONT
     files.push_back(GARGLK_UNIFONT);
