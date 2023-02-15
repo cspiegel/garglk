@@ -315,15 +315,13 @@ static std::vector<Font> make_unifonts(FontFace fontface)
         gli_conf_glyph_substitution_files_mono :
         gli_conf_glyph_substitution_files_prop;
 
-#ifdef GARGLK_UNIFONT
-    files.push_back(GARGLK_UNIFONT);
-#else
     for (const auto &datadir : garglk::winappdata()) {
         files.push_back(datadir + "/unifont.otf");
+        files.push_back(datadir + "/unifont_upper.otf");
     }
 
     files.emplace_back("./unifont.otf");
-#endif
+    files.emplace_back("./unifont_upper.otf");
 
     for (const auto &file : files) {
         if (FT_New_Face(ftlib, file.c_str(), 0, &face) == 0) {

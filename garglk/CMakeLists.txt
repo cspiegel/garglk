@@ -11,7 +11,6 @@ if(UNIX AND NOT APPLE)
     if(NOT APPIMAGE)
         option(INSTALL_GARGLKINI "Install an example config file to ${GARGLKINI}" OFF)
     endif()
-    set(UNIFONT "" CACHE STRING "Absolute path to a fallback font for glyph substitution (default is to use the bundled GNU Unifont)")
 endif()
 
 if(APPLE)
@@ -85,9 +84,6 @@ warnings(garglk)
 
 if(UNIX AND NOT APPLE)
     target_compile_definitions(garglk PRIVATE "GARGLKINI=\"${GARGLKINI}\"")
-    if(NOT UNIFONT STREQUAL "")
-        target_compile_definitions(garglk PRIVATE GARGLK_UNIFONT=\"${UNIFONT}\")
-    endif()
 endif()
 
 if(APPIMAGE)
@@ -322,11 +318,10 @@ elseif(UNIX)
         "${PROJECT_SOURCE_DIR}/fonts/Gargoyle-Serif.ttf"
         DESTINATION "${FONT_DIRECTORY}")
 
-    if(UNIFONT STREQUAL "")
-        install(FILES
-            "${PROJECT_SOURCE_DIR}/fonts/unifont.otf"
-            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/io.github.garglk/Gargoyle")
-    endif()
+    install(FILES
+        "${PROJECT_SOURCE_DIR}/fonts/unifont.otf"
+        "${PROJECT_SOURCE_DIR}/fonts/unifont_upper.otf"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/io.github.garglk/Gargoyle")
 
     install(FILES
         "${PROJECT_SOURCE_DIR}/themes/Blue.json"
@@ -359,4 +354,5 @@ file(COPY
     "${PROJECT_SOURCE_DIR}/fonts/Gargoyle-Serif-Italic.ttf"
     "${PROJECT_SOURCE_DIR}/fonts/Gargoyle-Serif.ttf"
     "${PROJECT_SOURCE_DIR}/fonts/unifont.otf"
+    "${PROJECT_SOURCE_DIR}/fonts/unifont_upper.otf"
     DESTINATION "${CMAKE_BINARY_DIR}")
