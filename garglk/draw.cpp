@@ -641,7 +641,7 @@ static const FontEntry &get_system_fallback_glyph(FontFace fontface, glui32 c)
                 try {
                     Font font{fontface, face, file.value()};
                     glyph_to_font.insert({key, font});
-                } catch (const std::runtime_error &) {
+                } catch (const FreetypeError &) {
                 }
             }
         }
