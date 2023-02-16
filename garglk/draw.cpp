@@ -130,27 +130,32 @@ void garglk::set_lcdfilter(const std::string &filter)
 // Font loading
 //
 
-// FT_Error_String() was introduced in FreeType 2.10.0.
+class FreetypeError : public std::exception {
+public:
+    FreetypeError(FT_Error err, const std::string &basemsg) {
+        // FT_Error_String() was introduced in FreeType 2.10.0.
 #if FREETYPE_MAJOR == 2 && FREETYPE_MINOR < 10
-#define FT_Error_String(err) nullptr
+        const char *errstr = nullptr;
+#else
+        // If FreeType was not built with FT_CONFIG_OPTION_ERROR_STRINGS,
+        // this will always be nullptr.
+        const char *errstr = FT_Error_String(err);
 #endif
 
-static void freetype_error(int err, const std::string &basemsg)
-{
-    std::ostringstream msg;
-    // If FreeType was not built with FT_CONFIG_OPTION_ERROR_STRINGS,
-    // this will always be nullptr.
-    const char *errstr = FT_Error_String(err);
+        if (errstr == nullptr) {
+            m_what = basemsg + " (error code " + std::to_string(err) + ")";
+        } else {
+            m_what = basemsg + ": " + errstr;
+        }
+    };
 
-    if (errstr == nullptr) {
-        msg << basemsg << " (error code " << err << ")";
-    } else {
-        msg << basemsg << ": " << errstr;
+    const char *what() const noexcept override {
+        return m_what.c_str();
     }
 
-    throw std::runtime_error("");
-    garglk::winabort(msg.str());
-}
+private:
+    std::string m_what;
+};
 
 const FontEntry &Font::getglyph(glui32 cid)
 {
@@ -177,7 +182,7 @@ const FontEntry &Font::getglyph(glui32 cid)
             err = FT_Load_Glyph(m_face, gid,
                     FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING);
             if (err != 0) {
-                freetype_error(err, "Error in FT_Load_Glyph");
+                throw FreetypeError(err, "Error in FT_Load_Glyph");
             }
 
             if (m_make_bold) {
@@ -201,7 +206,7 @@ const FontEntry &Font::getglyph(glui32 cid)
             }
 
             if (err != 0) {
-                freetype_error(err, "Error in FT_Render_Glyph");
+                throw FreetypeError(err, "Error in FT_Render_Glyph");
             }
 
             datasize = m_face->glyph->bitmap.pitch * m_face->glyph->bitmap.rows;
@@ -362,12 +367,12 @@ Font::Font(FontFace fontface, FT_Face face, const std::string &fontpath) :
 
     err = FT_Set_Char_Size(m_face, size * aspect * 64, size * 64, 72, 72);
     if (err != 0) {
-        freetype_error(err, "Error in FT_Set_Char_Size for " + fontpath);
+        throw FreetypeError(err, "Error in FT_Set_Char_Size for " + fontpath);
     }
 
     err = FT_Select_Charmap(m_face, ft_encoding_unicode);
     if (err != 0) {
-        freetype_error(err, "Error in FT_Select_CharMap for " + fontpath);
+        throw FreetypeError(err, "Error in FT_Select_CharMap for " + fontpath);
     }
 
     m_kerned = FT_HAS_KERNING(m_face);
@@ -390,7 +395,7 @@ void gli_initialize_fonts()
 
     err = FT_Init_FreeType(&ftlib);
     if (err != 0) {
-        freetype_error(err, "Unable to initialize FreeType");
+        throw FreetypeError(err, "Unable to initialize FreeType");
     }
 
     fontload();
@@ -597,7 +602,7 @@ int Font::charkern(glui32 c0, glui32 c1)
 
     err = FT_Get_Kerning(m_face, g0, g1, FT_KERNING_UNFITTED, &v);
     if (err != 0) {
-        freetype_error(err, "Error in FT_Get_Kerning");
+        throw FreetypeError(err, "Error in FT_Get_Kerning");
     }
 
     int value = (v.x * GLI_SUBPIX) / 64.0;
