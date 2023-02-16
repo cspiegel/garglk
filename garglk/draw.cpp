@@ -648,7 +648,7 @@ static const FontEntry &get_system_fallback_glyph(FontFace fontface, glui32 c)
     }
 
     try {
-        auto font = glyph_to_font.at(key);
+        auto &font = glyph_to_font.at(key);
         if (font.has_value()) {
             return font->getglyph(c);
         }
