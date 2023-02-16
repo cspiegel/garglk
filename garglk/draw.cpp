@@ -449,19 +449,23 @@ void gli_initialize_fonts()
         return std::make_pair(face, make_font(face, filename));
     };
 
-    gfont_table.insert(make_entry(FontFace::monor(), "Gargoyle-Mono.ttf"));
-    gfont_table.insert(make_entry(FontFace::monob(), "Gargoyle-Mono-Bold.ttf"));
-    gfont_table.insert(make_entry(FontFace::monoi(), "Gargoyle-Mono-Italic.ttf"));
-    gfont_table.insert(make_entry(FontFace::monoz(), "Gargoyle-Mono-Bold-Italic.ttf"));
-    gfont_table.insert(make_entry(FontFace::propr(), "Gargoyle-Serif.ttf"));
-    gfont_table.insert(make_entry(FontFace::propb(), "Gargoyle-Serif-Bold.ttf"));
-    gfont_table.insert(make_entry(FontFace::propi(), "Gargoyle-Serif-Italic.ttf"));
-    gfont_table.insert(make_entry(FontFace::propz(), "Gargoyle-Serif-Bold-Italic.ttf"));
+    try {
+        gfont_table.insert(make_entry(FontFace::monor(), "Gargoyle-Mono.ttf"));
+        gfont_table.insert(make_entry(FontFace::monob(), "Gargoyle-Mono-Bold.ttf"));
+        gfont_table.insert(make_entry(FontFace::monoi(), "Gargoyle-Mono-Italic.ttf"));
+        gfont_table.insert(make_entry(FontFace::monoz(), "Gargoyle-Mono-Bold-Italic.ttf"));
+        gfont_table.insert(make_entry(FontFace::propr(), "Gargoyle-Serif.ttf"));
+        gfont_table.insert(make_entry(FontFace::propb(), "Gargoyle-Serif-Bold.ttf"));
+        gfont_table.insert(make_entry(FontFace::propi(), "Gargoyle-Serif-Italic.ttf"));
+        gfont_table.insert(make_entry(FontFace::propz(), "Gargoyle-Serif-Bold-Italic.ttf"));
 
-    const auto &entry = gfont_table.at(FontFace::monor()).getglyph('0');
+        const auto &entry = gfont_table.at(FontFace::monor()).getglyph('0');
 
-    gli_cellh = gli_leading;
-    gli_cellw = (entry.adv + GLI_SUBPIX - 1) / GLI_SUBPIX;
+        gli_cellh = gli_leading;
+        gli_cellw = (entry.adv + GLI_SUBPIX - 1) / GLI_SUBPIX;
+    } catch (const FreetypeError &e) {
+        garglk::winabort(e.what());
+    }
 }
 
 //
