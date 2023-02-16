@@ -58,13 +58,14 @@ std::vector<std::string> get_fonts_by_glyph(FontFace fontface, unsigned long gly
 {
     std::vector<std::string> fonts;
 
-    std::ostringstream ss;
-    ss << ":charset=" << std::hex << glyph;
+    auto pat = FcPatternCreate();
+    auto fcs = FcCharSetCreate();
+    FcCharSetAddChar(fcs, glyph);
+    FcPatternAddCharSet(pat, FC_CHARSET, fcs);
     if (fontface.monospace) {
-        ss << ":mono";
+        FcPatternAddInteger(pat, FC_SPACING, FC_MONO);
+        FcPatternAddInteger(pat, FC_SPACING, FC_DUAL);
     }
-    puts(ss.str().c_str());
-    auto pat = FcNameParse(reinterpret_cast<const FcChar8 *>(ss.str().c_str()));
     auto os = FcObjectSetBuild(FC_FILE, static_cast<char *>(nullptr));
     auto fs = FcFontList(nullptr, pat, os);
 
