@@ -148,6 +148,7 @@ static void freetype_error(int err, const std::string &basemsg)
         msg << basemsg << ": " << errstr;
     }
 
+    throw std::runtime_error("");
     garglk::winabort(msg.str());
 }
 
@@ -613,9 +614,44 @@ static const std::vector<std::pair<std::vector<glui32>, glui32>> ligatures = {
     {{'f', 'l'}, UNI_LIG_FL},
 };
 
-static int gli_string_impl(int x, FontFace face, const glui32 *s, std::size_t n, int spw, const std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> &callback)
+std::unordered_map<std::pair<FontFace, glui32>, nonstd::optional<Font>> glyph_to_font;
+
+static const FontEntry &get_system_fallback_glyph(FontFace fontface, glui32 c)
 {
-    auto &f = gfont_table.at(face);
+    nonstd::optional<std::string> get_font_by_glyph(FontFace fontface ,unsigned long glyph);
+    std::pair<FontFace, glui32> key{fontface, c};
+
+    auto font = glyph_to_font.find(key);
+    if (font == glyph_to_font.end()) {
+        glyph_to_font[key] = nonstd::nullopt;
+
+        auto file = get_font_by_glyph(fontface, c);
+        if (file.has_value()) {
+            FT_Face face;
+            if (FT_New_Face(ftlib, file->c_str(), 0, &face) == 0) {
+                try {
+                    Font font{fontface, face, file.value()};
+                    glyph_to_font.insert({key, font});
+                } catch (const std::runtime_error &) {
+                }
+            }
+        }
+    }
+
+    try {
+        auto font = glyph_to_font.at(key);
+        if (font.has_value()) {
+            return font->getglyph(c);
+        }
+    } catch (const std::out_of_range &) {
+    }
+
+    throw std::runtime_error("no glyphs");
+}
+
+static int gli_string_impl(int x, FontFace fontface, const glui32 *s, std::size_t n, int spw, const std::function<void(int, const std::array<Bitmap, GLI_SUBPIX> &)> &callback)
+{
+    auto &f = gfont_table.at(fontface);
     bool dolig = !FT_IS_FIXED_WIDTH(f.face());
     int prev = -1;
     glui32 c;
@@ -648,12 +684,17 @@ static int gli_string_impl(int x, FontFace face, const glui32 *s, std::size_t n,
             n--;
         }
 
-        auto glyph = [&f, &face](glui32 c) {
+        auto glyph = [&f, &fontface](glui32 c) {
             try {
                 return &f.getglyph(c);
             } catch (const std::out_of_range &) {
                 try {
-                    for (auto &font : unicode_fonts.at(face)) {
+                    return &get_system_fallback_glyph(fontface, c);
+                } catch (const std::runtime_error &) {
+                }
+
+                try {
+                    for (auto &font : unicode_fonts.at(fontface)) {
                         try {
                             return &font.getglyph(c);
                         } catch (const std::out_of_range &) {

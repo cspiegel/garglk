@@ -23,6 +23,8 @@
 
 #include <fontconfig/fontconfig.h>
 
+#include "optional.hpp"
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -47,6 +49,23 @@ static std::string findfont(const std::string &fontname)
         return "";
     }
 
+    if (FcPatternGetString(fs->fonts[0], FC_FILE, 0, &strval) == FcResultTypeMismatch || strval == nullptr) {
+        return "";
+    }
+
+    return reinterpret_cast<char *>(strval);
+}
+
+nonstd::optional<std::string> get_font_by_glyph(FontFace fontface, unsigned long glyph)
+{
+    std::ostringstream ss;
+    ss << ":charset=" << std::hex << glyph;
+    puts(ss.str().c_str());
+    auto pat = FcNameParse(reinterpret_cast<const FcChar8 *>(ss.str().c_str()));
+    auto os = FcObjectSetBuild(FC_FILE, static_cast<char *>(nullptr));
+    auto fs = FcFontList(nullptr, pat, os);
+
+    FcChar8 *strval;
     if (FcPatternGetString(fs->fonts[0], FC_FILE, 0, &strval) == FcResultTypeMismatch || strval == nullptr) {
         return "";
     }

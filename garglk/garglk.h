@@ -90,6 +90,13 @@ struct hash<FontFace> {
                 (fontface.italic    ? 4 : 0);
     }
 };
+
+template<>
+struct hash<std::pair<FontFace, glui32>> {
+    size_t operator()(const std::pair<FontFace, glui32> &pair) const {
+        return std::hash<FontFace>()(pair.first) ^ std::hash<glui32>()(pair.second);
+    }
+};
 }
 
 namespace garglk {
