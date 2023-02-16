@@ -83,13 +83,13 @@ struct FontFace {
 
 namespace std {
 template<>
-    struct hash<FontFace> {
-        size_t operator()(const FontFace &fontface) const {
-            return (fontface.monospace ? 1 : 0) |
-                   (fontface.bold      ? 2 : 0) |
-                   (fontface.italic    ? 4 : 0);
-        }
-    };
+struct hash<FontFace> {
+    size_t operator()(const FontFace &fontface) const {
+        return (fontface.monospace ? 1 : 0) |
+                (fontface.bold      ? 2 : 0) |
+                (fontface.italic    ? 4 : 0);
+    }
+};
 }
 
 namespace garglk {
