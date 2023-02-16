@@ -174,6 +174,10 @@ std::vector<std::string> garglk::get_fonts_for_glyph(FontFace fontface, unsigned
 {
     std::vector<std::string> fonts;
 
+    if (!initialized) {
+        return fonts;
+    }
+
     auto fcs = garglk::unique(FcCharSetCreate(), FcCharSetDestroy);
     FcCharSetAddChar(fcs.get(), glyph);
 
