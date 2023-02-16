@@ -174,8 +174,8 @@ std::vector<std::string> garglk::get_fonts_for_glyph(FontFace fontface, unsigned
 {
     std::vector<std::string> fonts;
 
-    auto fcs = FcCharSetCreate();
-    FcCharSetAddChar(fcs, glyph);
+    auto fcs = garglk::unique(FcCharSetCreate(), FcCharSetDestroy);
+    FcCharSetAddChar(fcs.get(), glyph);
 
     static const std::vector<int> regular_weights = {FC_WEIGHT_REGULAR, FC_WEIGHT_BOOK, FC_WEIGHT_MEDIUM};
     static const std::vector<int> bold_weights = {FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABOLD, FC_WEIGHT_SEMIBOLD, FC_WEIGHT_BLACK, FC_WEIGHT_EXTRABLACK};
@@ -189,7 +189,7 @@ std::vector<std::string> garglk::get_fonts_for_glyph(FontFace fontface, unsigned
         for (const auto &slant : slants) {
             auto pat = garglk::unique(FcPatternCreate(), FcPatternDestroy);
 
-            FcPatternAddCharSet(pat.get(), FC_CHARSET, fcs);
+            FcPatternAddCharSet(pat.get(), FC_CHARSET, fcs.get());
             FcPatternAddInteger(pat.get(), FC_WEIGHT, weight);
             FcPatternAddInteger(pat.get(), FC_SLANT, slant);
 
