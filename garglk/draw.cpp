@@ -640,7 +640,7 @@ static const FontEntry &get_system_fallback_glyph(FontFace fontface, glui32 c)
             if (FT_New_Face(ftlib, file.c_str(), 0, &face) == 0) {
                 try {
                     Font font{fontface, face, file};
-                    glyph_to_font.insert({key, font});
+                    glyph_to_font[key] = font;
                 } catch (const FreetypeError &) {
                 }
             }
