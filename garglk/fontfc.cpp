@@ -23,8 +23,6 @@
 
 #include <fontconfig/fontconfig.h>
 
-#include "optional.hpp"
-
 #include "glk.h"
 #include "garglk.h"
 
@@ -56,21 +54,28 @@ static std::string findfont(const std::string &fontname)
     return reinterpret_cast<char *>(strval);
 }
 
-nonstd::optional<std::string> get_font_by_glyph(FontFace fontface, unsigned long glyph)
+std::vector<std::string> get_fonts_by_glyph(FontFace fontface, unsigned long glyph)
 {
+    std::vector<std::string> fonts;
+
     std::ostringstream ss;
     ss << ":charset=" << std::hex << glyph;
+    if (fontface.monospace) {
+        ss << ":mono";
+    }
     puts(ss.str().c_str());
     auto pat = FcNameParse(reinterpret_cast<const FcChar8 *>(ss.str().c_str()));
     auto os = FcObjectSetBuild(FC_FILE, static_cast<char *>(nullptr));
     auto fs = FcFontList(nullptr, pat, os);
 
     FcChar8 *strval;
-    if (FcPatternGetString(fs->fonts[0], FC_FILE, 0, &strval) == FcResultTypeMismatch || strval == nullptr) {
-        return "";
+    for (int i = 0; i < fs->nfont; i++) {
+        if (FcPatternGetString(fs->fonts[0], FC_FILE, 0, &strval) != FcResultTypeMismatch && strval != nullptr) {
+            fonts.emplace_back(reinterpret_cast<char *>(strval));
+        }
     }
 
-    return reinterpret_cast<char *>(strval);
+    return fonts;
 }
 
 static std::string find_font_by_styles(const std::string &basefont, const std::vector<std::string> &styles, const std::vector<std::string> &weights, const std::vector<std::string> &slants)
