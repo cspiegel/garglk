@@ -58,21 +58,39 @@ std::vector<std::string> get_fonts_by_glyph(FontFace fontface, unsigned long gly
 {
     std::vector<std::string> fonts;
 
-    auto pat = FcPatternCreate();
     auto fcs = FcCharSetCreate();
     FcCharSetAddChar(fcs, glyph);
-    FcPatternAddCharSet(pat, FC_CHARSET, fcs);
-    if (fontface.monospace) {
-        FcPatternAddInteger(pat, FC_SPACING, FC_MONO);
-        FcPatternAddInteger(pat, FC_SPACING, FC_DUAL);
-    }
-    auto os = FcObjectSetBuild(FC_FILE, static_cast<char *>(nullptr));
-    auto fs = FcFontList(nullptr, pat, os);
 
-    FcChar8 *strval;
-    for (int i = 0; i < fs->nfont; i++) {
-        if (FcPatternGetString(fs->fonts[i], FC_FILE, 0, &strval) != FcResultTypeMismatch && strval != nullptr) {
-            fonts.emplace_back(reinterpret_cast<char *>(strval));
+    static const std::vector<int> regular_weights = {FC_WEIGHT_REGULAR, FC_WEIGHT_BOOK, FC_WEIGHT_MEDIUM};
+    static const std::vector<int> bold_weights = {FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABOLD, FC_WEIGHT_SEMIBOLD, FC_WEIGHT_BLACK, FC_WEIGHT_EXTRABLACK};
+    static const std::vector<int> roman_slants = {FC_SLANT_ROMAN};
+    static const std::vector<int> italic_slants = {FC_SLANT_ITALIC, FC_SLANT_OBLIQUE};
+
+    auto &weights = fontface.bold ? bold_weights : regular_weights;
+    auto &slants = fontface.italic ? italic_slants : roman_slants;
+
+    for (const auto &weight : weights) {
+        for (const auto &slant : slants) {
+            auto pat = garglk::unique(FcPatternCreate(), FcPatternDestroy);
+
+            FcPatternAddCharSet(pat.get(), FC_CHARSET, fcs);
+            FcPatternAddInteger(pat.get(), FC_WEIGHT, weight);
+            FcPatternAddInteger(pat.get(), FC_SLANT, slant);
+
+            if (fontface.monospace) {
+                FcPatternAddInteger(pat.get(), FC_SPACING, FC_MONO);
+                FcPatternAddInteger(pat.get(), FC_SPACING, FC_DUAL);
+            }
+
+            auto os = garglk::unique(FcObjectSetBuild(FC_FILE, static_cast<char *>(nullptr)), FcObjectSetDestroy);
+            auto fs = garglk::unique(FcFontList(nullptr, pat.get(), os.get()), FcFontSetDestroy);
+
+            for (int i = 0; i < fs->nfont; i++) {
+                FcChar8 *strval;
+                if (FcPatternGetString(fs->fonts[i], FC_FILE, 0, &strval) != FcResultTypeMismatch && strval != nullptr) {
+                    fonts.emplace_back(reinterpret_cast<char *>(strval));
+                }
+            }
         }
     }
 
