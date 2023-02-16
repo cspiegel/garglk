@@ -717,9 +717,13 @@ static int gli_string_impl(int x, FontFace fontface, const glui32 *s, std::size_
 
         const FontEntry *entry;
         try {
-            entry = glyph(c);
-        } catch (const std::out_of_range &) {
-            entry = glyph('?');
+            try {
+                entry = glyph(c);
+            } catch (const std::out_of_range &) {
+                entry = glyph('?');
+            }
+        } catch (const FreetypeError &e) {
+            garglk::winabort(e.what());
         }
 
         if (prev != -1) {
