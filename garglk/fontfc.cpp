@@ -71,7 +71,7 @@ std::vector<std::string> get_fonts_by_glyph(FontFace fontface, unsigned long gly
 
     FcChar8 *strval;
     for (int i = 0; i < fs->nfont; i++) {
-        if (FcPatternGetString(fs->fonts[0], FC_FILE, 0, &strval) != FcResultTypeMismatch && strval != nullptr) {
+        if (FcPatternGetString(fs->fonts[i], FC_FILE, 0, &strval) != FcResultTypeMismatch && strval != nullptr) {
             fonts.emplace_back(reinterpret_cast<char *>(strval));
         }
     }
