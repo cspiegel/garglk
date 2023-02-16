@@ -623,7 +623,7 @@ static const std::vector<std::pair<std::vector<glui32>, glui32>> ligatures = {
     {{'f', 'l'}, UNI_LIG_FL},
 };
 
-std::unordered_map<std::pair<FontFace, glui32>, nonstd::optional<Font>> glyph_to_font;
+static std::unordered_map<std::pair<FontFace, glui32>, nonstd::optional<Font>> glyph_to_font;
 
 static const FontEntry &get_system_fallback_glyph(FontFace fontface, glui32 c)
 {
