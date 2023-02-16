@@ -166,6 +166,7 @@ std::string winsavefile(const char *prompt, FileFilter filter);
 void winabort(const std::string &msg);
 std::string downcase(const std::string &string);
 void fontreplace(const std::string &font, FontType type);
+std::vector<std::string> get_fonts_for_glyph(FontFace fontface, unsigned long glyph);
 std::vector<ConfigFile> configs(const std::string &gamepath);
 void config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg)> &callback);
 std::string user_config();

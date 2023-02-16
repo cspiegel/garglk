@@ -202,6 +202,11 @@ void garglk::fontreplace(const std::string &font, FontType type)
     ReleaseDC(0, hdc);
 }
 
+std::vector<std::string> garglk::get_fonts_for_glyph(FontFace fontface, unsigned long glyph)
+{
+    return {}
+}
+
 void fontload()
 {
 }

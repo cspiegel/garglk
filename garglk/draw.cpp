@@ -627,15 +627,13 @@ std::unordered_map<std::pair<FontFace, glui32>, nonstd::optional<Font>> glyph_to
 
 static const FontEntry &get_system_fallback_glyph(FontFace fontface, glui32 c)
 {
-    std::vector<std::string> get_fonts_by_glyph(FontFace fontface ,unsigned long glyph);
     std::pair<FontFace, glui32> key{fontface, c};
 
     auto font = glyph_to_font.find(key);
     if (font == glyph_to_font.end()) {
         glyph_to_font[key] = nonstd::nullopt;
 
-        auto file = get_fonts_by_glyph(fontface, c);
-        for (const auto &file : get_fonts_by_glyph(fontface, c)) {
+        for (const auto &file : garglk::get_fonts_for_glyph(fontface, c)) {
             FT_Face face;
             if (FT_New_Face(ftlib, file.c_str(), 0, &face) == 0) {
                 try {

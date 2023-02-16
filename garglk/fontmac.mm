@@ -216,6 +216,11 @@ void garglk::fontreplace(const std::string &font, FontType type)
     [pool drain];
 }
 
+std::vector<std::string> garglk::get_fonts_for_glyph(FontFace fontface, unsigned long glyph)
+{
+    return {}
+}
+
 void fontload()
 {
     // 'GARGLK_RESOURCES' should be the path to the Bundle's Resources directory
