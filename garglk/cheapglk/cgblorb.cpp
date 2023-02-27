@@ -28,7 +28,9 @@
     It is distributed under the MIT license; see the "LICENSE" file.
 */
 
-#include <stdio.h>
+#include <array>
+#include <cstdio>
+
 #include "glk.h"
 #include "garglk.h"
 #include "gi_blorb.h"
@@ -40,7 +42,7 @@
 static giblorb_map_t *blorbmap = 0; /* NULL */
 
 #ifdef GARGLK
-static strid_t blorbfile = NULL;
+static std::FILE *blorbfile = nullptr;
 #endif
 
 giblorb_err_t giblorb_set_resource_map(strid_t file)
@@ -48,10 +50,7 @@ giblorb_err_t giblorb_set_resource_map(strid_t file)
   giblorb_err_t err;
   
 #ifdef GARGLK
-  /* For the moment, we only allow file-streams, because the resource
-      loaders expect a FILE*. This could be changed, but I see no
-      reason right now. */
-  if (file->type != strtype_File)
+  if (file->type != strtype_File && file->type != strtype_Memory)
       return giblorb_err_NotAMap;
 #endif
 
@@ -62,7 +61,42 @@ giblorb_err_t giblorb_set_resource_map(strid_t file)
   }
   
 #ifdef GARGLK
-  blorbfile = file;
+  if (file->type == strtype_File) {
+      blorbfile = file->file;
+  } else {
+      std::FILE *fp = nullptr;
+      try {
+          // For the time being, handle memory streams by writing to a temporary file.
+          fp = std::tmpfile();
+          if (fp == nullptr) {
+              throw giblorb_err_Alloc;
+          }
+
+          glk_stream_set_position(file, 0, seekmode_Start);
+
+          std::array<char, 8192> buf;
+          glui32 n;
+
+          while ((n = glk_get_buffer_stream(file, buf.data(), buf.size())) > 0) {
+              if (std::fwrite(buf.data(), n, 1, fp) != 1) {
+                  std::fclose(fp);
+                  throw giblorb_err_Alloc;
+              }
+          }
+
+          if (std::fflush(fp) == -1 || std::fseek(fp, 0, SEEK_SET) == -1) {
+              throw giblorb_err_Alloc;
+          }
+
+          blorbfile = fp;
+      } catch (const giblorb_err_t &err) {
+          if (fp != nullptr) {
+              std::fclose(fp);
+          }
+          giblorb_destroy_map(blorbmap);
+          return err;
+      }
+  }
 #endif
 
   return giblorb_err_None;
@@ -91,7 +125,7 @@ void giblorb_get_resource(glui32 usage, glui32 resnum,
     if (err)
         return;
 
-    *file = blorbfile->file;
+    *file = blorbfile;
     if (pos)
         *pos = blorbres.data.startpos;
     if (len)
