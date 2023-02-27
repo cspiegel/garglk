@@ -108,7 +108,7 @@ std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled)
 
 std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
 {
-    std::unique_ptr<FILE, std::function<void(FILE *)>> fl;
+    // std::unique_ptr<FILE, std::function<void(FILE *)>> fl;
     glui32 chunktype;
 
     auto pic = gli_picture_retrieve(id, false);
@@ -120,7 +120,8 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
         std::array<unsigned char, 8> buf;
         std::string filename = gli_workdir + "/PIC" + std::to_string(id);
 
-        fl = {std::fopen(filename.c_str(), "rb"), fclose};
+        // std::unique_ptr<FILE, std::funct = {std::fopen(filename.c_str(), "rb"), fclose};
+        auto fl = garglk::unique(std::fopen(filename.c_str(), "rb"), fclose);
         if (!fl) {
             return nullptr;
         }

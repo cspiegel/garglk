@@ -20,7 +20,7 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdio>
+#include <cstddef>
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -744,21 +744,14 @@ static std::pair<int, QByteArray> load_sound_resource(glui32 snd)
 
         return {detect_format(data), data};
     } else {
-        std::FILE *file;
         glui32 type;
-        long pos, len;
 
-        giblorb_get_resource(giblorb_ID_Snd, snd, &file, &pos, &len, &type);
-        if (file == nullptr) {
+        std::vector<unsigned char> buf;
+        if (!giblorb_copy_resource(giblorb_ID_Snd, snd, type, buf)) {
             throw SoundError("can't get blorb resource");
         }
 
-        QByteArray data(len, 0);
-
-        if (std::fseek(file, pos, SEEK_SET) == -1 ||
-            std::fread(data.data(), len, 1, file) != 1) {
-            throw SoundError("can't read from blorb file");
-        }
+        QByteArray data(reinterpret_cast<const char *>(buf.data()), buf.size());
 
         return std::make_pair(type, data);
     }

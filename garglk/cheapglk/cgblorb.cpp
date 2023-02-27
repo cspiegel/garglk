@@ -30,6 +30,7 @@
 
 #include <array>
 #include <cstdio>
+#include <vector>
 
 #include "glk.h"
 #include "garglk.h"
@@ -43,6 +44,7 @@ static giblorb_map_t *blorbmap = 0; /* NULL */
 
 #ifdef GARGLK
 static std::FILE *blorbfile = nullptr;
+static const unsigned char *blorbptr = nullptr;
 #endif
 
 giblorb_err_t giblorb_set_resource_map(strid_t file)
@@ -68,38 +70,7 @@ giblorb_err_t giblorb_set_resource_map(strid_t file)
   if (file->type == strtype_File) {
       blorbfile = file->file;
   } else {
-      std::FILE *fp = nullptr;
-      try {
-          // For the time being, handle memory streams by writing to a temporary file.
-          fp = std::tmpfile();
-          if (fp == nullptr) {
-              throw giblorb_err_Alloc;
-          }
-
-          glk_stream_set_position(file, 0, seekmode_Start);
-
-          std::array<char, 8192> buf;
-          glui32 n;
-
-          while ((n = glk_get_buffer_stream(file, buf.data(), buf.size())) > 0) {
-              if (std::fwrite(buf.data(), n, 1, fp) != 1) {
-                  std::fclose(fp);
-                  throw giblorb_err_Alloc;
-              }
-          }
-
-          if (std::fflush(fp) == -1 || std::fseek(fp, 0, SEEK_SET) == -1) {
-              throw giblorb_err_Alloc;
-          }
-
-          blorbfile = fp;
-      } catch (const giblorb_err_t &err) {
-          if (fp != nullptr) {
-              std::fclose(fp);
-          }
-          giblorb_destroy_map(blorbmap);
-          return err;
-      }
+      blorbptr = file->buf;
   }
 #endif
 
@@ -112,29 +83,76 @@ giblorb_map_t *giblorb_get_resource_map()
 }
 
 #ifdef GARGLK
-void giblorb_get_resource(glui32 usage, glui32 resnum,
-    FILE **file, long *pos, long *len, glui32 *type)
+bool giblorb_get_resource_impl(glui32 usage, glui32 resnum,
+    long *pos, long *len, glui32 *type)
 {
     giblorb_err_t err;
     giblorb_result_t blorbres;
 
-    *file = NULL;
     *pos = 0;
 
     if (!blorbmap)
-        return;
+        return false;
 
     err = giblorb_load_resource(blorbmap, giblorb_method_FilePos,
             &blorbres, usage, resnum);
     if (err)
-        return;
+        return false;
 
-    *file = blorbfile;
     if (pos)
         *pos = blorbres.data.startpos;
     if (len)
         *len = blorbres.length;
     if (type)
         *type = blorbres.chunktype;
+
+    return true;
+}
+
+void giblorb_get_resource(glui32 usage, glui32 resnum,
+    FILE **file, long *pos, long *len, glui32 *type)
+{
+    *file = nullptr;
+
+    if (giblorb_get_resource_impl(usage, resnum, pos, len, type)) {
+        *file = blorbfile;
+    }
+}
+
+void giblorb_get_resource(glui32 usage, glui32 resnum,
+    const unsigned char **buf, long *pos, long *len, glui32 *type)
+{
+    *buf = nullptr;
+
+    if (giblorb_get_resource_impl(usage, resnum, pos, len, type)) {
+        *buf = blorbptr;
+    }
+}
+
+bool giblorb_copy_resource(glui32 usage, glui32 resnum, glui32 &type, std::vector<unsigned char> &buf)
+{
+    long pos, len;
+    if (!giblorb_get_resource_impl(usage, resnum, &pos, &len, &type)) {
+        return false;
+    }
+
+    try {
+        buf.resize(len);
+    } catch (const std::bad_alloc &) {
+        return false;
+    }
+
+    if (blorbfile != nullptr) {
+        if (std::fseek(blorbfile, pos, SEEK_SET) == -1 ||
+            std::fread(buf.data(), len, 1, blorbfile) != 1) {
+            return false;
+        }
+    } else if (blorbptr != nullptr) {
+        std::copy(blorbptr + pos, blorbptr + pos + len, buf.begin());
+    } else {
+        return false;
+    }
+
+    return true;
 }
 #endif
