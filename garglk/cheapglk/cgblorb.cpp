@@ -43,8 +43,7 @@
 static giblorb_map_t *blorbmap = 0; /* NULL */
 
 #ifdef GARGLK
-static std::FILE *blorbfile = nullptr;
-static const unsigned char *blorbptr = nullptr;
+static strid_t blorbfile;
 #endif
 
 giblorb_err_t giblorb_set_resource_map(strid_t file)
@@ -58,6 +57,16 @@ giblorb_err_t giblorb_set_resource_map(strid_t file)
   if (file->type == strtype_Memory && file->unicode) {
       return giblorb_err_NotAMap;
   }
+
+  if (blorbmap != nullptr) {
+      giblorb_destroy_map(blorbmap);
+      blorbmap = nullptr;
+  }
+
+  if (blorbfile != nullptr) {
+      glk_stream_close(blorbfile, nullptr);
+      blorbfile = nullptr;
+  }
 #endif
 
   err = giblorb_create_map(file, &blorbmap);
@@ -67,11 +76,7 @@ giblorb_err_t giblorb_set_resource_map(strid_t file)
   }
   
 #ifdef GARGLK
-  if (file->type == strtype_File) {
-      blorbfile = file->file;
-  } else {
-      blorbptr = file->buf;
-  }
+  blorbfile = file;
 #endif
 
   return giblorb_err_None;
@@ -104,14 +109,17 @@ bool giblorb_copy_resource(glui32 usage, glui32 resnum, glui32 &type, std::vecto
         return false;
     }
 
-    if (blorbfile != nullptr) {
-        if (std::fseek(blorbfile, pos, SEEK_SET) == -1 ||
-            std::fread(buf.data(), len, 1, blorbfile) != 1) {
+    switch (blorbfile->type) {
+    case strtype_File:
+        if (std::fseek(blorbfile->file, pos, SEEK_SET) == -1 ||
+            std::fread(buf.data(), len, 1, blorbfile->file) != 1) {
             return false;
         }
-    } else if (blorbptr != nullptr) {
-        std::copy(blorbptr + pos, blorbptr + pos + len, buf.begin());
-    } else {
+        break;
+    case strtype_Memory:
+        std::copy(blorbfile->buf + pos, blorbfile->buf + pos + len, buf.begin());
+        break;
+    default:
         return false;
     }
 
