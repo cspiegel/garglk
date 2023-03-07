@@ -47,6 +47,7 @@
 #endif
 
 #include "optional.hpp"
+#include "span.hpp"
 
 #include "glk.h"
 #include "glkstart.h"
@@ -392,7 +393,7 @@ std::string garglk::user_config()
     return path;
 }
 
-void garglk::config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg)> &callback)
+void garglk::config_entries(const std::string &fname, bool accept_bare, nonstd::span<const std::string> matches, const std::function<void(const std::string &cmd, const std::string &arg)> &callback)
 {
     std::string line;
     bool accept = accept_bare;

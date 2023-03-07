@@ -25,6 +25,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "span.hpp"
+
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
@@ -1010,7 +1012,7 @@ static std::string winpath()
     return buffer;
 }
 
-static int winexec(const std::string &cmd, const std::vector<std::string> &args)
+static int winexec(const std::string &cmd, const nonstd::span<std::string> args)
 {
     NSTask *proc = [[NSTask alloc] init];
 

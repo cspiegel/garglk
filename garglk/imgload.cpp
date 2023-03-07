@@ -39,6 +39,8 @@ using std::FILE;
 
 #include <png.h>
 
+#include "span.hpp"
+
 #include "glk.h"
 #include "garglk.h"
 #include "gi_blorb.h"
@@ -46,8 +48,8 @@ using std::FILE;
 #define giblorb_ID_JPEG      (giblorb_make_id('J', 'P', 'E', 'G'))
 #define giblorb_ID_PNG       (giblorb_make_id('P', 'N', 'G', ' '))
 
-static std::shared_ptr<picture_t> load_image_png(const std::vector<unsigned char> &buf, unsigned long id);
-static std::shared_ptr<picture_t> load_image_jpeg(const std::vector<unsigned char> &buf, unsigned long id);
+static std::shared_ptr<picture_t> load_image_png(nonstd::span<const unsigned char> buf, unsigned long id);
+static std::shared_ptr<picture_t> load_image_jpeg(nonstd::span<const unsigned char> buf, unsigned long id);
 
 namespace {
 
@@ -148,7 +150,7 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
         }
     }
 
-    const std::unordered_map<int, std::function<std::shared_ptr<picture_t>(const std::vector<unsigned char> &, unsigned long)>> loaders = {
+    const std::unordered_map<int, std::function<std::shared_ptr<picture_t>(nonstd::span<const unsigned char>, unsigned long)>> loaders = {
         {giblorb_ID_PNG, load_image_png},
         {giblorb_ID_JPEG, load_image_jpeg},
     };
@@ -167,7 +169,7 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
     return nullptr;
 }
 
-static std::shared_ptr<picture_t> load_image_jpeg(const std::vector<unsigned char> &buf, unsigned long id)
+static std::shared_ptr<picture_t> load_image_jpeg(nonstd::span<const unsigned char> buf, unsigned long id)
 {
 #ifdef GARGLK_CONFIG_JPEG_TURBO
     auto tj = garglk::unique(tjInitDecompress(), tjDestroy);
@@ -260,7 +262,7 @@ static std::shared_ptr<picture_t> load_image_jpeg(const std::vector<unsigned cha
 #endif
 }
 
-static std::shared_ptr<picture_t> load_image_png(const std::vector<unsigned char> &buf, unsigned long id)
+static std::shared_ptr<picture_t> load_image_png(nonstd::span<const unsigned char> buf, unsigned long id)
 {
     png_image image;
 

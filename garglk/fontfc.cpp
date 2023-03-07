@@ -57,7 +57,7 @@ static nonstd::optional<std::string> findfont(const std::string &fontname)
     return reinterpret_cast<char *>(strval);
 }
 
-static nonstd::optional<std::string> find_font_by_styles(const std::string &basefont, const std::vector<std::string> &styles, const std::vector<int> &weights, const std::vector<std::string> &slants)
+static nonstd::optional<std::string> find_font_by_styles(const std::string &basefont, nonstd::span<const std::string> styles, nonstd::span<const int> weights, const std::vector<std::string> &slants)
 {
     // Prefer normal width fonts, but if there aren't any, allow whatever fontconfig finds.
     std::vector<std::string> widths = {":width=100", ""};

@@ -38,6 +38,8 @@
 #include <SDL.h>
 #include <SDL_mixer.h>
 
+#include "span.hpp"
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -455,7 +457,7 @@ static void sound_completion_callback(int chan)
     return;
 }
 
-static int detect_format(const std::vector<unsigned char> &buf)
+static int detect_format(nonstd::span<const unsigned char> buf)
 {
     const std::vector<std::pair<std::pair<long, std::vector<std::string>>, unsigned long>> formats = {
         // AIFF

@@ -134,7 +134,7 @@ void gli_initialize_tts()
     txtbuf.clear();
 }
 
-static std::string unicode_to_utf8(const std::vector<glui32> &src)
+static std::string unicode_to_utf8(nonstd::span<const glui32> src)
 {
     std::string dst;
 

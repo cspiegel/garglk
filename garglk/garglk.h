@@ -44,6 +44,7 @@
 #include <vector>
 
 #include "optional.hpp"
+#include "span.hpp"
 
 #include "glk.h"
 #include "gi_dispa.h"
@@ -176,7 +177,7 @@ void winabort(const std::string &msg);
 std::string downcase(const std::string &string);
 void fontreplace(const std::string &font, FontType type);
 std::vector<ConfigFile> configs(const nonstd::optional<std::string> &gamepath);
-void config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg)> &callback);
+void config_entries(const std::string &fname, bool accept_bare, nonstd::span<const std::string> matches, const std::function<void(const std::string &cmd, const std::string &arg)> &callback);
 std::string user_config();
 void set_lcdfilter(const std::string &filter);
 nonstd::optional<std::string> winfontpath(const std::string &filename);

@@ -55,6 +55,8 @@
 #include <mpg123.h>
 #include <sndfile.hh>
 
+#include "span.hpp"
+
 #include "glk.h"
 #include "garglk.h"
 
@@ -236,7 +238,7 @@ private:
 // C++17, use the C API.
 class OpenMPTSource : public SoundSource {
 public:
-    OpenMPTSource(const std::vector<unsigned char> &buf, int plays) :
+    OpenMPTSource(nonstd::span<const unsigned char> buf, int plays) :
         SoundSource(plays),
         m_mod(openmpt_module_create_from_memory2(buf.data(), buf.size(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr), openmpt_module_destroy)
     {
@@ -660,11 +662,11 @@ void glk_schannel_set_volume_ext(schanid_t chan, glui32 vol, glui32 duration, gl
     chan->last_volume_bump = std::chrono::steady_clock::now();
 }
 
-static int detect_format(const std::vector<unsigned char> &data)
+static int detect_format(nonstd::span<const unsigned char> data)
 {
     struct Magic {
         virtual ~Magic() = default;
-        virtual bool matches(const std::vector<unsigned char> &data) const = 0;
+        virtual bool matches(nonstd::span<const unsigned char> data) const = 0;
     };
 
     struct MagicString : public Magic {
@@ -674,7 +676,7 @@ static int detect_format(const std::vector<unsigned char> &data)
         {
         }
 
-        bool matches(const std::vector<unsigned char> &data) const override {
+        bool matches(nonstd::span<const unsigned char> data) const override {
             if (m_offset + m_string.size() > data.size()) {
                 return false;
             }
@@ -688,7 +690,7 @@ static int detect_format(const std::vector<unsigned char> &data)
     };
 
     struct MagicMod : public Magic {
-        bool matches(const std::vector<unsigned char> &data) const override {
+        bool matches(nonstd::span<const unsigned char> data) const override {
             std::size_t size = std::min(openmpt_probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
 
             return openmpt_probe_file_header(OPENMPT_PROBE_FILE_HEADER_FLAGS_DEFAULT,
