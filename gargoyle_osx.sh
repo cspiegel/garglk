@@ -17,8 +17,6 @@ done
 if [[ -n "${LOCAL_DEPENDENCIES}" ]]
 then
     HOMEBREW_OR_MACPORTS_LOCATION="/Users/Shared/Gargoyle"
-
-    CMAKE_EXTRAS="-DSOUND=NONE"
 else
     # XXX Temporary hack for a broken sdl2_mixer or readline package in Homebrew.
     # sdl2_mixer's pkg-config file requires readline, but the readline pkg-config
