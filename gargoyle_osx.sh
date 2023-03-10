@@ -65,6 +65,12 @@ find "${GARGDIST}" -type f -not -name '*.dylib' -not -name 'gargoyle' -print0 | 
 # Copy the dylibs built to the Frameworks directory.
 find "${GARGDIST}" -type f -name '*.dylib' -exec cp {} "$BUNDLE/Frameworks" \;
 
+for binary in "${BUNDLE}/MacOS/Gargoyle" "${BUNDLE}/PlugIns"/*
+do
+    install_name_tool -change "/usr/lib/libc++.1.dylib" "/Users/Shared/Gargoyle/lib/libc++.1.dylib" "${binary}"
+    otool -L "${binary}"
+done
+
 echo "Copying all required dylibs..."
 PREVIOUS_UNIQUE_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
 copy_new_dylibs() {
