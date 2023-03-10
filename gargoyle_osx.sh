@@ -2,36 +2,55 @@
 
 set -e
 
-# XXX Temporary hack for a broken sdl2_mixer or readline package in Homebrew.
-# sdl2_mixer's pkg-config file requires readline, but the readline pkg-config
-# file isn't installed to /usr/local/lib/pkgconfig, meaning it can't be found.
-# I don't know the logic behind what gets symlinked into /usr/local/lib/pkgconfig
-# so I don't know who's at fault here, but the hacky way around it is to set
-# $PKG_CONFIG_PATH to point to readline's pkg-config directory. This only
-# happens if $PKG_CONFIG_PATH isn't already set.
-if ! pkg-config readline --exists; then
-    if [[ -z "${PKG_CONFIG_PATH}" ]]; then
-        export PKG_CONFIG_PATH="$(dirname $(find /usr/local/Cellar/readline -name readline.pc|tail -1))"
-    fi
-fi
+while getopts "x" o
+do
+    case "${o}" in
+        x)
+            LOCAL_DEPENDENCIES="1"
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
+done
 
-# Use Homebrew if available. Alternately, you could just set the variable to
-# either yes or no.
-if [ "${MAC_USEHOMEBREW}" == "" ]; then
-  MAC_USEHOMEBREW=no
-  brew --prefix > /dev/null 2>&1 && MAC_USEHOMEBREW=yes
-fi
+if [[ -n "${LOCAL_DEPENDENCIES}" ]]
+then
+    HOMEBREW_OR_MACPORTS_LOCATION="/Users/Shared/Gargoyle"
 
-if [ "${MAC_USEHOMEBREW}" == "yes" ]; then
-  HOMEBREW_OR_MACPORTS_LOCATION="$(brew --prefix)"
+    CMAKE_EXTRAS="-DSOUND=NONE"
 else
-  HOMEBREW_OR_MACPORTS_LOCATION="$(pushd "$(dirname "$(which port)")/.." > /dev/null ; pwd -P ; popd > /dev/null)"
+    # XXX Temporary hack for a broken sdl2_mixer or readline package in Homebrew.
+    # sdl2_mixer's pkg-config file requires readline, but the readline pkg-config
+    # file isn't installed to /usr/local/lib/pkgconfig, meaning it can't be found.
+    # I don't know the logic behind what gets symlinked into /usr/local/lib/pkgconfig
+    # so I don't know who's at fault here, but the hacky way around it is to set
+    # $PKG_CONFIG_PATH to point to readline's pkg-config directory. This only
+    # happens if $PKG_CONFIG_PATH isn't already set.
+    if ! pkg-config readline --exists; then
+        if [[ -z "${PKG_CONFIG_PATH}" ]]; then
+            export PKG_CONFIG_PATH="$(dirname $(find /usr/local/Cellar/readline -name readline.pc|tail -1))"
+        fi
+    fi
+
+    # Use Homebrew if available. Alternately, you could just set the variable to
+    # either yes or no.
+    if [ "${MAC_USEHOMEBREW}" == "" ]; then
+    MAC_USEHOMEBREW=no
+    brew --prefix > /dev/null 2>&1 && MAC_USEHOMEBREW=yes
+    fi
+
+    if [ "${MAC_USEHOMEBREW}" == "yes" ]; then
+    HOMEBREW_OR_MACPORTS_LOCATION="$(brew --prefix)"
+    else
+    HOMEBREW_OR_MACPORTS_LOCATION="$(pushd "$(dirname "$(which port)")/.." > /dev/null ; pwd -P ; popd > /dev/null)"
+    fi
+
+    MACOS_MIN_VER="10.13"
+    echo "MACOS_MIN_VER $MACOS_MIN_VER"
+
+    CMAKE_EXTRAS="-DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_MIN_VER}"
 fi
-
-HOMEBREW_OR_MACPORTS_LOCATION="/Users/Shared/Gargoyle"
-
-MACOS_MIN_VER="10.13"
-echo "MACOS_MIN_VER $MACOS_MIN_VER"
 
 # Use as many CPU cores as possible
 NUMJOBS=$(sysctl -n hw.ncpu)
@@ -51,7 +70,7 @@ mkdir -p "$BUNDLE/PlugIns"
 rm -rf $GARGDIST
 mkdir -p build-osx
 cd build-osx
-cmake .. -DBUILD_SHARED_LIBS=OFF -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DSOUND=NONE -DJPEGLIB=TURBO
+cmake .. -DBUILD_SHARED_LIBS=OFF -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ${CMAKE_EXTRAS}
 make "-j${NUMJOBS}"
 make install
 cd -
@@ -65,11 +84,14 @@ find "${GARGDIST}" -type f -not -name '*.dylib' -not -name 'gargoyle' -print0 | 
 # Copy the dylibs built to the Frameworks directory.
 find "${GARGDIST}" -type f -name '*.dylib' -exec cp {} "$BUNDLE/Frameworks" \;
 
-for binary in "${BUNDLE}/MacOS/Gargoyle" "${BUNDLE}/PlugIns"/*
-do
-    install_name_tool -change "/usr/lib/libc++.1.dylib" "/Users/Shared/Gargoyle/lib/libc++.1.dylib" "${binary}"
-    otool -L "${binary}"
-done
+# Rewrite /usr/lib/libc++.1.dylib to the new version.
+if [[ -n "${LOCAL_DEPENDENCIES}" ]]
+then
+    for binary in "${BUNDLE}/MacOS/Gargoyle" "${BUNDLE}/PlugIns"/*
+    do
+        install_name_tool -change "/usr/lib/libc++.1.dylib" "/Users/Shared/Gargoyle/lib/libc++.1.dylib" "${binary}"
+    done
+fi
 
 echo "Copying all required dylibs..."
 PREVIOUS_UNIQUE_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
@@ -79,7 +101,11 @@ copy_new_dylibs() {
   find "${BUNDLE}" -type f -print0 | while IFS= read -r -d "" file
   do
     otool -L "${file}" | grep -F "${HOMEBREW_OR_MACPORTS_LOCATION}" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/' >> "${ALL_DYLIB_PATHS}"
-    otool -L "${file}" | grep -F "@rpath" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/' | sed -e 's!@rpath!/Users/Shared/Gargoyle/lib!' >> "${ALL_DYLIB_PATHS}"
+
+    if [[ -n "${LOCAL_DEPENDENCIES}" ]]
+    then
+        otool -L "${file}" | grep -F "@rpath" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/' | sed -e 's!@rpath!/Users/Shared/Gargoyle/lib!' >> "${ALL_DYLIB_PATHS}"
+    fi
   done
   UNIQUE_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
   sort "${ALL_DYLIB_PATHS}" | uniq > "${UNIQUE_DYLIB_PATHS}"
@@ -121,9 +147,12 @@ do
     install_name_tool -change "${original_dylib_path}" "@executable_path/../Frameworks/$(basename "${original_dylib_path}")" "${file_path}"
   done
 
-  for original_dylib_path in $(otool -L "${file_path}" | grep -F "@rpath" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/'); do
-    install_name_tool -change "${original_dylib_path}" "@executable_path/../Frameworks/$(basename "${original_dylib_path}")" "${file_path}"
-  done
+  if [[ -n "${LOCAL_DEPENDENCIES}" ]]
+  then
+      for original_dylib_path in $(otool -L "${file_path}" | grep -F "@rpath" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/'); do
+          install_name_tool -change "${original_dylib_path}" "@executable_path/../Frameworks/$(basename "${original_dylib_path}")" "${file_path}"
+      done
+  fi
 done
 
 # Use the built dylibs.
