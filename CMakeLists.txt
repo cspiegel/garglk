@@ -29,7 +29,7 @@ endif()
 # isn't available there. In fact, proper std::filesystem support didn't
 # land in gcc till version 9 (see https://gcc.gnu.org/gcc-9/changes.html),
 # so disable on gcc versions prior to 9.
-if("cxx_std_17" IN_LIST CMAKE_CXX_COMPILE_FEATURES AND NOT APPLE AND NOT GCC_NO_CXX17)
+if("cxx_std_17" IN_LIST CMAKE_CXX_COMPILE_FEATURES AND NOT GCC_NO_CXX17)
     set(CXX_VERSION 17)
 else()
     set(CXX_VERSION 14)

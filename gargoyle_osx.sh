@@ -28,6 +28,8 @@ else
   HOMEBREW_OR_MACPORTS_LOCATION="$(pushd "$(dirname "$(which port)")/.." > /dev/null ; pwd -P ; popd > /dev/null)"
 fi
 
+HOMEBREW_OR_MACPORTS_LOCATION="/Users/Shared/Gargoyle"
+
 MACOS_MIN_VER="10.13"
 echo "MACOS_MIN_VER $MACOS_MIN_VER"
 
@@ -49,7 +51,7 @@ mkdir -p "$BUNDLE/PlugIns"
 rm -rf $GARGDIST
 mkdir -p build-osx
 cd build-osx
-cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_MIN_VER} -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+cmake .. -DBUILD_SHARED_LIBS=OFF -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DSOUND=NONE -DJPEGLIB=TURBO
 make "-j${NUMJOBS}"
 make install
 cd -
@@ -71,10 +73,14 @@ copy_new_dylibs() {
   find "${BUNDLE}" -type f -print0 | while IFS= read -r -d "" file
   do
     otool -L "${file}" | grep -F "${HOMEBREW_OR_MACPORTS_LOCATION}" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/' >> "${ALL_DYLIB_PATHS}"
+    otool -L "${file}" | grep -F "@rpath" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/' | sed -e 's!@rpath!/Users/Shared/Gargoyle/lib!' >> "${ALL_DYLIB_PATHS}"
   done
   UNIQUE_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
   sort "${ALL_DYLIB_PATHS}" | uniq > "${UNIQUE_DYLIB_PATHS}"
   rm "${ALL_DYLIB_PATHS}"
+  echo "UNIQUE:"
+  cat "${UNIQUE_DYLIB_PATHS}"
+  read junk
 
   # Compare the list to the previous one.
   if diff -q "${PREVIOUS_UNIQUE_DYLIB_PATHS}" "${UNIQUE_DYLIB_PATHS}" > /dev/null ; then
@@ -108,6 +114,10 @@ do
   for original_dylib_path in $(otool -L "${file_path}" | grep -F "${HOMEBREW_OR_MACPORTS_LOCATION}" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/'); do
     install_name_tool -change "${original_dylib_path}" "@executable_path/../Frameworks/$(basename "${original_dylib_path}")" "${file_path}"
   done
+
+  for original_dylib_path in $(otool -L "${file_path}" | grep -F "@rpath" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/'); do
+    install_name_tool -change "${original_dylib_path}" "@executable_path/../Frameworks/$(basename "${original_dylib_path}")" "${file_path}"
+  done
 done
 
 # Use the built dylibs.
@@ -129,6 +139,8 @@ cp fonts/unifont*.otf $BUNDLE/Resources
 cp themes/*.json $BUNDLE/Resources/themes
 
 codesign -s - -f --deep Gargoyle.app
+
+exit
 
 echo "Creating DMG..."
 hdiutil create -fs "HFS+J" -ov -srcfolder Gargoyle.app/ "gargoyle-$GARVERSION-mac.dmg"
