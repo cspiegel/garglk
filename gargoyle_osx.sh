@@ -110,9 +110,6 @@ copy_new_dylibs() {
   UNIQUE_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
   sort "${ALL_DYLIB_PATHS}" | uniq > "${UNIQUE_DYLIB_PATHS}"
   rm "${ALL_DYLIB_PATHS}"
-  echo "UNIQUE:"
-  cat "${UNIQUE_DYLIB_PATHS}"
-  read junk
 
   # Compare the list to the previous one.
   if diff -q "${PREVIOUS_UNIQUE_DYLIB_PATHS}" "${UNIQUE_DYLIB_PATHS}" > /dev/null ; then
