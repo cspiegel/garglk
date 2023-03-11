@@ -115,9 +115,9 @@ static std::optional<Format> probe(const std::array<char, 32> &header)
         {R"(^ALAN\x03)", Format::Alan3},
     };
 
-    for (const auto &pair : magic) {
-        if (std::regex_search(header.begin(), header.end(), std::regex(pair.first))) {
-            return pair.second;
+    for (const auto &[regex, format] : magic) {
+        if (std::regex_search(header.begin(), header.end(), std::regex(regex))) {
+            return format;
         }
     }
 
