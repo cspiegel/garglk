@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -32,10 +33,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#if __cplusplus >= 201703L
-#include <filesystem>
-#endif
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -426,9 +423,6 @@ std::string garglk::user_config()
     // No config exists, so create the highest-priority config.
     auto path = cfgs.front().path;
 
-    // If building with C++17, ensure the parent directory exists. This
-    // is difficult to do portably before C++17, so just don't do it.
-#if __cplusplus >= 201703L
     std::filesystem::path fspath(path);
     try {
         if (!fspath.parent_path().empty()) {
@@ -437,7 +431,6 @@ std::string garglk::user_config()
     } catch (const std::runtime_error &e) {
         throw std::runtime_error(Format("Unable to create parent directory for configuration file {}: {}", path, e.what()));
     }
-#endif
 
     std::ofstream f(path);
     if (!f.is_open()) {
@@ -914,7 +907,6 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
 
 void gli_read_config(int argc, char **argv)
 {
-#if __cplusplus >= 201703L
     // load argv0 with name of executable without suffix
     std::string argv0 = std::filesystem::path(argv[0])
         .filename()
@@ -922,35 +914,9 @@ void gli_read_config(int argc, char **argv)
         .string();
 
     // load gamefile with basename of last argument
-    nonstd::optional<std::string> gamefile;
-    if (argc > 1) {
-        std::string gamefile = std::filesystem::path(argv[argc - 1])
-            .filename()
-            .string();
-    }
-#else
-    auto basename = [](std::string path) {
-        auto slash = path.find_last_of("/\\");
-        if (slash != std::string::npos) {
-            path.erase(0, slash + 1);
-        }
-
-        return path;
-    };
-
-    // load argv0 with name of executable without suffix
-    std::string argv0 = basename(argv[0]);
-    auto dot = argv0.rfind('.');
-    if (dot != std::string::npos) {
-        argv0.erase(dot);
-    }
-
-    // load gamefile with basename of last argument
-    nonstd::optional<std::string> gamefile;
-    if (argc > 1) {
-        gamefile = basename(argv[argc - 1]);
-    }
-#endif
+    std::string gamefile = std::filesystem::path(argv[argc - 1])
+        .filename()
+        .string();
 
     // load gamepath with the path to the story file itself
     nonstd::optional<std::string> gamepath;
