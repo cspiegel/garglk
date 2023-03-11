@@ -97,7 +97,7 @@ add_library(garglk babeldata.cpp style.cpp config.cpp draw.cpp event.cpp
 target_include_directories(garglk PRIVATE .)
 
 c_standard(garglk 11)
-cxx_standard(garglk ${CXX_VERSION})
+cxx_standard(garglk 17)
 warnings(garglk)
 
 if(UNIX AND NOT APPLE)
@@ -144,7 +144,7 @@ if(MATH_LIBRARY)
 endif()
 
 add_library(garglkmain STATIC main.cpp)
-cxx_standard(garglkmain ${CXX_VERSION})
+cxx_standard(garglkmain 17)
 warnings(garglkmain)
 target_include_directories(garglkmain PRIVATE cheapglk)
 
@@ -157,7 +157,7 @@ if(WITH_LAUNCHER)
     target_include_directories(gargoyle PRIVATE cheapglk)
     target_link_libraries(gargoyle PRIVATE garglk)
     add_fmt(gargoyle)
-    cxx_standard(gargoyle ${CXX_VERSION})
+    cxx_standard(gargoyle 17)
     warnings(gargoyle)
 
     target_compile_definitions(gargoyle PRIVATE "GARGLKINI=\"${GARGLKINI}\"" "GARGLKPRE=\"${GARGLKPRE}\"")
