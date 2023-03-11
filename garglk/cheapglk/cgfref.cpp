@@ -29,6 +29,7 @@
 */
 
 #include <algorithm>
+#include <optional>
 #include <string>
 
 #if __cplusplus >= 201703L
@@ -59,11 +60,10 @@
 #include "glkstart.h"
 
 #include "format.h"
-#include "optional.hpp"
 
 #ifdef GARGLK
 std::string gli_workdir = ".";
-nonstd::optional<std::string> gli_workfile;
+std::optional<std::string> gli_workfile;
 
 const char *garglk_fileref_get_name(fileref_t *fref)
 {
