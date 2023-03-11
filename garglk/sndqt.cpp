@@ -863,9 +863,9 @@ static int detect_format(const std::vector<unsigned char> &data)
         {std::make_shared<MagicString>(0, "\xff\xfb"), giblorb_ID_MP3},
     };
 
-    for (const auto &pair : magics) {
-        if (pair.first->matches(data)) {
-            return pair.second;
+    for (const auto &[magic, type] : magics) {
+        if (magic->matches(data)) {
+            return type;
         }
     }
 
