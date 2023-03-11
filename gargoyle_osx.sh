@@ -28,7 +28,7 @@ else
   HOMEBREW_OR_MACPORTS_LOCATION="$(pushd "$(dirname "$(which port)")/.." > /dev/null ; pwd -P ; popd > /dev/null)"
 fi
 
-MACOS_MIN_VER="10.13"
+MACOS_MIN_VER="10.15"
 echo "MACOS_MIN_VER $MACOS_MIN_VER"
 
 # Use as many CPU cores as possible
