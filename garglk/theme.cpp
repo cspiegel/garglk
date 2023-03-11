@@ -272,11 +272,11 @@ void garglk::theme::init()
 
     themes.clear();
 
-    for (const auto &pair : builtin) {
+    for (const auto &[name, theme] : builtin) {
         try {
-            themes.insert({pair.first, Theme::from_string(pair.second)});
+            themes.insert({name, Theme::from_string(theme)});
         } catch (std::exception &e) {
-            std::cerr << "garglk: fatal error parsing internal " << pair.first << " theme: " << e.what() << std::endl;
+            std::cerr << "garglk: fatal error parsing internal " << name << " theme: " << e.what() << std::endl;
             std::exit(1);
         }
     }
