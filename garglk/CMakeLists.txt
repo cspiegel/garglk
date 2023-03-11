@@ -99,7 +99,7 @@ set_target_properties(garglk-common PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 target_include_directories(garglk-common PRIVATE .)
 
 c_standard(garglk-common 11)
-cxx_standard(garglk-common ${CXX_VERSION})
+cxx_standard(garglk-common 17)
 warnings(garglk-common)
 
 if(UNIX AND NOT APPLE)
@@ -162,7 +162,7 @@ if(WITH_LAUNCHER)
     target_include_directories(gargoyle PRIVATE cheapglk)
     target_link_libraries(gargoyle PRIVATE garglk)
     add_fmt(gargoyle)
-    cxx_standard(gargoyle ${CXX_VERSION})
+    cxx_standard(gargoyle 17)
     warnings(gargoyle)
 
     target_compile_definitions(gargoyle PRIVATE "GARGLKINI=\"${GARGLKINI}\"" "GARGLKPRE=\"${GARGLKPRE}\"")
