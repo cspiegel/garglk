@@ -231,7 +231,7 @@ public:
         return !(*this == other);
     }
 
-    const unsigned char *data() const {
+    [[nodiscard]] const unsigned char *data() const {
         return m_pixel.data();
     }
 
@@ -269,7 +269,7 @@ public:
         return *this;
     }
 
-    const unsigned char *data() const {
+    [[nodiscard]] const unsigned char *data() const {
         return m_data;
     }
 
@@ -358,7 +358,7 @@ public:
         return m_height;
     }
 
-    int stride() const {
+    [[nodiscard]] int stride() const {
         return m_stride;
     }
 
@@ -368,7 +368,7 @@ public:
         }
     }
 
-    bool empty() const {
+    [[nodiscard]] bool empty() const {
         return m_pixels.empty();
     }
 
@@ -384,11 +384,11 @@ public:
         return m_pixels.data();
     }
 
-    const unsigned char *data() const {
+    [[nodiscard]] const unsigned char *data() const {
         return m_pixels.data();
     }
 
-    std::size_t size() const {
+    [[nodiscard]] std::size_t size() const {
         return m_pixels.size();
     }
 
@@ -791,9 +791,9 @@ struct attr_t {
 
     void set(glui32 style_);
     void clear();
-    FontFace font(const Styles &styles) const;
-    Color bg(const Styles &styles) const;
-    Color fg(const Styles &styles) const;
+    [[nodiscard]] FontFace font(const Styles &styles) const;
+    [[nodiscard]] Color bg(const Styles &styles) const;
+    [[nodiscard]] Color fg(const Styles &styles) const;
 };
 
 struct glk_window_struct {
