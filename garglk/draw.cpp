@@ -612,10 +612,10 @@ void gli_draw_rect(int x0, int y0, int w, int h, const Color &rgb)
     int y1 = y0 + h;
     int y;
 
-    x0 = garglk::clamp(x0, 0, gli_image_rgb.width());
-    y0 = garglk::clamp(y0, 0, gli_image_rgb.height());
-    x1 = garglk::clamp(x1, 0, gli_image_rgb.width());
-    y1 = garglk::clamp(y1, 0, gli_image_rgb.height());
+    x0 = std::clamp(x0, 0, gli_image_rgb.width());
+    y0 = std::clamp(y0, 0, gli_image_rgb.height());
+    x1 = std::clamp(x1, 0, gli_image_rgb.width());
+    y1 = std::clamp(y1, 0, gli_image_rgb.height());
 
     for (y = y0; y < y1; y++) {
         gli_image_rgb[y].fill(rgb, x0, x1);
