@@ -307,11 +307,7 @@ void garglk::theme::init()
             if (dot != std::string::npos && filename.substr(dot) == ".json") {
                 try {
                     auto theme = Theme::from_file(filename);
-                    // C++17: use insert_or_assign()
-                    const auto result = themes.insert({theme.name, theme});
-                    if (!result.second) {
-                        result.first->second = theme;
-                    }
+                    themes.insert_or_assign(theme.name, theme);
                 } catch (const std::exception &e) {
                     std::cerr << "garglk: error parsing theme " << filename << ": " << e.what() << std::endl;
                 }
