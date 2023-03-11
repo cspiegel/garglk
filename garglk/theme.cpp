@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <array>
 #include <exception>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -27,13 +28,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#if __cplusplus >= 201703L
-#include <filesystem>
-#else
-#include <dirent.h>
-#include <sys/types.h>
-#endif
 
 #include "format.h"
 #include "optional.hpp"
@@ -255,7 +249,6 @@ std::vector<std::string> garglk::theme::paths()
     return theme_paths;
 }
 
-#if __cplusplus >= 201703
 static std::vector<std::string> directory_entries(const std::string &dir)
 {
     std::vector<std::string> entries;
@@ -269,23 +262,6 @@ static std::vector<std::string> directory_entries(const std::string &dir)
 
     return entries;
 }
-#else
-static std::vector<std::string> directory_entries(const std::string &dir)
-{
-    auto d = garglk::unique(opendir(dir.c_str()), closedir);
-    if (d == nullptr) {
-        return {};
-    }
-
-    std::vector<std::string> entries;
-    dirent *de;
-    while ((de = readdir(d.get())) != nullptr) {
-        entries.push_back(Format("{}/{}", dir, de->d_name));
-    }
-
-    return entries;
-}
-#endif
 
 void garglk::theme::init()
 {

@@ -21,6 +21,7 @@
 #include <array>
 #include <cctype>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <ios>
 #include <regex>
@@ -30,10 +31,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#if __cplusplus >= 201703L
-#include <filesystem>
-#endif
 
 #include "format.h"
 #include "optional.hpp"
@@ -349,19 +346,9 @@ static nonstd::optional<Interpreter> configterp(const std::string &gamepath)
     std::string story = gamepath;
 
     // set up story
-#if __cplusplus >= 201703L
     story = std::filesystem::path(story)
         .filename()
         .string();
-#else
-    auto slash = story.rfind('\\');
-    if (slash == std::string::npos) {
-        slash = story.find_last_of('/');
-    }
-    if (slash != std::string::npos) {
-        story = story.substr(slash + 1);
-    }
-#endif
 
     if (story.empty()) {
         return nonstd::nullopt;
