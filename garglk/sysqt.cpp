@@ -79,6 +79,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -87,7 +88,6 @@
 #include <vector>
 
 #include "format.h"
-#include "optional.hpp"
 
 #include "sysqt.h"
 #include "moc_sysqt.cpp"
@@ -770,7 +770,7 @@ bool windark()
     return text_hsv_value > bg_hsv_value;
 }
 
-nonstd::optional<std::string> garglk::winfontpath(const std::string &filename)
+std::optional<std::string> garglk::winfontpath(const std::string &filename)
 {
     return Format("{}/{}", QCoreApplication::applicationDirPath().toStdString(), filename);
 }
@@ -816,11 +816,11 @@ std::vector<std::string> garglk::winthemedirs()
     return paths;
 }
 
-nonstd::optional<std::string> garglk::winlegacythemedir() {
+std::optional<std::string> garglk::winlegacythemedir() {
 #ifdef _WIN32
     const char *appdata = std::getenv("APPDATA");
     if (appdata == nullptr) {
-        return nonstd::nullopt;
+        return std::nullopt;
     }
 
     return std::string(appdata) + "\\io.github.garglk\\Gargoyle\\themes";
@@ -831,7 +831,7 @@ nonstd::optional<std::string> garglk::winlegacythemedir() {
 #endif
 }
 
-nonstd::optional<std::string> garglk::winappdir()
+std::optional<std::string> garglk::winappdir()
 {
     return QCoreApplication::applicationDirPath().toStdString();
 }

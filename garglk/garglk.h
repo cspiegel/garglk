@@ -39,14 +39,13 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <variant>
 #include <vector>
-
-#include "optional.hpp"
-#include "variant.hpp"
 
 #include "glk.h"
 #include "gi_dispa.h"
@@ -162,15 +161,15 @@ void winabort(const std::string &msg);
 void winwarning(const std::string &title, const std::string &msg);
 std::string downcase(const std::string &string);
 bool fontreplace(const std::string &font, FontType type);
-std::vector<ConfigFile> configs(const nonstd::optional<std::string> &gamepath);
+std::vector<ConfigFile> configs(const std::optional<std::string> &gamepath);
 void config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg, int lineno)> &callback);
 std::string user_config();
 bool set_lcdfilter(const std::string &filter);
-nonstd::optional<std::string> winfontpath(const std::string &filename);
+std::optional<std::string> winfontpath(const std::string &filename);
 std::string windatadir();
 std::vector<std::string> winthemedirs();
-nonstd::optional<std::string> winlegacythemedir();
-nonstd::optional<std::string> winappdir();
+std::optional<std::string> winlegacythemedir();
+std::optional<std::string> winappdir();
 bool winisfullscreen();
 
 namespace theme {
@@ -429,7 +428,7 @@ public:
     std::vector<std::uint8_t> &at(int number);
 
 private:
-    std::array<nonstd::optional<std::vector<std::uint8_t>>, 2> m_bleeps;
+    std::array<std::optional<std::vector<std::uint8_t>>, 2> m_bleeps;
 };
 
 extern Bleeps gli_bleeps;
@@ -547,7 +546,7 @@ extern Canvas<3> gli_image_rgb;
 //
 
 extern std::string gli_workdir;
-extern nonstd::optional<std::string> gli_workfile;
+extern std::optional<std::string> gli_workfile;
 
 extern Styles gli_tstyles;
 extern Styles gli_gstyles;
@@ -567,8 +566,8 @@ extern Color gli_caret_save;
 extern Color gli_more_save;
 extern Color gli_link_save;
 
-extern nonstd::optional<Color> gli_override_fg;
-extern nonstd::optional<Color> gli_override_bg;
+extern std::optional<Color> gli_override_fg;
+extern std::optional<Color> gli_override_bg;
 extern bool gli_override_reverse;
 
 extern bool gli_underline_hyperlinks;
@@ -634,10 +633,10 @@ extern int gli_leading;
 
 struct FontFiles {
     struct {
-        nonstd::optional<std::string> base;
-        nonstd::optional<std::string> override;
+        std::optional<std::string> base;
+        std::optional<std::string> override;
 
-        const nonstd::optional<std::string> &fontpath() const {
+        const std::optional<std::string> &fontpath() const {
             return override.has_value() ? override : base;
         }
     } r, b, i, z;
@@ -785,8 +784,8 @@ struct glk_fileref_struct {
 struct attr_t {
     bool reverse = false;
     glui32 style = 0;
-    nonstd::optional<Color> fgcolor;
-    nonstd::optional<Color> bgcolor;
+    std::optional<Color> fgcolor;
+    std::optional<Color> bgcolor;
     glui32 hyper = 0;
 
     bool operator!=(const attr_t &other) const {
@@ -817,7 +816,7 @@ struct glk_window_struct {
     window_t *parent = nullptr; // pair window which contains this one
     rect_t bbox;
     int yadj = 0;
-    nonstd::variant<
+    std::variant<
         std::unique_ptr<window_textgrid_t>,
         std::unique_ptr<window_textbuffer_t>,
         std::unique_ptr<window_graphics_t>,
@@ -825,11 +824,11 @@ struct glk_window_struct {
         std::unique_ptr<window_pair_t>
     > window;
 
-    window_textgrid_t *wingrid() { return nonstd::get<std::unique_ptr<window_textgrid_t>>(window).get(); }
-    window_textbuffer_t *winbuffer() { return nonstd::get<std::unique_ptr<window_textbuffer_t>>(window).get(); }
-    window_graphics_t *wingraphics() { return nonstd::get<std::unique_ptr<window_graphics_t>>(window).get(); }
-    window_blank_t *winblank() { return nonstd::get<std::unique_ptr<window_blank_t>>(window).get(); }
-    window_pair_t *winpair() { return nonstd::get<std::unique_ptr<window_pair_t>>(window).get(); }
+    window_textgrid_t *wingrid() { return std::get<std::unique_ptr<window_textgrid_t>>(window).get(); }
+    window_textbuffer_t *winbuffer() { return std::get<std::unique_ptr<window_textbuffer_t>>(window).get(); }
+    window_graphics_t *wingraphics() { return std::get<std::unique_ptr<window_graphics_t>>(window).get(); }
+    window_blank_t *winblank() { return std::get<std::unique_ptr<window_blank_t>>(window).get(); }
+    window_pair_t *winpair() { return std::get<std::unique_ptr<window_pair_t>>(window).get(); }
 
     stream_t *str;               // the window stream.
     stream_t *echostr = nullptr; // the window's echo stream, if any.
@@ -1191,7 +1190,7 @@ void gli_notification_waiting();
 
 void gli_edit_config();
 
-nonstd::optional<std::vector<char>> gli_get_scrollback();
+std::optional<std::vector<char>> gli_get_scrollback();
 std::vector<char> gli_get_text(window_textbuffer_t *dwin);
 
 const std::map<glui32, std::vector<unsigned char>> &gli_get_resource_map(glui32 usage);

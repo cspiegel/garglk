@@ -28,6 +28,7 @@
 #include <fstream>
 #include <functional>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -47,7 +48,6 @@
 #endif
 
 #include "format.h"
-#include "optional.hpp"
 
 #include "glk.h"
 #include "glkstart.h"
@@ -158,8 +158,8 @@ Color gli_border_save(0x00, 0x00, 0x00);
 Color gli_more_save(0x00, 0x60, 0x00);
 Color gli_link_save(0x00, 0x00, 0x60);
 
-nonstd::optional<Color> gli_override_fg;
-nonstd::optional<Color> gli_override_bg;
+std::optional<Color> gli_override_fg;
+std::optional<Color> gli_override_bg;
 bool gli_override_reverse = false;
 
 static std::string base_more_prompt = "— more —";
@@ -280,7 +280,7 @@ static void parsecolor(const std::string &str, Color &rgb)
 // 6. <directory containing gargoyle/interpreter executable>/garglk.ini (Windows only)
 //
 // gamepath is the path to the game file being run
-std::vector<garglk::ConfigFile> garglk::configs(const nonstd::optional<std::string> &gamepath = nonstd::nullopt)
+std::vector<garglk::ConfigFile> garglk::configs(const std::optional<std::string> &gamepath = std::nullopt)
 {
     std::vector<ConfigFile> configs;
     if (gamepath.has_value()) {
@@ -564,7 +564,7 @@ constexpr const T &config_atleast(const T &value, const T &min)
     return value;
 }
 
-static void readoneconfig(const std::string &fname, const std::string &argv0, const nonstd::optional<std::string> &gamefile)
+static void readoneconfig(const std::string &fname, const std::string &argv0, const std::optional<std::string> &gamefile)
 {
     std::vector<std::string> matches = {argv0};
     if (gamefile.has_value()) {
@@ -919,7 +919,7 @@ void gli_read_config(int argc, char **argv)
         .string();
 
     // load gamepath with the path to the story file itself
-    nonstd::optional<std::string> gamepath;
+    std::optional<std::string> gamepath;
     if (argc > 1) {
         gamepath = argv[argc - 1];
     }
