@@ -832,8 +832,13 @@ static int detect_format(const std::vector<unsigned char> &data)
         [[nodiscard]] bool matches(const std::vector<unsigned char> &data) const override {
             std::size_t size = std::min(openmpt::probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
 
-            return openmpt::probe_file_header(openmpt::probe_file_header_flags_default2,
-                    data.data(), size) == openmpt::probe_file_header_result_success;
+#ifdef GARGLK_CONFIG_OLD_LIBOPENMPT
+            std::uint64_t flags = openmpt::probe_file_header_flags_default;
+#else
+            std::uint64_t flags = openmpt::probe_file_header_flags_default2;
+#endif
+
+            return openmpt::probe_file_header(flags, data.data(), size) == openmpt::probe_file_header_result_success;
         }
     };
 
