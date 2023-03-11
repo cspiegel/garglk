@@ -101,7 +101,7 @@ public:
         return m_buf.size();
     }
 
-    off_t tell() const {
+    [[nodiscard]] off_t tell() const {
         return m_offset;
     }
 
@@ -805,7 +805,7 @@ static int detect_format(const std::vector<unsigned char> &data)
 {
     struct Magic {
         virtual ~Magic() = default;
-        virtual bool matches(const std::vector<unsigned char> &data) const = 0;
+        [[nodiscard]] virtual bool matches(const std::vector<unsigned char> &data) const = 0;
     };
 
     struct MagicString : public Magic {
@@ -815,7 +815,7 @@ static int detect_format(const std::vector<unsigned char> &data)
         {
         }
 
-        bool matches(const std::vector<unsigned char> &data) const override {
+        [[nodiscard]] bool matches(const std::vector<unsigned char> &data) const override {
             if (m_offset + m_string.size() > data.size()) {
                 return false;
             }
@@ -829,7 +829,7 @@ static int detect_format(const std::vector<unsigned char> &data)
     };
 
     struct MagicMod : public Magic {
-        bool matches(const std::vector<unsigned char> &data) const override {
+        [[nodiscard]] bool matches(const std::vector<unsigned char> &data) const override {
             std::size_t size = std::min(openmpt::probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
 
             return openmpt::probe_file_header(openmpt::probe_file_header_flags_default2,
