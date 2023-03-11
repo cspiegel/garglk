@@ -79,6 +79,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -87,7 +88,6 @@
 #include <vector>
 
 #include "format.h"
-#include "optional.hpp"
 
 #include "sysqt.h"
 #include "moc_sysqt.cpp"
@@ -748,7 +748,7 @@ bool windark()
     return text_hsv_value > bg_hsv_value;
 }
 
-nonstd::optional<std::string> garglk::winfontpath(const std::string &filename)
+std::optional<std::string> garglk::winfontpath(const std::string &filename)
 {
     return Format("{}/{}", QCoreApplication::applicationDirPath().toStdString(), filename);
 }
@@ -781,7 +781,7 @@ std::vector<std::string> garglk::winappdata()
     return paths;
 }
 
-nonstd::optional<std::string> garglk::winappdir()
+std::optional<std::string> garglk::winappdir()
 {
     return QCoreApplication::applicationDirPath().toStdString();
 }
