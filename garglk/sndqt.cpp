@@ -51,7 +51,7 @@
 #include <QSysInfo>
 #endif
 
-#include <libopenmpt/libopenmpt.h>
+#include <libopenmpt/libopenmpt.hpp>
 #include <mpg123.h>
 #include <sndfile.hh>
 
@@ -257,32 +257,29 @@ private:
     qint64 m_written = 0;
 };
 
-// The C++ API requires C++17, so until Gargoyle switches from C++14 to
-// C++17, use the C API.
 class OpenMPTSource : public SoundSource {
 public:
-    OpenMPTSource(const std::vector<unsigned char> &buf, int plays) :
+    OpenMPTSource(const std::vector<unsigned char> &buf, int plays)
+        try :
         SoundSource(plays),
-        m_mod(openmpt_module_create_from_memory2(buf.data(), buf.size(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr), openmpt_module_destroy)
+        m_mod(buf)
     {
-        if (!m_mod) {
-            throw SoundError("can't parse MOD file");
-        }
-
         set_format(48000, 2);
+    } catch (const openmpt::exception &) {
+        throw SoundError("can't parse MOD file");
     }
 
 protected:
     qint64 source_read(void *data, qint64 max) override {
-        return 8 * openmpt_module_read_interleaved_float_stereo(m_mod.get(), format().sampleRate(), max / 8, reinterpret_cast<float *>(data));
+        return 8 * m_mod.read_interleaved_stereo(format().sampleRate(), max / 8, reinterpret_cast<float *>(data));
     }
 
     void source_rewind() override {
-        openmpt_module_set_position_seconds(m_mod.get(), 0);
+        m_mod.set_position_seconds(0);
     }
 
 private:
-    std::unique_ptr<openmpt_module, decltype(&openmpt_module_destroy)> m_mod;
+    openmpt::module m_mod;
 };
 
 class SndfileSource : public SoundSource {
@@ -833,11 +830,10 @@ static int detect_format(const std::vector<unsigned char> &data)
 
     struct MagicMod : public Magic {
         bool matches(const std::vector<unsigned char> &data) const override {
-            std::size_t size = std::min(openmpt_probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
+            std::size_t size = std::min(openmpt::probe_file_header_get_recommended_size(), static_cast<std::size_t>(data.size()));
 
-            return openmpt_probe_file_header(OPENMPT_PROBE_FILE_HEADER_FLAGS_DEFAULT,
-                    data.data(), size, data.size(),
-                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) == OPENMPT_PROBE_FILE_HEADER_RESULT_SUCCESS;
+            return openmpt::probe_file_header(openmpt::probe_file_header_flags_default2,
+                    data.data(), size) == openmpt::probe_file_header_result_success;
         }
     };
 
