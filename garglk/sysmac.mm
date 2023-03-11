@@ -21,6 +21,7 @@
 #include <fstream>
 #include <functional>
 #include <map>
+#include <optional>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -36,7 +37,6 @@
 #include "garversion.h"
 
 #include "format.h"
-#include "optional.hpp"
 
 #import "Cocoa/Cocoa.h"
 #import "sysmac.h"
@@ -847,7 +847,7 @@ void winpoll()
     } while (evt);
 }
 
-nonstd::optional<std::string> garglk::winfontpath(const std::string &filename)
+std::optional<std::string> garglk::winfontpath(const std::string &filename)
 {
     char *resources = std::getenv("GARGLK_RESOURCES");
 
@@ -855,7 +855,7 @@ nonstd::optional<std::string> garglk::winfontpath(const std::string &filename)
         return Format("{}/Fonts/{}", resources, filename);
     }
 
-    return nonstd::nullopt;
+    return std::nullopt;
 }
 
 std::vector<std::string> garglk::winappdata()
@@ -877,10 +877,10 @@ std::vector<std::string> garglk::winappdata()
     return paths;
 }
 
-nonstd::optional<std::string> garglk::winappdir()
+std::optional<std::string> garglk::winappdir()
 {
     // This is only used on Windows.
-    return nonstd::nullopt;
+    return std::nullopt;
 }
 
 bool garglk::winisfullscreen()

@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -34,7 +35,6 @@
 #include "format.h"
 #define JSON_DIAGNOSTICS 1
 #include "json.hpp"
-#include "optional.hpp"
 
 #include "garglk.h"
 
@@ -171,7 +171,7 @@ struct Theme {
 private:
     static ThemeStyles get_user_styles(const json &j, const std::string &color)
     {
-        std::array<nonstd::optional<ColorPair>, style_NUMSTYLES> possible_colors;
+        std::array<std::optional<ColorPair>, style_NUMSTYLES> possible_colors;
         std::unordered_map<std::string, json> styles = j.at(color);
 
         static const std::unordered_map<std::string, int> stylemap = {
@@ -214,7 +214,7 @@ private:
         for (const auto &s : stylemap) {
             try {
                 colors[s.second] = possible_colors[s.second].value();
-            } catch (const nonstd::bad_optional_access &) {
+            } catch (const std::bad_optional_access &) {
                 missing.push_back(s.first);
             }
         }

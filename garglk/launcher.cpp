@@ -24,6 +24,8 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <memory>
+#include <optional>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
@@ -33,7 +35,6 @@
 #include <vector>
 
 #include "format.h"
-#include "optional.hpp"
 
 #include "glk.h"
 #include "glkstart.h"
@@ -95,7 +96,7 @@ enum class Format {
     ZCode,
 };
 
-static nonstd::optional<Format> probe(const std::array<char, 32> &header)
+static std::optional<Format> probe(const std::array<char, 32> &header)
 {
     std::vector<std::pair<std::string, Format>> magic = {
         {R"(^[\x01-\x08][\s\S]{17}\d{6})", Format::ZCode},
@@ -119,7 +120,7 @@ static nonstd::optional<Format> probe(const std::array<char, 32> &header)
         }
     }
 
-    return nonstd::nullopt;
+    return std::nullopt;
 }
 
 // Map extensions to formats
@@ -203,7 +204,7 @@ static bool call_winterp(Format format, const std::string &game)
 // through the file). So, do just enough work here to determine if
 // there's an Exec resource of type ADRI. If so, assume this is an
 // Adrift file and leave it to the interpreter to run it properly.
-static nonstd::optional<Format> find_adrift_blorb_format(const std::string &game)
+static std::optional<Format> find_adrift_blorb_format(const std::string &game)
 {
     std::ifstream f(game, std::ios::binary);
     try {
@@ -230,7 +231,7 @@ static nonstd::optional<Format> find_adrift_blorb_format(const std::string &game
                 f.seekg(4, std::ios::cur);
                 f.seekg(be32(), std::ios::beg);
                 if (be32() != ID_ADRI) {
-                    return nonstd::nullopt;
+                    return std::nullopt;
                 }
 
                 f.seekg(12, std::ios::cur);
@@ -242,7 +243,7 @@ static nonstd::optional<Format> find_adrift_blorb_format(const std::string &game
                 } else if (version == 0x93 || version == 0x94) {
                     return Format::Adrift;
                 } else {
-                    return nonstd::nullopt;
+                    return std::nullopt;
                 }
             } else {
                 f.seekg(8, std::ios::cur);
@@ -251,7 +252,7 @@ static nonstd::optional<Format> find_adrift_blorb_format(const std::string &game
     } catch (const std::ifstream::failure &) {
     }
 
-    return nonstd::nullopt;
+    return std::nullopt;
 }
 
 static bool runblorb(const std::string &game)
@@ -308,11 +309,11 @@ static bool runblorb(const std::string &game)
     }
 }
 
-static nonstd::optional<Interpreter> findterp(const std::string &file, const std::string &target)
+static std::optional<Interpreter> findterp(const std::string &file, const std::string &target)
 {
     std::vector<std::string> matches = {target};
 
-    nonstd::optional<Interpreter> interpreter;
+    std::optional<Interpreter> interpreter;
 
     garglk::config_entries(file, false, matches, [&interpreter](const std::string &cmd, const std::string &arg, int) {
         if (cmd == "terp") {
@@ -334,7 +335,7 @@ static nonstd::optional<Interpreter> findterp(const std::string &file, const std
 }
 
 // Find a possible interpreter specified in the config file.
-static nonstd::optional<Interpreter> configterp(const std::string &gamepath)
+static std::optional<Interpreter> configterp(const std::string &gamepath)
 {
     std::string story = gamepath;
 
@@ -344,7 +345,7 @@ static nonstd::optional<Interpreter> configterp(const std::string &gamepath)
         .string();
 
     if (story.empty()) {
-        return nonstd::nullopt;
+        return std::nullopt;
     }
 
     for (const auto &config : garglk::configs(gamepath)) {
@@ -354,7 +355,7 @@ static nonstd::optional<Interpreter> configterp(const std::string &gamepath)
         }
     }
 
-    return nonstd::nullopt;
+    return std::nullopt;
 }
 
 bool garglk::rungame(const std::string &game)
