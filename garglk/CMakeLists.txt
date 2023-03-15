@@ -218,6 +218,8 @@ elseif(UNIX OR MINGW OR MSVC)
         set_property(SOURCE sysqt.cpp PROPERTY COMPILE_DEFINITIONS GARGLK_CONFIG_KDE)
     endif()
 
+    target_compile_definitions(garglk PRIVATE GARGLK_CONFIG_QT)
+
     if(WITH_LAUNCHER)
         target_link_libraries(gargoyle PRIVATE Qt${QT_VERSION}::Widgets)
     endif()

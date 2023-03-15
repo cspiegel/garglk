@@ -17,13 +17,41 @@
 // along with Gargoyle; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-// Image scaling, based on pnmscale.c...
-
 #include <memory>
-#include <vector>
 
 #include "glk.h"
 #include "garglk.h"
+
+// Prefer QImage scaling where available.
+#ifdef GARGLK_CONFIG_QT
+#include <cstring>
+
+#include <QImage>
+
+std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, int newrows)
+{
+    auto dst = gli_picture_retrieve(src->id, true);
+
+    if (dst != nullptr && dst->w == newcols && dst->h == newrows) {
+        return dst;
+    }
+
+    QImage from(src->rgba.data(), src->rgba.width(), src->rgba.height(), src->rgba.stride(), QImage::Format::Format_RGBA8888);
+    auto to = from.scaled(newcols, newrows, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(QImage::Format_RGBA8888);;
+
+    Canvas<4> rgba(newcols, newrows);
+    std::memcpy(rgba.data(), to.constBits(), to.sizeInBytes());
+
+    dst = std::make_shared<picture_t>(src->id, rgba, true);
+
+    gli_picture_store(dst);
+
+    return dst;
+}
+#else
+#include <vector>
+
+// Image scaling, based on pnmscale.c...
 
 std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, int newrows)
 {
@@ -272,3 +300,4 @@ std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, 
 
     return dst;
 }
+#endif

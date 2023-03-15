@@ -388,6 +388,10 @@ public:
         return m_pixels.data();
     }
 
+    const unsigned char *data() const {
+        return m_pixels.data();
+    }
+
     std::size_t size() const {
         return m_pixels.size();
     }
