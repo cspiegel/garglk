@@ -26,16 +26,22 @@
 #include "glk.h"
 #include "garglk.h"
 
+static vImage_Buffer makevbuf(const void *data, int width, int height)
+{
+    vImage_Buffer buf;
+
+    buf.width = width;
+    buf.height = height;
+    buf.rowBytes = width * 4;
+    buf.data = const_cast<void *>(data);
+
+    return buf;
+}
+
 static void swapcolors(const void *in, void *out, int width, int height, std::array<std::uint8_t, 4> map)
 {
-    vImage_Buffer src;
-    src.width = width;
-    src.height = height;
-    src.rowBytes = width * 4;
-    src.data = const_cast<void *>(in);
-
-    vImage_Buffer dst = src;
-    dst.data = out;
+    auto src = makevbuf(in, width, height);
+    auto dst = makevbuf(out, width, height);
 
     if (vImagePermuteChannels_ARGB8888(&src, &dst, map.data(), kvImageNoFlags) != kvImageNoError) {
         throw std::bad_alloc();
@@ -54,19 +60,10 @@ std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, 
         // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
         auto swapped = std::make_unique<std::uint8_t[]>(src->rgba.size());
         swapcolors(src->rgba.data(), swapped.get(), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
-
-        vImage_Buffer vsrc;
-        vsrc.width = src->rgba.width();
-        vsrc.height = src->rgba.height();
-        vsrc.rowBytes = src->rgba.width() * 4;
-        vsrc.data = swapped.get();
+        auto vsrc = makevbuf(swapped.get(), src->rgba.width(), src->rgba.height());
 
         auto resized = std::make_unique<std::uint8_t[]>(newcols * newrows * 4);
-        vImage_Buffer vdst;
-        vdst.width = newcols;
-        vdst.height = newrows;
-        vdst.rowBytes = newcols * 4;
-        vdst.data = resized.get();
+        auto vdst = makevbuf(resized.get(), newcols, newrows);
 
         vImageScale_ARGB8888(&vsrc, &vdst, nullptr, kvImageHighQualityResampling);
 
