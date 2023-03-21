@@ -26,23 +26,18 @@
 #include "glk.h"
 #include "garglk.h"
 
-
-static std::vector<std::uint8_t> swapcolors(unsigned char *data, int width, int height, std::array<std::uint8_t, 4> map)
+static void swapcolors(const void *in, void *out, int width, int height, std::array<std::uint8_t, 4> map)
 {
     vImage_Buffer src;
     src.width = width;
     src.height = height;
     src.rowBytes = width * 4;
-    src.data = data;
+    src.data = const_cast<void *>(in);
 
     vImage_Buffer dst = src;
-    std::vector<std::uint8_t> destbuf;
-    destbuf.resize(width * height * 4);
-    dst.data = destbuf.data();
+    dst.data = out;
 
     vImagePermuteChannels_ARGB8888(&src, &dst, map.data(), kvImageNoFlags);
-
-    return destbuf;
 }
 
 std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, int newrows)
@@ -54,7 +49,9 @@ std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, 
     }
 
     // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
-    auto swapped = swapcolors(const_cast<std::uint8_t *>(src->rgba.data()), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
+    std::vector<std::uint8_t> swapped;
+    swapped.resize(src->rgba.size());
+    swapcolors(src->rgba.data(), swapped.data(), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
 
     vImage_Buffer vsrc;
     vsrc.width = src->rgba.width();
@@ -75,7 +72,7 @@ std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, 
     Canvas<4> rgba(newcols, newrows);
 
     // Swap back from ARGB to RGBA
-    resized = swapcolors(resized.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
+    swapcolors(resized.data(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
 
     dst = std::make_shared<picture_t>(src->id, rgba, true);
 
