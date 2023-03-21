@@ -27,6 +27,7 @@
 #include <QElapsedTimer>
 #include <QFileDialog>
 #include <QGraphicsView>
+#include <QImage>
 #include <QLabel>
 #include <QList>
 #include <QMainWindow>
@@ -727,4 +728,15 @@ void gli_select(event_t *event, bool polled)
         gli_dispatch_event(event, polled);
         window->reset_timeout();
     }
+}
+
+Canvas<4> winimagescale(const picture_t *src, int newcols, int newrows)
+{
+    QImage from(src->rgba.data(), src->rgba.width(), src->rgba.height(), src->rgba.stride(), QImage::Format::Format_RGBA8888);
+    auto to = from.scaled(newcols, newrows, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(QImage::Format_RGBA8888);;
+
+    Canvas<4> rgba(newcols, newrows);
+    std::memcpy(rgba.data(), to.constBits(), to.sizeInBytes());
+
+    return rgba;
 }

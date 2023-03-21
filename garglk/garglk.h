@@ -1085,6 +1085,7 @@ void winrepaint(int x0, int y0, int x1, int y1);
 bool windark();
 void winexit();
 void winclipstore(const glui32 *text, int len);
+Canvas<4> winimagescale(const picture_t *src, int newcols, int newrows);
 
 void fontload();
 void fontunload();

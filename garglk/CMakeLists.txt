@@ -76,8 +76,8 @@ if(INTERFACE STREQUAL "QT")
 endif()
 
 add_library(garglk babeldata.cpp style.cpp config.cpp draw.cpp event.cpp
-    garglk.cpp imgload.cpp theme.cpp winblank.cpp window.cpp wingfx.cpp
-    wingrid.cpp winmask.cpp winpair.cpp wintext.cpp zbleep.cpp
+    garglk.cpp imgload.cpp imgscale.cpp theme.cpp winblank.cpp window.cpp
+    wingfx.cpp wingrid.cpp winmask.cpp winpair.cpp wintext.cpp zbleep.cpp
     ${GARGLKINI_CXX} ${THEME_DARK_CXX} ${THEME_LIGHT_CXX}
 
     # These can't be a library in cheapglk/ because they contain
@@ -105,10 +105,10 @@ if(APPIMAGE)
 endif()
 
 if(INTERFACE STREQUAL "COCOA")
-    target_sources(garglk PRIVATE sysmac.mm imgscalemac.mm)
+    target_sources(garglk PRIVATE sysmac.mm)
     target_compile_options(garglk PRIVATE "-Wno-deprecated-declarations")
 else()
-    target_sources(garglk PRIVATE sysqt.cpp imgscaleqt.cpp)
+    target_sources(garglk PRIVATE sysqt.cpp)
 endif()
 
 find_package(Freetype REQUIRED)
