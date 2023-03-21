@@ -730,9 +730,9 @@ void gli_select(event_t *event, bool polled)
     }
 }
 
-Canvas<4> winimagescale(const picture_t *src, int newcols, int newrows)
+Canvas<4> winimagescale(const Canvas<4> &src, int newcols, int newrows)
 {
-    QImage from(src->rgba.data(), src->rgba.width(), src->rgba.height(), src->rgba.stride(), QImage::Format::Format_RGBA8888);
+    QImage from(src.data(), src.width(), src.height(), src.stride(), QImage::Format::Format_RGBA8888);
     auto to = from.scaled(newcols, newrows, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(QImage::Format_RGBA8888);;
 
     Canvas<4> rgba(newcols, newrows);

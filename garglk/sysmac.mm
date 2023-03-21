@@ -846,12 +846,12 @@ static void swapcolors(const void *in, void *out, int width, int height, std::ar
     }
 }
 
-Canvas<4> gli_picture_scale(const picture_t *src, int newcols, int newrows)
+Canvas<4> winimagescale(const Canvas<4> &src, int newcols, int newrows)
 {
     // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
-    auto swapped = std::make_unique<std::uint8_t[]>(src->rgba.size());
-    swapcolors(src->rgba.data(), swapped.get(), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
-    auto vsrc = makevbuf(swapped.get(), src->rgba.width(), src->rgba.height());
+    auto swapped = std::make_unique<std::uint8_t[]>(src.size());
+    swapcolors(src.data(), swapped.get(), src.width(), src.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
+    auto vsrc = makevbuf(swapped.get(), src.width(), src.height());
 
     auto resized = std::make_unique<std::uint8_t[]>(newcols * newrows * 4);
     auto vdst = makevbuf(resized.get(), newcols, newrows);

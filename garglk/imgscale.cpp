@@ -31,7 +31,7 @@ std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, 
     }
 
     try {
-        auto rgba = winimagescale(src, newcols, newrows);
+        auto rgba = winimagescale(src->rgba, newcols, newrows);
         dst = std::make_shared<picture_t>(src->id, rgba, true);
     } catch (const std::bad_alloc &) {
         return nullptr;
