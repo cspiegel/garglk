@@ -76,8 +76,8 @@ if(INTERFACE STREQUAL "QT")
 endif()
 
 add_library(garglk babeldata.cpp style.cpp config.cpp draw.cpp event.cpp
-    garglk.cpp imgload.cpp imgscale.cpp theme.cpp winblank.cpp window.cpp
-    wingfx.cpp wingrid.cpp winmask.cpp winpair.cpp wintext.cpp zbleep.cpp
+    garglk.cpp imgload.cpp theme.cpp winblank.cpp window.cpp wingfx.cpp
+    wingrid.cpp winmask.cpp winpair.cpp wintext.cpp zbleep.cpp
     ${GARGLKINI_CXX} ${THEME_DARK_CXX} ${THEME_LIGHT_CXX}
 
     # These can't be a library in cheapglk/ because they contain
@@ -105,10 +105,10 @@ if(APPIMAGE)
 endif()
 
 if(INTERFACE STREQUAL "COCOA")
-    target_sources(garglk PRIVATE sysmac.mm)
+    target_sources(garglk PRIVATE sysmac.mm imgscalemac.mm)
     target_compile_options(garglk PRIVATE "-Wno-deprecated-declarations")
 else()
-    target_sources(garglk PRIVATE sysqt.cpp)
+    target_sources(garglk PRIVATE sysqt.cpp imgscaleqt.cpp)
 endif()
 
 find_package(Freetype REQUIRED)
@@ -173,8 +173,9 @@ endif()
 
 if(${INTERFACE} STREQUAL "COCOA")
     find_library(COCOA_LIBRARY Cocoa REQUIRED)
+    find_library(ACCELERATE_LIBRARY Accelerate REQUIRED)
     find_package(OpenGL REQUIRED)
-    target_link_libraries(garglk PUBLIC ${COCOA_LIBRARY} ${OPENGL_LIBRARIES})
+    target_link_libraries(garglk PUBLIC ${COCOA_LIBRARY} ${ACCELERATE_LIBRARY} ${OPENGL_LIBRARIES})
 elseif(UNIX OR MINGW OR MSVC)
     option(WITH_QT6 "Build against Qt6 instead of Qt5" OFF)
     if(WITH_QT6)
@@ -217,8 +218,6 @@ elseif(UNIX OR MINGW OR MSVC)
         target_link_libraries(garglk PRIVATE KF5::KIOWidgets KF5::Service)
         set_property(SOURCE sysqt.cpp PROPERTY COMPILE_DEFINITIONS GARGLK_CONFIG_KDE)
     endif()
-
-    target_compile_definitions(garglk PRIVATE GARGLK_CONFIG_QT)
 
     if(WITH_LAUNCHER)
         target_link_libraries(gargoyle PRIVATE Qt${QT_VERSION}::Widgets)
