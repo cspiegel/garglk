@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <new>
 #include <vector>
 
 #include <Accelerate/Accelerate.h>
@@ -37,7 +38,9 @@ static void swapcolors(const void *in, void *out, int width, int height, std::ar
     vImage_Buffer dst = src;
     dst.data = out;
 
-    vImagePermuteChannels_ARGB8888(&src, &dst, map.data(), kvImageNoFlags);
+    if (vImagePermuteChannels_ARGB8888(&src, &dst, map.data(), kvImageNoFlags) != kvImageNoError) {
+        throw std::bad_alloc();
+    }
 }
 
 std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, int newrows)
@@ -48,35 +51,39 @@ std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, 
         return dst;
     }
 
-    // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
-    std::vector<std::uint8_t> swapped;
-    swapped.resize(src->rgba.size());
-    swapcolors(src->rgba.data(), swapped.data(), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
+    try {
+        // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
+        std::vector<std::uint8_t> swapped;
+        swapped.resize(src->rgba.size());
+        swapcolors(src->rgba.data(), swapped.data(), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
 
-    vImage_Buffer vsrc;
-    vsrc.width = src->rgba.width();
-    vsrc.height = src->rgba.height();
-    vsrc.rowBytes = src->rgba.width() * 4;
-    vsrc.data = swapped.data();
+        vImage_Buffer vsrc;
+        vsrc.width = src->rgba.width();
+        vsrc.height = src->rgba.height();
+        vsrc.rowBytes = src->rgba.width() * 4;
+        vsrc.data = swapped.data();
 
-    std::vector<std::uint8_t> resized;
-    resized.resize(newcols * newrows * 4);
-    vImage_Buffer vdst;
-    vdst.width = newcols;
-    vdst.height = newrows;
-    vdst.rowBytes = newcols * 4;
-    vdst.data = resized.data();
+        std::vector<std::uint8_t> resized;
+        resized.resize(newcols * newrows * 4);
+        vImage_Buffer vdst;
+        vdst.width = newcols;
+        vdst.height = newrows;
+        vdst.rowBytes = newcols * 4;
+        vdst.data = resized.data();
 
-    vImageScale_ARGB8888(&vsrc, &vdst, nullptr, kvImageHighQualityResampling);
+        vImageScale_ARGB8888(&vsrc, &vdst, nullptr, kvImageHighQualityResampling);
 
-    Canvas<4> rgba(newcols, newrows);
+        Canvas<4> rgba(newcols, newrows);
 
-    // Swap back from ARGB to RGBA
-    swapcolors(resized.data(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
+        // Swap back from ARGB to RGBA
+        swapcolors(resized.data(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
 
-    dst = std::make_shared<picture_t>(src->id, rgba, true);
+        dst = std::make_shared<picture_t>(src->id, rgba, true);
 
-    gli_picture_store(dst);
+        gli_picture_store(dst);
+    } catch (const std::bad_alloc &) {
+        return nullptr;
+    }
 
     return dst;
 }
