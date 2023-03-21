@@ -20,7 +20,6 @@
 #include <cstdint>
 #include <memory>
 #include <new>
-#include <vector>
 
 #include <Accelerate/Accelerate.h>
 
@@ -53,30 +52,28 @@ std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, 
 
     try {
         // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
-        std::vector<std::uint8_t> swapped;
-        swapped.resize(src->rgba.size());
-        swapcolors(src->rgba.data(), swapped.data(), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
+        auto swapped = std::make_unique<std::uint8_t[]>(src->rgba.size());
+        swapcolors(src->rgba.data(), swapped.get(), src->rgba.width(), src->rgba.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
 
         vImage_Buffer vsrc;
         vsrc.width = src->rgba.width();
         vsrc.height = src->rgba.height();
         vsrc.rowBytes = src->rgba.width() * 4;
-        vsrc.data = swapped.data();
+        vsrc.data = swapped.get();
 
-        std::vector<std::uint8_t> resized;
-        resized.resize(newcols * newrows * 4);
+        auto resized = std::make_unique<std::uint8_t[]>(newcols * newrows * 4);
         vImage_Buffer vdst;
         vdst.width = newcols;
         vdst.height = newrows;
         vdst.rowBytes = newcols * 4;
-        vdst.data = resized.data();
+        vdst.data = resized.get();
 
         vImageScale_ARGB8888(&vsrc, &vdst, nullptr, kvImageHighQualityResampling);
 
         Canvas<4> rgba(newcols, newrows);
 
         // Swap back from ARGB to RGBA
-        swapcolors(resized.data(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
+        swapcolors(resized.get(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
 
         dst = std::make_shared<picture_t>(src->id, rgba, true);
 
