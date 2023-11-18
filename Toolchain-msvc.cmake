@@ -3,7 +3,7 @@ set(CMAKE_SYSTEM_PROCESSOR X86)
 
 set(CMAKE_C_COMPILER "x86_64-pc-windows-msvc-gcc")
 set(CMAKE_CXX_COMPILER "x86_64-pc-windows-msvc-g++")
-set(CMAKE_EXE_LINKER_FLAGS "-libpath:/home/chris/Programming/XWin/winsdk/crt/lib/x64 -libpath:/home/chris/Programming/XWin/winsdk/crt/atlmfc/lib/x64 -libpath:/home/chris/Programming/XWin/winsdk/sdk/Lib/10.0.22621/ucrt/x64 -libpath:/home/chris/Programming/XWin/winsdk/sdk/Lib/10.0.22621/um/x64")
+set(CMAKE_EXE_LINKER_FLAGS "/winsdkdir:/home/chris/Programming/XWin/winsdk/sdk /vctoolsdir:/home/chris/Programming/XWin/winsdk/crt /libpath:/home/chris/Programming/XWin/winsdk/sdk/lib/um/x64")
 set(CMAKE_SHARED_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
 set(CMAKE_MT "llvm-mt")
 
