@@ -824,14 +824,14 @@ void gli_select(event_t *event, bool polled)
     [pool drain];
 }
 
-static vImage_Buffer makevbuf(void *data, int width, int height)
+static vImage_Buffer makevbuf(Canvas<4> &canvas)
 {
     vImage_Buffer buf;
 
-    buf.width = width;
-    buf.height = height;
-    buf.rowBytes = width * 4;
-    buf.data = data;
+    buf.width = canvas.width();
+    buf.height = canvas.height();
+    buf.rowBytes = canvas.stride();
+    buf.data = canvas.data();
 
     return buf;
 }
@@ -848,11 +848,11 @@ Canvas<4> winimagescale(const Canvas<4> &src_, int newcols, int newrows)
     auto src = src_;
 
     // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
-    auto vsrc = makevbuf(src.data(), src.width(), src.height());
+    auto vsrc = makevbuf(src);
     swapcolors(vsrc, std::array<std::uint8_t, 4>{3, 0, 1, 2});
 
     Canvas<4> rgba(newcols, newrows);
-    auto vdst = makevbuf(rgba.data(), newcols, newrows);
+    auto vdst = makevbuf(rgba);
 
     vImageScale_ARGB8888(&vsrc, &vdst, nullptr, kvImageHighQualityResampling);
 
