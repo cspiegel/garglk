@@ -824,19 +824,19 @@ void gli_select(event_t *event, bool polled)
     [pool drain];
 }
 
-static vImage_Buffer makevbuf(const void *data, int width, int height)
+static vImage_Buffer makevbuf(void *data, int width, int height)
 {
     vImage_Buffer buf;
 
     buf.width = width;
     buf.height = height;
     buf.rowBytes = width * 4;
-    buf.data = const_cast<void *>(data);
+    buf.data = data;
 
     return buf;
 }
 
-static void swapcolors(const void *in, void *out, int width, int height, std::array<std::uint8_t, 4> map)
+static void swapcolors(void *in, void *out, int width, int height, std::array<std::uint8_t, 4> map)
 {
     auto src = makevbuf(in, width, height);
     auto dst = makevbuf(out, width, height);
@@ -846,22 +846,21 @@ static void swapcolors(const void *in, void *out, int width, int height, std::ar
     }
 }
 
-Canvas<4> winimagescale(const Canvas<4> &src, int newcols, int newrows)
+Canvas<4> winimagescale(const Canvas<4> &src_, int newcols, int newrows)
 {
-    // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
-    auto swapped = std::make_unique<std::uint8_t[]>(src.size());
-    swapcolors(src.data(), swapped.get(), src.width(), src.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
-    auto vsrc = makevbuf(swapped.get(), src.width(), src.height());
+    auto src = src_;
 
-    auto resized = std::make_unique<std::uint8_t[]>(newcols * newrows * 4);
-    auto vdst = makevbuf(resized.get(), newcols, newrows);
+    // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
+    swapcolors(src.data(), src.data(), src.width(), src.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
+    auto vsrc = makevbuf(src.data(), src.width(), src.height());
+
+    Canvas<4> rgba(newcols, newrows);
+    auto vdst = makevbuf(rgba.data(), newcols, newrows);
 
     vImageScale_ARGB8888(&vsrc, &vdst, nullptr, kvImageHighQualityResampling);
 
-    Canvas<4> rgba(newcols, newrows);
-
     // Swap back from ARGB to RGBA
-    swapcolors(resized.get(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
+    swapcolors(rgba.data(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
 
     return rgba;
 }
