@@ -836,12 +836,9 @@ static vImage_Buffer makevbuf(void *data, int width, int height)
     return buf;
 }
 
-static void swapcolors(void *in, void *out, int width, int height, std::array<std::uint8_t, 4> map)
+static void swapcolors(vImage_Buffer &image, std::array<std::uint8_t, 4> map)
 {
-    auto src = makevbuf(in, width, height);
-    auto dst = makevbuf(out, width, height);
-
-    if (vImagePermuteChannels_ARGB8888(&src, &dst, map.data(), kvImageNoFlags) != kvImageNoError) {
+    if (vImagePermuteChannels_ARGB8888(&image, &image, map.data(), kvImageNoFlags) != kvImageNoError) {
         throw std::bad_alloc();
     }
 }
@@ -851,8 +848,8 @@ Canvas<4> winimagescale(const Canvas<4> &src_, int newcols, int newrows)
     auto src = src_;
 
     // vImage assumes ARGB, but the data is RGBA. Translate to ARGB before scaling.
-    swapcolors(src.data(), src.data(), src.width(), src.height(), std::array<std::uint8_t, 4>{3, 0, 1, 2});
     auto vsrc = makevbuf(src.data(), src.width(), src.height());
+    swapcolors(vsrc, std::array<std::uint8_t, 4>{3, 0, 1, 2});
 
     Canvas<4> rgba(newcols, newrows);
     auto vdst = makevbuf(rgba.data(), newcols, newrows);
@@ -860,7 +857,7 @@ Canvas<4> winimagescale(const Canvas<4> &src_, int newcols, int newrows)
     vImageScale_ARGB8888(&vsrc, &vdst, nullptr, kvImageHighQualityResampling);
 
     // Swap back from ARGB to RGBA
-    swapcolors(rgba.data(), rgba.data(), newcols, newrows, std::array<std::uint8_t, 4>{1, 2, 3, 0});
+    swapcolors(vdst, std::array<std::uint8_t, 4>{1, 2, 3, 0});
 
     return rgba;
 }
