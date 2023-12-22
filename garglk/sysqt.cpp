@@ -110,6 +110,8 @@ static QApplication *app;
 static garglk::Window *window;
 static QElapsedTimer last_tick;
 static constexpr long long TICK_PERIOD_MILLIS = 10;
+static std::uint32_t tick_counter = 0;
+static constexpr std::uint32_t TICK_THRESHOLD = 100000;
 
 static bool refresh_needed = true;
 
@@ -693,9 +695,20 @@ nonstd::optional<std::string> garglk::winappdir()
 
 void gli_tick()
 {
-    if (last_tick.elapsed() > TICK_PERIOD_MILLIS) {
-        app->processEvents(QEventLoop::ExcludeUserInputEvents);
-        last_tick.start();
+    // When the Qt sound backed is being used, glk_tick() needs to
+    // process events periodically, unlike the SDL backend, which uses a
+    // separate thread. Processing Qt events is expensive, so should not
+    // be done each tick (which generally happens each VM instruction).
+    // Originally this waited at least 10ms between calls, but the mere
+    // act of checking a timer each iteration was too expensive. Now a
+    // hybrid approach is used: every 100000 iterations, the 10ms timer
+    // is checked.
+    if (++tick_counter > TICK_THRESHOLD) {
+        if (last_tick.elapsed() > TICK_PERIOD_MILLIS) {
+            app->processEvents(QEventLoop::ExcludeUserInputEvents);
+            last_tick.start();
+        }
+        tick_counter = 0;
     }
 }
 
