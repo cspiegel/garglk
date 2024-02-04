@@ -370,6 +370,10 @@ public:
         return m_pixels.data();
     }
 
+    const unsigned char *data() const {
+        return m_pixels.data();
+    }
+
     std::size_t size() const {
         return m_pixels.size();
     }
@@ -1078,6 +1082,7 @@ void winrepaint(int x0, int y0, int x1, int y1);
 bool windark();
 void winexit();
 void winclipstore(const glui32 *text, int len);
+Canvas<4> winimagescale(const Canvas<4> &src, int newcols, int newrows);
 
 void fontload();
 void fontunload();
