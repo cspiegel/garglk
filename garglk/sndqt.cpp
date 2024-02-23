@@ -81,10 +81,6 @@ static schanid_t gli_bleep_channel;
 static bool mp3_initialized;
 #endif
 
-#ifdef _MSC_VER
-using ssize_t = std::make_signed_t<size_t>;
-#endif
-
 namespace {
 
 class VFSAbstract {
@@ -423,7 +419,7 @@ private:
         return reinterpret_cast<Mpg123Source *>(source)->m_vfs;
     }
 
-    static ssize_t vio_read(void *source, void *ptr, std::size_t count) {
+    static mpg123_ssize_t vio_read(void *source, void *ptr, std::size_t count) {
         return vfs(source).read(ptr, count);
     }
 
