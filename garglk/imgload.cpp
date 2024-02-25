@@ -120,9 +120,6 @@ std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled)
 
 static std::vector<std::vector<unsigned char>> garglk_image_data;
 
-extern "C" {
-int garglk_add_image(const unsigned char *data, glui32 n);
-}
 int garglk_add_image(const unsigned char *data, glui32 n)
 {
     garglk_image_data.emplace_back(&data[0], &data[n]);
@@ -148,15 +145,16 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
     } else {
         if (garglk_image_data.size() > id) {
             buf = garglk_image_data[id];
-            if (buf.size() < 8) {
-                return nullptr;
-            }
         } else {
             auto filename = Format("{}/PIC{}", gli_workdir, id);
 
-            if (!garglk::read_file(filename, buf) || buf.size() < 8) {
+            if (!garglk::read_file(filename, buf)) {
                 return nullptr;
             }
+        }
+
+        if (buf.size() < 8) {
+            return nullptr;
         }
 
         if (png_sig_cmp(buf.data(), 0, 8) == 0) {

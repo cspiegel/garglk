@@ -527,6 +527,8 @@ extern int garglk_tads_os_banner_size(winid_t win);
 
 extern void garglk_window_get_size_pixels(winid_t win, glui32 *width, glui32 *height);
 
+extern int garglk_add_image(const unsigned char *data, glui32 n);
+
 
 /* non standard keycodes */
 #define keycode_Erase               (0xffffef7f)
