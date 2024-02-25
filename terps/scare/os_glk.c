@@ -1748,7 +1748,7 @@ struct GlkImage {
 static struct GlkImage glk_images[8192];
 static size_t glk_images_count = 0;
 
-int garglk_add_image(const unsigned char *data, size_t n);
+int garglk_add_image(const unsigned char *data, glui32 n);
 
 /*
  * os_show_graphic()
@@ -1764,6 +1764,8 @@ os_show_graphic (const sc_char *filepath, sc_int offset, sc_int length)
 
   for (size_t i = 0; i < glk_images_count; i++) {
     if (glk_images[i].offset == offset) {
+      glk_image_draw(gsc_main_window, glk_images[i].id, imagealign_InlineDown, 0);
+      return;
     }
   }
 
