@@ -147,7 +147,7 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
         }
     } else {
         if (garglk_image_data.size() > id) {
-            buf = std::move(garglk_image_data[id]);
+            buf = garglk_image_data[id];
             if (buf.size() < 8) {
                 return nullptr;
             }
