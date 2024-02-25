@@ -1737,6 +1737,80 @@ os_stop_sound (void)
 }
 
 
+#ifdef GARGLK
+static const char *gamefile;
+static char gamedir[8192];
+
+static const char *find_last(const char *str, const char *chars)
+{
+  const char *found = NULL;
+  while (*chars != 0) {
+    const char *p = strrchr(str, *chars++);
+    if (p != NULL && (found == NULL || p > found)) {
+      found = p;
+    }
+  }
+
+  return found;
+}
+
+static size_t scare_min(size_t a, size_t b)
+{
+  return a < b ? a : b;
+}
+
+/*
+ * os_show_graphic()
+ *
+ * Use the Gargoyle-specific garglk_add_image() to load images from memory.
+ */
+
+int garglk_add_image(const unsigned char *data, size_t n);
+
+void
+os_show_graphic (const sc_char *filepath, sc_int offset, sc_int length)
+{
+  FILE *in = NULL;
+  unsigned char *data = NULL;
+
+  if (gamefile == NULL) {
+    return;
+  }
+
+  in = fopen(gamefile, "rb");
+  if (in == NULL) {
+    goto out;
+  }
+
+  if (fseek(in, offset, SEEK_SET) == -1) {
+    goto out;
+  }
+
+  data = malloc(length);
+
+  for (int i = 0; i < length; i++) {
+    int c = getc(in);
+    if (c == EOF) {
+      if (ferror(in)) {
+        goto out;
+      }
+      break;
+    }
+    data[i] = c;
+  }
+
+  int id = garglk_add_image(data, length);
+  printf("Draw %d\n", id);
+  glk_image_draw(gsc_main_window, id, imagealign_InlineDown, 0);
+
+out:
+  if (in != NULL) {
+    fclose(in);
+  }
+
+  free(data);
+}
+#else
 /*
  * os_show_graphic()
  *
@@ -1790,6 +1864,7 @@ os_show_graphic (const sc_char *filepath, sc_int offset, sc_int length)
   unused2 = offset;
   unused3 = length;
 }
+#endif
 #endif
 
 
@@ -3479,6 +3554,24 @@ glkunix_startup_code (glkunix_startup_t * data)
 #ifdef LINUX_GRAPHICS
   /* Note the path to the game file for graphics extraction. */
   gsclinux_game_file = argv[argv_index];
+#endif
+
+#ifdef GARGLK
+  if (strlen(argv[argv_index]) < (sizeof gamedir) - 1) {
+    gamefile = argv[argv_index];
+#ifdef _WIN32
+    char *sep = "/\\";
+#else
+    char *sep = "/";
+#endif
+    const char *slash = find_last(argv[argv_index], sep);
+    if (slash == NULL) {
+      strcpy(gamedir, argv[argv_index]);
+    } else {
+      // gamepath is initialized to zeros so no explicit null termination is necessary.
+      memcpy(gamedir, argv[argv_index], slash - argv[argv_index]);
+    }
+  }
 #endif
 
   /* Use the generic startup code to complete startup. */
