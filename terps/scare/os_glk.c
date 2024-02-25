@@ -1755,7 +1755,6 @@ int garglk_add_image(const unsigned char *data, glui32 n);
  *
  * Use the Gargoyle-specific garglk_add_image() to load images from memory.
  */
-
 void
 os_show_graphic (const sc_char *filepath, sc_int offset, sc_int length)
 {
@@ -1787,6 +1786,9 @@ os_show_graphic (const sc_char *filepath, sc_int offset, sc_int length)
   }
 
   data = malloc(length);
+  if (data == NULL) {
+    goto out;
+  }
 
   for (int i = 0; i < length; i++) {
     int c = getc(in);
