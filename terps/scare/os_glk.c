@@ -1739,25 +1739,16 @@ os_stop_sound (void)
 
 #ifdef GARGLK
 static const char *gamefile;
-static char gamedir[8192];
 
-static const char *find_last(const char *str, const char *chars)
-{
-  const char *found = NULL;
-  while (*chars != 0) {
-    const char *p = strrchr(str, *chars++);
-    if (p != NULL && (found == NULL || p > found)) {
-      found = p;
-    }
-  }
+struct GlkImage {
+  sc_int offset;
+  int id;
+};
 
-  return found;
-}
+static struct GlkImage glk_images[8192];
+static size_t glk_images_count = 0;
 
-static size_t scare_min(size_t a, size_t b)
-{
-  return a < b ? a : b;
-}
+int garglk_add_image(const unsigned char *data, size_t n);
 
 /*
  * os_show_graphic()
@@ -1765,13 +1756,20 @@ static size_t scare_min(size_t a, size_t b)
  * Use the Gargoyle-specific garglk_add_image() to load images from memory.
  */
 
-int garglk_add_image(const unsigned char *data, size_t n);
-
 void
 os_show_graphic (const sc_char *filepath, sc_int offset, sc_int length)
 {
   FILE *in = NULL;
   unsigned char *data = NULL;
+
+  for (size_t i = 0; i < glk_images_count; i++) {
+    if (glk_images[i].offset == offset) {
+    }
+  }
+
+  if (glk_images_count == (sizeof glk_images / sizeof *glk_images)) {
+    return;
+  }
 
   if (gamefile == NULL) {
     return;
@@ -1800,7 +1798,12 @@ os_show_graphic (const sc_char *filepath, sc_int offset, sc_int length)
   }
 
   int id = garglk_add_image(data, length);
-  printf("Draw %d\n", id);
+
+  glk_images[glk_images_count++] = (struct GlkImage) {
+    .offset = offset,
+    .id = id,
+  };
+
   glk_image_draw(gsc_main_window, id, imagealign_InlineDown, 0);
 
 out:
@@ -3557,21 +3560,7 @@ glkunix_startup_code (glkunix_startup_t * data)
 #endif
 
 #ifdef GARGLK
-  if (strlen(argv[argv_index]) < (sizeof gamedir) - 1) {
-    gamefile = argv[argv_index];
-#ifdef _WIN32
-    char *sep = "/\\";
-#else
-    char *sep = "/";
-#endif
-    const char *slash = find_last(argv[argv_index], sep);
-    if (slash == NULL) {
-      strcpy(gamedir, argv[argv_index]);
-    } else {
-      // gamepath is initialized to zeros so no explicit null termination is necessary.
-      memcpy(gamedir, argv[argv_index], slash - argv[argv_index]);
-    }
-  }
+  gamefile = argv[argv_index];
 #endif
 
   /* Use the generic startup code to complete startup. */
