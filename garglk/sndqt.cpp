@@ -52,11 +52,20 @@
 #endif
 
 #include <libopenmpt/libopenmpt.h>
-#include <mpg123.h>
 #include <sndfile.hh>
 
 #ifdef GARGLK_HAS_FLUIDSYNTH
 #include <fluidsynth.h>
+#endif
+
+#if 0
+#include <mpg123.h>
+#else
+#define MINIMP3_ONLY_MP3
+#define MINIMP3_FLOAT_OUTPUT
+#define MINIMP3_NO_STDIO
+#define MINIMP3_IMPLEMENTATION
+#include "minimp3/minimp3_ex.h"
 #endif
 
 #include "format.h"
@@ -82,8 +91,10 @@ static std::set<schanid_t> gli_channellist;
 
 static schanid_t gli_bleep_channel;
 
+#if 0
 #if MPG123_API_VERSION < 46
 static bool mp3_initialized;
+#endif
 #endif
 
 #ifdef _MSC_VER
@@ -337,6 +348,7 @@ private:
     }
 };
 
+#if 0
 class Mpg123Source : public SoundSource {
 public:
     Mpg123Source(std::vector<unsigned char> buf, glui32 plays) :
@@ -435,6 +447,35 @@ private:
     static off_t vio_lseek(void *source, off_t offset, int whence) {
         return vfs(source).seek(offset, whence);
     }
+};
+#else
+class MiniMP3Source : public SoundSource {
+public:
+    MiniMP3Source(std::vector<unsigned char> buf, glui32 plays) :
+        SoundSource(plays),
+        m_buf(std::move(buf))
+    {
+        if (mp3dec_ex_open_buf(&m_dec, m_buf.data(), m_buf.size(), MP3D_SEEK_TO_SAMPLE) != 0) {
+            throw SoundError("minimp3 cannot open buffer");
+        }
+
+        set_format(m_dec.info.hz, m_dec.info.channels);
+    }
+
+    qint64 source_read(void *data, qint64 max) override {
+        max /= sizeof(mp3d_sample_t);
+        auto n = mp3dec_ex_read(&m_dec, reinterpret_cast<mp3d_sample_t *>(data), max);
+        return n * sizeof(mp3d_sample_t);
+    }
+
+    void source_rewind() override {
+        mp3dec_ex_seek(&m_dec, 0);
+    }
+
+private:
+    mp3dec_ex_t m_dec;
+    std::vector<unsigned char> m_buf;
+#endif
 };
 
 #ifdef GARGLK_HAS_FLUIDSYNTH
@@ -632,8 +673,10 @@ gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan)
 
 void gli_initialize_sound()
 {
+#if 0
 #if MPG123_API_VERSION < 46
     mp3_initialized = mpg123_init() == MPG123_OK;
+#endif
 #endif
 }
 
@@ -935,7 +978,11 @@ static glui32 gli_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, 
                 source.reset(new SndfileSource(data, repeats));
                 break;
             case giblorb_ID_MP3:
+#if 0
                 source.reset(new Mpg123Source(data, repeats));
+#else
+                source.reset(new MiniMP3Source(data, repeats));
+#endif
                 break;
 #ifdef GARGLK_HAS_FLUIDSYNTH
             case giblorb_ID_MIDI:
