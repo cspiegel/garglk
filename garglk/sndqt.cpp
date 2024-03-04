@@ -584,14 +584,14 @@ public:
             .buffer_size = 65535,
         };
 
-        m_song = mid_song_load(stream, &opt);
+        m_song.reset(mid_song_load(stream, &opt));
         mid_istream_close(stream);
 
         if (m_song == nullptr) {
             throw SoundError("timidity unable to load file");
         }
 
-        mid_song_start(m_song);
+        mid_song_start(m_song.get());
 
         set_format(48000, 2);
     }
@@ -600,7 +600,7 @@ protected:
     qint64 source_read(void *data, qint64 max) override {
         float *fltbuf = static_cast<float *>(data);
         std::vector<sint8> buf(max / 4);
-        auto n = mid_song_read_wave(m_song, buf.data(), max / 4);
+        auto n = mid_song_read_wave(m_song.get(), buf.data(), max / 4);
 
         for (std::size_t i = 0; i < n; i += 2) {
             std::int16_t value = (static_cast<uint8_t>(buf[i + 1]) << 8) | static_cast<uint8_t>(buf[i + 0]);
@@ -611,11 +611,11 @@ protected:
     }
 
     void source_rewind() override {
-        mid_song_seek(m_song, 0);
+        mid_song_seek(m_song.get(), 0);
     }
 
 private:
-    MidSong *m_song;
+    std::unique_ptr<MidSong, decltype(&mid_song_free)> m_song{nullptr, mid_song_free};
 };
 #endif
 
