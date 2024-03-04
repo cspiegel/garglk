@@ -577,12 +577,11 @@ public:
             throw SoundError("timidity unable to open file");
         }
 
-        MidSongOptions opt = {
-            .rate = 48000,
-            .format = MID_AUDIO_S16LSB,
-            .channels = 2,
-            .buffer_size = 65535,
-        };
+        MidSongOptions opt;
+        opt.rate = 48000;
+        opt.format = MID_AUDIO_S16LSB;
+        opt.channels = 2;
+        opt.buffer_size = 65535;
 
         m_song.reset(mid_song_load(stream, &opt));
         mid_istream_close(stream);
