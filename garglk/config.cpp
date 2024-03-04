@@ -229,6 +229,8 @@ std::deque<std::string> gli_conf_soundfonts;
 bool gli_conf_fluidsynth_chorus = true;
 bool gli_conf_fluidsynth_reverb = true;
 
+nonstd::optional<std::string> gli_conf_timidity;
+
 bool gli_conf_fullscreen = false;
 
 bool gli_wait_on_quit = true;
@@ -781,6 +783,13 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
                 gli_conf_fluidsynth_reverb = asbool(arg);
             } else if (cmd == "fluidsynth_chorus") {
                 gli_conf_fluidsynth_chorus = asbool(arg);
+            } else if (cmd == "timidity") {
+                std::istringstream argstream(arg);
+                std::string timidity;
+
+                if (argstream >> timidity) {
+                    gli_conf_timidity = timidity;
+                }
             } else if (cmd == "fullscreen") {
                 gli_conf_fullscreen = asbool(arg);
             } else if (cmd == "zoom") {

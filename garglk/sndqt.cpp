@@ -59,6 +59,10 @@
 #include <fluidsynth.h>
 #endif
 
+#ifdef GARGLK_HAS_LIBTIMIDITY
+#include <timidity.h>
+#endif
+
 #include "format.h"
 
 #include "glk.h"
@@ -84,6 +88,10 @@ static schanid_t gli_bleep_channel;
 
 #if MPG123_API_VERSION < 46
 static bool mp3_initialized;
+#endif
+
+#ifdef GARGLK_HAS_LIBTIMIDITY
+static bool timidity_initialized;
 #endif
 
 #ifdef _MSC_VER
@@ -554,6 +562,63 @@ private:
 };
 #endif
 
+#ifdef GARGLK_HAS_LIBTIMIDITY
+class TimiditySource : public SoundSource {
+public:
+    TimiditySource(const std::vector<unsigned char> &buf, glui32 plays) :
+        SoundSource(plays)
+    {
+        if (!timidity_initialized) {
+            throw SoundError("timidity not initialized");
+        }
+
+        auto *stream = mid_istream_open_mem(const_cast<unsigned char *>(buf.data()), buf.size());
+        if (stream == nullptr) {
+            throw SoundError("timidity unable to open file");
+        }
+
+        MidSongOptions opt = {
+            .rate = 48000,
+            .format = MID_AUDIO_S16LSB,
+            .channels = 2,
+            .buffer_size = 65535,
+        };
+
+        m_song = mid_song_load(stream, &opt);
+        mid_istream_close(stream);
+
+        if (m_song == nullptr) {
+            throw SoundError("timidity unable to load file");
+        }
+
+        mid_song_start(m_song);
+
+        set_format(48000, 2);
+    }
+
+protected:
+    qint64 source_read(void *data, qint64 max) override {
+        float *fltbuf = static_cast<float *>(data);
+        std::vector<sint8> buf(max / 4);
+        auto n = mid_song_read_wave(m_song, buf.data(), max / 4);
+
+        for (std::size_t i = 0; i < n; i += 2) {
+            std::int16_t value = (static_cast<uint8_t>(buf[i + 1]) << 8) | static_cast<uint8_t>(buf[i + 0]);
+            fltbuf[i / 2] = value / 32768.0;
+        }
+
+        return n * 2;
+    }
+
+    void source_rewind() override {
+        mid_song_seek(m_song, 0);
+    }
+
+private:
+    MidSong *m_song;
+};
+#endif
+
 }
 
 struct glk_schannel_struct {
@@ -634,6 +699,12 @@ void gli_initialize_sound()
 {
 #if MPG123_API_VERSION < 46
     mp3_initialized = mpg123_init() == MPG123_OK;
+#endif
+
+#ifdef GARGLK_HAS_LIBTIMIDITY
+    if (gli_conf_timidity.has_value()) {
+        timidity_initialized = mid_init(const_cast<char *>(gli_conf_timidity.value().c_str())) == 0;
+    }
 #endif
 }
 
@@ -939,7 +1010,11 @@ static glui32 gli_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, 
                 break;
 #ifdef GARGLK_HAS_FLUIDSYNTH
             case giblorb_ID_MIDI:
-                source.reset(new FluidSynthSource(data, repeats));
+                if (timidity_initialized) {
+                    source.reset(new TimiditySource(data, repeats));
+                } else {
+                    source.reset(new FluidSynthSource(data, repeats));
+                }
                 break;
 #endif
             default:
@@ -1008,7 +1083,8 @@ static glui32 gli_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, 
         }
 
         return 1;
-    } catch (const SoundError &) {
+    } catch (const SoundError &e) {
+        std::cout << e.what() << std::endl;
         return 0;
     }
 }
