@@ -572,7 +572,7 @@ public:
             throw SoundError("timidity not initialized");
         }
 
-        auto *stream = mid_istream_open_mem(const_cast<unsigned char *>(buf.data()), buf.size());
+        auto stream = garglk::unique(mid_istream_open_mem(const_cast<unsigned char *>(buf.data()), buf.size()), mid_istream_close);
         if (stream == nullptr) {
             throw SoundError("timidity unable to open file");
         }
@@ -583,8 +583,7 @@ public:
         opt.channels = 2;
         opt.buffer_size = 65535;
 
-        m_song.reset(mid_song_load(stream, &opt));
-        mid_istream_close(stream);
+        m_song.reset(mid_song_load(stream.get(), &opt));
 
         if (m_song == nullptr) {
             throw SoundError("timidity unable to load file");
