@@ -1081,8 +1081,7 @@ static glui32 gli_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, 
         }
 
         return 1;
-    } catch (const SoundError &e) {
-        std::cout << e.what() << std::endl;
+    } catch (const SoundError &) {
         return 0;
     }
 }
