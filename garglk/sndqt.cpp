@@ -1006,13 +1006,16 @@ static glui32 gli_schannel_play_ext(schanid_t chan, glui32 snd, glui32 repeats, 
             case giblorb_ID_MP3:
                 source.reset(new Mpg123Source(data, repeats));
                 break;
-#ifdef GARGLK_HAS_FLUIDSYNTH
             case giblorb_ID_MIDI:
+#ifdef GARGLK_HAS_LIBTIMIDITY
                 if (timidity_initialized) {
                     source.reset(new TimiditySource(data, repeats));
-                } else {
-                    source.reset(new FluidSynthSource(data, repeats));
+                    break;
                 }
+#endif
+
+#ifdef GARGLK_HAS_FLUIDSYNTH
+                source.reset(new FluidSynthSource(data, repeats));
                 break;
 #endif
             default:
