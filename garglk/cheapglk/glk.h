@@ -482,6 +482,8 @@ extern strid_t glk_stream_open_resource_uni(glui32 filenum, glui32 rock);
 
 /* XXX non-official Glk functions that may or may not exist */
 
+frefid_t glk_fileref_create_by_name_uncleaned(glui32 usage, char *name, glui32 rock);
+
 #define GARGLK 1
 
 // This function should only be used in circumstances where Gargoyle's
