@@ -324,6 +324,11 @@ frefid_t glk_fileref_create_by_name(glui32 usage, char *name,
     return fref;
 }
 
+frefid_t glk_fileref_create_by_name_uncleaned(glui32 usage, char *name, glui32 rock)
+{
+    return gli_new_fileref(name, usage, rock);
+}
+
 frefid_t glk_fileref_create_by_prompt(glui32 usage, glui32 fmode,
     glui32 rock)
 {
