@@ -30,6 +30,15 @@ if(INTERFACE STREQUAL "QT")
     option(WITH_NATIVE_FILE_DIALOGS "Use native dialogs instead of Qt dialogs" ON)
 endif()
 
+# This is a "hidden" configuration option: for most users, FluidSynth is a
+# better MIDI synthesizer. It supports SoundFounts, which are widely used and
+# available, and are more convenient to use than the Gravis UltraSound patches
+# that Timidity uses. But there is a contingent of users who prefer the sound
+# of GUS patches. So if you have libtimidity installed, Gargoyle can make use
+# of it for MIDI handling. This adds a new configuration option for garglkrc
+# called "timidity", which takes a path to a timidity.cfg file. If this is
+# present, libtimidity will be used instead of FluidSynth. In the absence of
+# the "timidity" configuration option, FluidSynth will be used.
 if(SOUND STREQUAL "QT")
     option(WITH_LIBTIMIDITY "Enable libtimidity for MIDI playback" OFF)
 endif()
