@@ -39,8 +39,10 @@ endif()
 # called "timidity", which takes a path to a timidity.cfg file. If this is
 # present, libtimidity will be used instead of FluidSynth. In the absence of
 # the "timidity" configuration option, FluidSynth will be used.
-if(SOUND STREQUAL "QT")
-    option(WITH_LIBTIMIDITY "Enable libtimidity for MIDI playback" OFF)
+if(NOT MSVC)
+    if(SOUND STREQUAL "QT")
+        option(WITH_LIBTIMIDITY "Enable libtimidity for MIDI playback" OFF)
+    endif()
 endif()
 
 if(SOUND STREQUAL "SDL" OR SOUND STREQUAL "QT")
