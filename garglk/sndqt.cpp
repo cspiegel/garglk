@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -601,7 +602,7 @@ protected:
         auto n = mid_song_read_wave(m_song.get(), buf.data(), max / 4);
 
         for (std::size_t i = 0; i < n; i += 2) {
-            std::int16_t value = (static_cast<uint8_t>(buf[i + 1]) << 8) | static_cast<uint8_t>(buf[i + 0]);
+            std::int16_t value = (static_cast<std::uint8_t>(buf[i + 1]) << 8) | static_cast<std::uint8_t>(buf[i + 0]);
             fltbuf[i / 2] = value / 32768.0;
         }
 
