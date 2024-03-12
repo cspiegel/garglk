@@ -787,7 +787,7 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
                 std::istringstream argstream(arg);
                 std::string timidity;
 
-                if (argstream >> timidity) {
+                if (argstream >> std::quoted(timidity)) {
                     gli_conf_timidity = timidity;
                 }
             } else if (cmd == "fullscreen") {
