@@ -138,6 +138,12 @@ void gli_initialize_sound()
             Mix_SetSoundFonts(soundfonts.c_str());
         }
 
+#if SDL_MIXER_VERSION_ATLEAST(2, 6, 0)
+        if (gli_conf_timidity.has_value()) {
+            Mix_SetTimidityCfg(gli_conf_timidity->c_str());
+        }
+#endif
+
         int channels = Mix_AllocateChannels(SDL_CHANNELS);
         Mix_GroupChannels(0, channels - 1, FREE);
         Mix_ChannelFinished(nullptr);
