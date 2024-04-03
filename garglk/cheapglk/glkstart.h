@@ -54,6 +54,7 @@ extern glkunix_argumentlist_t glkunix_arguments[];
 extern int glkunix_startup_code(glkunix_startup_t *data);
 
 #define GLKUNIX_FILEREF_GET_FILENAME (1)
+#define GLKUNIX_FILEREF_CREATE_UNCLEANED (1)
 
 extern void glkunix_set_base_file(char *filename);
 extern strid_t glkunix_stream_open_pathname_gen(char *pathname, 
@@ -62,6 +63,9 @@ extern strid_t glkunix_stream_open_pathname(char *pathname, glui32 textmode,
     glui32 rock);
 #ifdef GLKUNIX_FILEREF_GET_FILENAME
 extern const char *glkunix_fileref_get_filename(frefid_t fref);
+#endif
+#ifdef GLKUNIX_FILEREF_CREATE_UNCLEANED
+extern frefid_t glkunix_fileref_create_by_name_uncleaned(glui32 usage, char *name, glui32 rock);
 #endif
 
 #ifdef __cplusplus
