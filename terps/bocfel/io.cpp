@@ -35,6 +35,20 @@ extern "C" {
 #include "unicode.h"
 #include "util.h"
 
+#define NO_STDIO
+
+#ifdef NO_STDIO
+#ifndef ZTERP_GLK_UNIX
+#error NO_STDIO requires a Unix Glk
+#endif
+
+#include <glkstart.h>
+
+#ifndef GLKUNIX_FILEREF_CREATE_UNCLEANED
+#error NO_STDIO requires the extension glkunix_fileref_create_by_name_uncleaned
+#endif
+#endif
+
 // Due to C++’s less-than-ideal type system, there’s no way to guarantee
 // that an enum class actually contains a valid value. When checking the
 // value of the I/O object’s type, this method is used as a sort of
@@ -70,7 +84,6 @@ IO::IO(const std::string *filename, Mode mode, Purpose purpose) :
     m_mode(mode),
     m_purpose(purpose)
 {
-#define NO_STDIO
 
 #if !defined(ZTERP_GLK) || !defined(NO_STDIO)
     char smode[] = "wb";
@@ -98,7 +111,7 @@ IO::IO(const std::string *filename, Mode mode, Purpose purpose) :
         }
 #else
         open_as_glk([&filename](glui32 usage, glui32) {
-            return glk_fileref_create_by_name_uncleaned(usage, const_cast<char *>(filename->c_str()), 0);
+            return glkunix_fileref_create_by_name_uncleaned(usage, const_cast<char *>(filename->c_str()), 0);
         });
 #endif
     } else { // Prompt.
