@@ -1639,23 +1639,22 @@ void win_textbuffer_flow_break(window_textbuffer_t *dwin)
     }
 }
 
-void win_textbuffer_click(window_textbuffer_t *dwin, int sx, int sy)
+void window_textbuffer_t::click(int sx, int sy)
 {
-    window_t *win = dwin;
     bool gh = false;
     bool gs = false;
 
-    if (win->line_request || win->char_request
-        || win->line_request_uni || win->char_request_uni
-        || win->more_request || win->scroll_request) {
-        gli_focuswin = win;
+    if (line_request || char_request
+        || line_request_uni || char_request_uni
+        || more_request || scroll_request) {
+        gli_focuswin = this;
     }
 
-    if (win->hyper_request) {
+    if (hyper_request) {
         glui32 linkval = gli_get_hyperlink(sx, sy);
         if (linkval != 0) {
-            gli_event_store(evtype_Hyperlink, win, linkval, 0);
-            win->hyper_request = false;
+            gli_event_store(evtype_Hyperlink, this, linkval, 0);
+            hyper_request = false;
             if (gli_conf_safeclicks) {
                 gli_forceclick = true;
             }
@@ -1663,15 +1662,15 @@ void win_textbuffer_click(window_textbuffer_t *dwin, int sx, int sy)
         }
     }
 
-    if (sx > win->bbox.x1 - gli_scroll_width) {
-        if (sy < win->bbox.y0 + gli_tmarginy + gli_scroll_width) {
-            gcmd_accept_scroll(win, keycode_Up);
-        } else if (sy > win->bbox.y1 - gli_tmarginy - gli_scroll_width) {
-            gcmd_accept_scroll(win, keycode_Down);
-        } else if (sy < (win->bbox.y0 + win->bbox.y1) / 2) {
-            gcmd_accept_scroll(win, keycode_PageUp);
+    if (sx > bbox.x1 - gli_scroll_width) {
+        if (sy < bbox.y0 + gli_tmarginy + gli_scroll_width) {
+            gcmd_accept_scroll(this, keycode_Up);
+        } else if (sy > bbox.y1 - gli_tmarginy - gli_scroll_width) {
+            gcmd_accept_scroll(this, keycode_Down);
+        } else if (sy < (bbox.y0 + bbox.y1) / 2) {
+            gcmd_accept_scroll(this, keycode_PageUp);
         } else {
-            gcmd_accept_scroll(win, keycode_PageDown);
+            gcmd_accept_scroll(this, keycode_PageDown);
         }
         gs = true;
     }

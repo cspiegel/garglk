@@ -1080,20 +1080,7 @@ void glk_cancel_hyperlink_event(winid_t win)
 
 void gli_window_click(window_t *win, int x, int y)
 {
-    switch (win->type) {
-    case wintype_Pair:
-        win_pair_click(win->winpair(), x, y);
-        break;
-    case wintype_TextBuffer:
-        win_textbuffer_click(win->winbuffer(), x, y);
-        break;
-    case wintype_TextGrid:
-        win_textgrid_click(win->wingrid(), x, y);
-        break;
-    case wintype_Graphics:
-        win_graphics_click(win->wingraphics(), x, y);
-        break;
-    }
+    win->click(x, y);
 }
 
 // Text output and cursor positioning

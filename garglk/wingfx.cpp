@@ -98,25 +98,24 @@ void window_graphics_t::redraw()
     }
 }
 
-void win_graphics_click(window_graphics_t *dwin, int sx, int sy)
+void window_graphics_t::click(int sx, int sy)
 {
-    window_t *win = dwin;
-    int x = sx - win->bbox.x0;
-    int y = sy - win->bbox.y0;
+    int x = sx - bbox.x0;
+    int y = sy - bbox.y0;
 
-    if (win->mouse_request) {
-        gli_event_store(evtype_MouseInput, win, gli_unzoom_int(x), gli_unzoom_int(y));
-        win->mouse_request = false;
+    if (mouse_request) {
+        gli_event_store(evtype_MouseInput, this, gli_unzoom_int(x), gli_unzoom_int(y));
+        mouse_request = false;
         if (gli_conf_safeclicks) {
             gli_forceclick = true;
         }
     }
 
-    if (win->hyper_request) {
+    if (hyper_request) {
         glui32 linkval = gli_get_hyperlink(gli_unzoom_int(sx), gli_unzoom_int(sy));
         if (linkval != 0) {
-            gli_event_store(evtype_Hyperlink, win, linkval, 0);
-            win->hyper_request = false;
+            gli_event_store(evtype_Hyperlink, this, linkval, 0);
+            hyper_request = false;
             if (gli_conf_safeclicks) {
                 gli_forceclick = true;
             }

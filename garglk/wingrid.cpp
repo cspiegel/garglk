@@ -266,31 +266,30 @@ void win_textgrid_move_cursor(window_t *win, int xpos, int ypos)
     dwin->cury = ypos;
 }
 
-void win_textgrid_click(window_textgrid_t *dwin, int sx, int sy)
+void window_textgrid_t::click(int sx, int sy)
 {
-    window_t *win = dwin;
-    int x = sx - win->bbox.x0;
-    int y = sy - win->bbox.y0;
+    int x = sx - bbox.x0;
+    int y = sy - bbox.y0;
 
-    if (win->line_request || win->char_request
-        || win->line_request_uni || win->char_request_uni
-        || win->more_request || win->scroll_request) {
-        gli_focuswin = win;
+    if (line_request || char_request
+        || line_request_uni || char_request_uni
+        || more_request || scroll_request) {
+        gli_focuswin = this;
     }
 
-    if (win->mouse_request) {
-        gli_event_store(evtype_MouseInput, win, x / gli_cellw, y / gli_leading);
-        win->mouse_request = false;
+    if (mouse_request) {
+        gli_event_store(evtype_MouseInput, this, x / gli_cellw, y / gli_leading);
+        mouse_request = false;
         if (gli_conf_safeclicks) {
             gli_forceclick = true;
         }
     }
 
-    if (win->hyper_request) {
+    if (hyper_request) {
         glui32 linkval = gli_get_hyperlink(sx, sy);
         if (linkval != 0) {
-            gli_event_store(evtype_Hyperlink, win, linkval, 0);
-            win->hyper_request = false;
+            gli_event_store(evtype_Hyperlink, this, linkval, 0);
+            hyper_request = false;
             if (gli_conf_safeclicks) {
                 gli_forceclick = true;
             }
