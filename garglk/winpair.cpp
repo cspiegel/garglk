@@ -28,7 +28,6 @@ void window_pair_t::rearrange(const rect_t *box)
 {
     rect_t box1, box2;
     int min, diff, split, splitwid, max;
-    window_t *key;
     window_t *ch1, *ch2;
 
     bbox = *box;
@@ -55,7 +54,6 @@ void window_pair_t::rearrange(const rect_t *box)
         break;
 
     case winmethod_Fixed:
-        key = this->key;
         if (key == nullptr) {
             split = 0;
         } else {
