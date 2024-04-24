@@ -245,10 +245,8 @@ void window_textgrid_t::clear()
     cury = 0;
 }
 
-void win_textgrid_move_cursor(window_t *win, int xpos, int ypos)
+void window_textgrid_t::move_cursor(int xpos, int ypos)
 {
-    window_textgrid_t *dwin = win->wingrid();
-
     // If the values are negative, they're really huge positive numbers --
     // remember that they were cast from glui32. So set them huge and
     // let canonicalization take its course.
@@ -259,8 +257,8 @@ void win_textgrid_move_cursor(window_t *win, int xpos, int ypos)
         ypos = 32767;
     }
 
-    dwin->curx = xpos;
-    dwin->cury = ypos;
+    curx = xpos;
+    cury = ypos;
 }
 
 void window_textgrid_t::click(int sx, int sy)

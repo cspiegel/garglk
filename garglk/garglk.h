@@ -778,6 +778,9 @@ struct glk_window_struct {
     virtual void put_char_uni(glui32 ch) {}
     virtual bool unput_char_uni(glui32 ch) { return false; }
     virtual void clear() {}
+    virtual void move_cursor(int xpos, int ypos) {
+        gli_strict_warning("window_move_cursor: not a TextGrid window");
+    }
     virtual void init_line(char *buf, int maxlen, int initlen) {
         line_request = false;
         gli_strict_warning("request_line_event: window does not support keyboard input");
@@ -874,6 +877,7 @@ struct window_textgrid_t : public glk_window_struct {
     void put_char_uni(glui32 ch) override;
     bool unput_char_uni(glui32 ch) override;
     void clear() override;
+    void move_cursor(int xpos, int ypos) override;
     void init_line(char *buf, int maxlen, int initlen) override;
     void init_line_uni(glui32 *buf, int maxlen, int initlen) override;
     void cancel_line(event_t *ev) override;
@@ -1030,7 +1034,6 @@ extern void win_blank_rearrange(window_t *win, const rect_t *box);
 extern std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, glui32 method, window_t *key, glui32 size);
 
 extern std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock);
-extern void win_textgrid_move_cursor(window_t *win, int xpos, int ypos);
 extern void gcmd_grid_accept_readchar(window_t *win, glui32 arg);
 extern void gcmd_grid_accept_readline(window_t *win, glui32 arg);
 
