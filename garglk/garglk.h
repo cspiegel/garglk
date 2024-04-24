@@ -778,6 +778,15 @@ struct glk_window_struct {
     virtual void put_char_uni(glui32 ch) {}
     virtual bool unput_char_uni(glui32 ch) { return false; }
     virtual void clear() {}
+    virtual void init_line(char *buf, int maxlen, int initlen) {
+        line_request = false;
+        gli_strict_warning("request_line_event: window does not support keyboard input");
+    }
+    virtual void init_line_uni(glui32 *buf, int maxlen, int initlen) {
+        line_request = false;
+        gli_strict_warning("request_line_event_uni: window does not support keyboard input");
+    }
+    virtual void cancel_line(event_t *ev) {}
     virtual void click(int sx, int sy) {}
 
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
@@ -865,6 +874,9 @@ struct window_textgrid_t : public glk_window_struct {
     void redraw() override;
     void put_char_uni(glui32 ch) override;
     bool unput_char_uni(glui32 ch) override;
+    void init_line(char *buf, int maxlen, int initlen) override;
+    void init_line_uni(glui32 *buf, int maxlen, int initlen) override;
+    void cancel_line(event_t *ev) override;
     void clear() override;
     void click(int sx, int sy) override;
 
@@ -928,6 +940,9 @@ struct window_textbuffer_t : public glk_window_struct {
     void redraw() override;
     void put_char_uni(glui32 ch) override;
     bool unput_char_uni(glui32 ch) override;
+    void init_line(char *buf, int maxlen, int initlen) override;
+    void init_line_uni(glui32 *buf, int maxlen, int initlen) override;
+    void cancel_line(event_t *ev) override;
     void clear() override;
     void click(int sx, int sy) override;
 
@@ -1017,16 +1032,10 @@ extern std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, 
 
 extern std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock);
 extern void win_textgrid_move_cursor(window_t *win, int xpos, int ypos);
-extern void win_textgrid_init_line(window_t *win, char *buf, int maxlen, int initlen);
-extern void win_textgrid_init_line_uni(window_t *win, glui32 *buf, int maxlen, int initlen);
-extern void win_textgrid_cancel_line(window_t *win, event_t *ev);
 extern void gcmd_grid_accept_readchar(window_t *win, glui32 arg);
 extern void gcmd_grid_accept_readline(window_t *win, glui32 arg);
 
 extern std::unique_ptr<window_textbuffer_t> win_textbuffer_create(glui32 type, glui32 rock);
-extern void win_textbuffer_init_line(window_t *win, char *buf, int maxlen, int initlen);
-extern void win_textbuffer_init_line_uni(window_t *win, glui32 *buf, int maxlen, int initlen);
-extern void win_textbuffer_cancel_line(window_t *win, event_t *ev);
 extern void gcmd_buffer_accept_readchar(window_t *win, glui32 arg);
 extern void gcmd_buffer_accept_readline(window_t *win, glui32 arg);
 extern bool gcmd_accept_scroll(window_t *win, glui32 arg);

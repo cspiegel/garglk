@@ -1126,39 +1126,29 @@ static void win_textbuffer_init_impl(window_t *win, void *buf, int maxlen, int i
     }
 }
 
-void win_textbuffer_init_line(window_t *win, char *buf, int maxlen, int initlen)
+void window_textbuffer_t::init_line(char *buf, int maxlen, int initlen)
 {
-    win_textbuffer_init_impl(win, buf, maxlen, initlen, false);
+    win_textbuffer_init_impl(this, buf, maxlen, initlen, false);
 }
 
-void win_textbuffer_init_line_uni(window_t *win, glui32 *buf, int maxlen, int initlen)
+void window_textbuffer_t::init_line_uni(glui32 *buf, int maxlen, int initlen)
 {
-    win_textbuffer_init_impl(win, buf, maxlen, initlen, true);
+    win_textbuffer_init_impl(this, buf, maxlen, initlen, true);
 }
 
 // Abort line input, storing whatever's been typed so far.
-void win_textbuffer_cancel_line(window_t *win, event_t *ev)
+void window_textbuffer_t::cancel_line(event_t *ev)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
-    gidispatch_rock_t inarrayrock;
     int ix;
     int len;
-    void *inbuf;
-    int inmax;
-    bool inunicode;
 
-    if (dwin->inbuf == nullptr) {
+    if (inbuf == nullptr) {
         return;
     }
 
-    inbuf = dwin->inbuf;
-    inmax = dwin->inmax;
-    inarrayrock = dwin->inarrayrock;
-    inunicode = dwin->inunicode;
-
-    len = dwin->numchars - dwin->infence;
-    if (win->echostr != nullptr) {
-        gli_stream_echo_line_uni(win->echostr, dwin->chars + dwin->infence, len);
+    len = numchars - infence;
+    if (echostr != nullptr) {
+        gli_stream_echo_line_uni(echostr, chars + infence, len);
     }
 
     if (len > inmax) {
@@ -1167,7 +1157,7 @@ void win_textbuffer_cancel_line(window_t *win, event_t *ev)
 
     if (!inunicode) {
         for (ix = 0; ix < len; ix++) {
-            glui32 ch = dwin->chars[dwin->infence + ix];
+            glui32 ch = chars[infence + ix];
             if (ch > 0xff) {
                 ch = '?';
             }
@@ -1175,27 +1165,27 @@ void win_textbuffer_cancel_line(window_t *win, event_t *ev)
         }
     } else {
         for (ix = 0; ix < len; ix++) {
-            (static_cast<glui32 *>(inbuf))[ix] = dwin->chars[dwin->infence + ix];
+            (static_cast<glui32 *>(inbuf))[ix] = chars[infence + ix];
         }
     }
 
-    win->attr = dwin->origattr;
+    attr = origattr;
 
     ev->type = evtype_LineInput;
-    ev->win = win;
+    ev->win = this;
     ev->val1 = len;
     ev->val2 = 0;
 
-    win->line_request = false;
-    win->line_request_uni = false;
-    dwin->inbuf = nullptr;
-    dwin->inmax = 0;
+    line_request = false;
+    line_request_uni = false;
+    inbuf = nullptr;
+    inmax = 0;
 
-    if (win->echo_line_input) {
-        win->put_char_uni('\n');
+    if (echo_line_input) {
+        put_char_uni('\n');
     } else {
-        dwin->numchars = dwin->infence;
-        touch(dwin, 0);
+        numchars = infence;
+        touch(this, 0);
     }
 
     if (gli_unregister_arr != nullptr) {

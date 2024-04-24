@@ -344,72 +344,62 @@ static void win_textgrid_init_impl(window_t *win, void *buf, int maxlen, int ini
     }
 }
 
-void win_textgrid_init_line(window_t *win, char *buf, int maxlen, int initlen)
+void window_textgrid_t::init_line(char *buf, int maxlen, int initlen)
 {
-    win_textgrid_init_impl(win, buf, maxlen, initlen, false);
+    win_textgrid_init_impl(this, buf, maxlen, initlen, false);
 }
 
-void win_textgrid_init_line_uni(window_t *win, glui32 *buf, int maxlen, int initlen)
+void window_textgrid_t::init_line_uni(glui32 *buf, int maxlen, int initlen)
 {
-    win_textgrid_init_impl(win, buf, maxlen, initlen, true);
+    win_textgrid_init_impl(this, buf, maxlen, initlen, true);
 }
 
 // Abort line input, storing whatever's been typed so far.
-void win_textgrid_cancel_line(window_t *win, event_t *ev)
+void window_textgrid_t::cancel_line(event_t *ev)
 {
     int ix;
-    void *inbuf;
-    int inoriglen;
-    bool inunicode;
-    gidispatch_rock_t inarrayrock;
-    window_textgrid_t *dwin = win->wingrid();
-    tgline_t *ln = &(dwin->lines[dwin->inorgy]);
+    tgline_t *ln = &(lines[inorgy]);
 
-    if (dwin->inbuf == nullptr) {
+    if (inbuf == nullptr) {
         return;
     }
 
-    inbuf = dwin->inbuf;
-    inoriglen = dwin->inoriglen;
-    inarrayrock = dwin->inarrayrock;
-    inunicode = dwin->inunicode;
-
     if (!inunicode) {
-        for (ix = 0; ix < dwin->inlen; ix++) {
-            glui32 ch = ln->chars[dwin->inorgx + ix];
+        for (ix = 0; ix < inlen; ix++) {
+            glui32 ch = ln->chars[inorgx + ix];
             if (ch > 0xff) {
                 ch = '?';
             }
             (static_cast<char *>(inbuf))[ix] = static_cast<char>(ch);
         }
-        if (win->echostr != nullptr) {
-            gli_stream_echo_line(win->echostr, static_cast<char *>(inbuf), dwin->inlen);
+        if (echostr != nullptr) {
+            gli_stream_echo_line(echostr, static_cast<char *>(inbuf), inlen);
         }
     } else {
-        for (ix = 0; ix < dwin->inlen; ix++) {
-            (static_cast<glui32 *>(inbuf))[ix] = ln->chars[dwin->inorgx + ix];
+        for (ix = 0; ix < inlen; ix++) {
+            (static_cast<glui32 *>(inbuf))[ix] = ln->chars[inorgx + ix];
         }
-        if (win->echostr != nullptr) {
-            gli_stream_echo_line_uni(win->echostr, static_cast<glui32 *>(inbuf), dwin->inlen);
+        if (echostr != nullptr) {
+            gli_stream_echo_line_uni(echostr, static_cast<glui32 *>(inbuf), inlen);
         }
     }
 
-    dwin->cury = dwin->inorgy + 1;
-    dwin->curx = 0;
-    win->attr = dwin->origattr;
+    cury = inorgy + 1;
+    curx = 0;
+    attr = origattr;
 
     ev->type = evtype_LineInput;
-    ev->win = win;
-    ev->val1 = dwin->inlen;
+    ev->win = this;
+    ev->val1 = inlen;
     ev->val2 = 0;
 
-    win->line_request = false;
-    win->line_request_uni = false;
-    dwin->inbuf = nullptr;
-    dwin->inoriglen = 0;
-    dwin->inmax = 0;
-    dwin->inorgx = 0;
-    dwin->inorgy = 0;
+    line_request = false;
+    line_request_uni = false;
+    inbuf = nullptr;
+    inoriglen = 0;
+    inmax = 0;
+    inorgx = 0;
+    inorgy = 0;
 
     if (gli_unregister_arr != nullptr) {
         const char *typedesc = (inunicode ? "&+#!Iu" : "&+#!Cn");

@@ -856,19 +856,8 @@ void glk_request_line_event(window_t *win, char *buf, glui32 maxlen,
         return;
     }
 
-    switch (win->type) {
-    case wintype_TextBuffer:
-        win->line_request = true;
-        win_textbuffer_init_line(win, buf, maxlen, initlen);
-        break;
-    case wintype_TextGrid:
-        win->line_request = true;
-        win_textgrid_init_line(win, buf, maxlen, initlen);
-        break;
-    default:
-        gli_strict_warning("request_line_event: window does not support keyboard input");
-        break;
-    }
+    win->line_request = true;
+    win->init_line(buf, maxlen, initlen);
 }
 
 void glk_request_line_event_uni(window_t *win, glui32 *buf, glui32 maxlen,
@@ -884,19 +873,8 @@ void glk_request_line_event_uni(window_t *win, glui32 *buf, glui32 maxlen,
         return;
     }
 
-    switch (win->type) {
-    case wintype_TextBuffer:
-        win->line_request_uni = true;
-        win_textbuffer_init_line_uni(win, buf, maxlen, initlen);
-        break;
-    case wintype_TextGrid:
-        win->line_request_uni = true;
-        win_textgrid_init_line_uni(win, buf, maxlen, initlen);
-        break;
-    default:
-        gli_strict_warning("request_line_event_uni: window does not support keyboard input");
-        break;
-    }
+    win->line_request = true;
+    win->init_line_uni(buf, maxlen, initlen);
 }
 
 void glk_set_echo_line_event(window_t *win, glui32 val)
@@ -1024,20 +1002,8 @@ void glk_cancel_line_event(window_t *win, event_t *ev)
         return;
     }
 
-    switch (win->type) {
-    case wintype_TextBuffer:
-        if (win->line_request || win->line_request_uni) {
-            win_textbuffer_cancel_line(win, ev);
-        }
-        break;
-    case wintype_TextGrid:
-        if (win->line_request || win->line_request_uni) {
-            win_textgrid_cancel_line(win, ev);
-        }
-        break;
-    default:
-        // do nothing
-        break;
+    if (win->line_request || win->line_request_uni) {
+        win->cancel_line(ev);
     }
 }
 
