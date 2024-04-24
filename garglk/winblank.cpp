@@ -29,11 +29,3 @@ void window_blank_t::rearrange(const rect_t *box)
 {
     bbox = *box;
 }
-
-void window_blank_t::redraw()
-{
-}
-
-void window_blank_t::click(int, int)
-{
-}

@@ -774,9 +774,9 @@ struct glk_window_struct {
     }
 
     virtual void rearrange(const rect_t *box) = 0;
-    virtual void redraw() = 0;
+    virtual void redraw() {}
     virtual void clear() {}
-    virtual void click(int sx, int sy) = 0;
+    virtual void click(int sx, int sy) {}
 
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
     window_textbuffer_t *winbuffer() { return winget<window_textbuffer_t>(this); }
@@ -814,8 +814,6 @@ struct window_blank_t : public glk_window_struct {
         }
 
     void rearrange(const rect_t *box) override;
-    void redraw() override;
-    void click(int sx, int sy) override;
 };
 
 struct window_pair_t : public glk_window_struct {
