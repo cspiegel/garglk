@@ -773,8 +773,8 @@ struct glk_window_struct {
         }
     }
 
-    virtual void redraw() = 0;
     virtual void rearrange(const rect_t *box) = 0;
+    virtual void redraw() = 0;
     virtual void click(int sx, int sy) = 0;
 
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
@@ -812,8 +812,8 @@ struct window_blank_t : public glk_window_struct {
         glk_window_struct(type_, rock_) {
         }
 
-    void redraw() override;
     void rearrange(const rect_t *box) override;
+    void redraw() override;
     void click(int sx, int sy) override;
 };
 
@@ -830,8 +830,8 @@ struct window_pair_t : public glk_window_struct {
     {
     }
 
-    void redraw() override;
     void rearrange(const rect_t *box) override;
+    void redraw() override;
     void click(int sx, int sy) override;
 
     window_t *child1 = nullptr, *child2 = nullptr;
@@ -860,8 +860,8 @@ struct window_textgrid_t : public glk_window_struct {
     {
     }
 
-    void redraw() override;
     void rearrange(const rect_t *box) override;
+    void redraw() override;
     void click(int sx, int sy) override;
 
     ~window_textgrid_t() override {
@@ -920,8 +920,8 @@ struct window_textbuffer_t : public glk_window_struct {
         }
     }
 
-    void redraw() override;
     void rearrange(const rect_t *box) override;
+    void redraw() override;
     void click(int sx, int sy) override;
 
     int width = -1, height = -1;
@@ -974,8 +974,8 @@ struct window_graphics_t : public glk_window_struct {
     {
     }
 
-    void redraw() override;
     void rearrange(const rect_t *box) override;
+    void redraw() override;
     void click(int sx, int sy) override;
 
     Color bgnd;
