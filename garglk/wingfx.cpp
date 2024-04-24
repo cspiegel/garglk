@@ -98,6 +98,11 @@ void window_graphics_t::redraw()
     }
 }
 
+void window_graphics_t::clear()
+{
+    win_graphics_erase_rect(this, true, 0, 0, 0, 0);
+}
+
 void window_graphics_t::click(int sx, int sy)
 {
     int x = sx - bbox.x0;

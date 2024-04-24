@@ -775,6 +775,7 @@ struct glk_window_struct {
 
     virtual void rearrange(const rect_t *box) = 0;
     virtual void redraw() = 0;
+    virtual void clear() {}
     virtual void click(int sx, int sy) = 0;
 
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
@@ -862,6 +863,7 @@ struct window_textgrid_t : public glk_window_struct {
 
     void rearrange(const rect_t *box) override;
     void redraw() override;
+    void clear() override;
     void click(int sx, int sy) override;
 
     ~window_textgrid_t() override {
@@ -922,6 +924,7 @@ struct window_textbuffer_t : public glk_window_struct {
 
     void rearrange(const rect_t *box) override;
     void redraw() override;
+    void clear() override;
     void click(int sx, int sy) override;
 
     int width = -1, height = -1;
@@ -976,6 +979,7 @@ struct window_graphics_t : public glk_window_struct {
 
     void rearrange(const rect_t *box) override;
     void redraw() override;
+    void clear() override;
     void click(int sx, int sy) override;
 
     Color bgnd;
@@ -1010,7 +1014,6 @@ extern std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, 
 extern std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock);
 extern void win_textgrid_putchar_uni(window_t *win, glui32 ch);
 extern bool win_textgrid_unputchar_uni(window_t *win, glui32 ch);
-extern void win_textgrid_clear(window_t *win);
 extern void win_textgrid_move_cursor(window_t *win, int xpos, int ypos);
 extern void win_textgrid_init_line(window_t *win, char *buf, int maxlen, int initlen);
 extern void win_textgrid_init_line_uni(window_t *win, glui32 *buf, int maxlen, int initlen);
@@ -1021,7 +1024,6 @@ extern void gcmd_grid_accept_readline(window_t *win, glui32 arg);
 extern std::unique_ptr<window_textbuffer_t> win_textbuffer_create(glui32 type, glui32 rock);
 extern void win_textbuffer_putchar_uni(window_t *win, glui32 ch);
 extern bool win_textbuffer_unputchar_uni(window_t *win, glui32 ch);
-extern void win_textbuffer_clear(window_t *win);
 extern void win_textbuffer_init_line(window_t *win, char *buf, int maxlen, int initlen);
 extern void win_textbuffer_init_line_uni(window_t *win, glui32 *buf, int maxlen, int initlen);
 extern void win_textbuffer_cancel_line(window_t *win, event_t *ev);

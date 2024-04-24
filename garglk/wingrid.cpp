@@ -229,23 +229,22 @@ bool win_textgrid_unputchar_uni(window_t *win, glui32 ch)
     }
 }
 
-void win_textgrid_clear(window_t *win)
+void window_textgrid_t::clear()
 {
-    window_textgrid_t *dwin = win->wingrid();
     int k;
 
-    win->attr.fgcolor = gli_override_fg;
-    win->attr.bgcolor = gli_override_bg;
-    win->attr.reverse = false;
+    attr.fgcolor = gli_override_fg;
+    attr.bgcolor = gli_override_bg;
+    attr.reverse = false;
 
-    for (k = 0; k < dwin->height; k++) {
-        touch(dwin, k);
-        dwin->lines[k].chars.fill(' ');
-        dwin->lines[k].attrs.fill(attr_t{});
+    for (k = 0; k < height; k++) {
+        touch(this, k);
+        lines[k].chars.fill(' ');
+        lines[k].attrs.fill(attr_t{});
     }
 
-    dwin->curx = 0;
-    dwin->cury = 0;
+    curx = 0;
+    cury = 0;
 }
 
 void win_textgrid_move_cursor(window_t *win, int xpos, int ypos)

@@ -162,7 +162,7 @@ static void reflow(window_t *win)
 
     // clear window
 
-    win_textbuffer_clear(win);
+    win->clear();
 
     // and dump text back
 
@@ -1043,44 +1043,43 @@ bool win_textbuffer_unputchar_uni(window_t *win, glui32 ch)
     return false;
 }
 
-void win_textbuffer_clear(window_t *win)
+void window_textbuffer_t::clear()
 {
-    window_textbuffer_t *dwin = win->winbuffer();
     int i;
 
-    win->attr.fgcolor = gli_override_fg;
-    win->attr.bgcolor = gli_override_bg;
-    win->attr.reverse = false;
+    attr.fgcolor = gli_override_fg;
+    attr.bgcolor = gli_override_bg;
+    attr.reverse = false;
 
-    dwin->ladjw = dwin->radjw = 0;
-    dwin->ladjn = dwin->radjn = 0;
+    ladjw = radjw = 0;
+    ladjn = radjn = 0;
 
-    dwin->spaced = 0;
-    dwin->dashed = 0;
+    spaced = 0;
+    dashed = 0;
 
-    dwin->numchars = 0;
+    numchars = 0;
 
-    for (i = 0; i < dwin->scrollback; i++) {
-        dwin->lines[i].len = 0;
+    for (i = 0; i < scrollback; i++) {
+        lines[i].len = 0;
 
-        dwin->lines[i].lpic.reset();
-        dwin->lines[i].rpic.reset();
+        lines[i].lpic.reset();
+        lines[i].rpic.reset();
 
-        dwin->lines[i].lhyper = 0;
-        dwin->lines[i].rhyper = 0;
-        dwin->lines[i].lm = 0;
-        dwin->lines[i].rm = 0;
-        dwin->lines[i].newline = false;
-        dwin->lines[i].dirty = true;
-        dwin->lines[i].repaint = false;
+        lines[i].lhyper = 0;
+        lines[i].rhyper = 0;
+        lines[i].lm = 0;
+        lines[i].rm = 0;
+        lines[i].newline = false;
+        lines[i].dirty = true;
+        lines[i].repaint = false;
     }
 
-    dwin->lastseen = 0;
-    dwin->scrollpos = 0;
-    dwin->scrollmax = 0;
+    lastseen = 0;
+    scrollpos = 0;
+    scrollmax = 0;
 
-    for (i = 0; i < dwin->height; i++) {
-        touch(dwin, i);
+    for (i = 0; i < height; i++) {
+        touch(this, i);
     }
 }
 

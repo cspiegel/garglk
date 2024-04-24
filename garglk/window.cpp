@@ -1126,17 +1126,7 @@ void glk_window_clear(window_t *win)
         }
     }
 
-    switch (win->type) {
-    case wintype_TextBuffer:
-        win_textbuffer_clear(win);
-        break;
-    case wintype_TextGrid:
-        win_textgrid_clear(win);
-        break;
-    case wintype_Graphics:
-        win_graphics_erase_rect(win->wingraphics(), true, 0, 0, 0, 0);
-        break;
-    }
+    win->clear();
 }
 
 void glk_window_move_cursor(window_t *win, glui32 xpos, glui32 ypos)
