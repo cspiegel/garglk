@@ -178,7 +178,7 @@ static void reflow(window_t *win)
             x++;
         }
 
-        win_textbuffer_putchar_uni(win, charbuf[i]);
+        win->put_char_uni(charbuf[i]);
     }
 
     // terribly sorry about this...
@@ -861,9 +861,8 @@ static bool leftquote(std::uint32_t c)
     }
 }
 
-void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
+void window_textbuffer_t::put_char_uni(glui32 ch)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
     std::array<glui32, TBLINELEN> bchars;
     std::array<attr_t, TBLINELEN> battrs;
     int pw;
@@ -891,29 +890,29 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     // during normal gameplay.
     //
     // See https://github.com/garglk/garglk/issues/356
-    if (win->attr.style != style_Input) {
+    if (attr.style != style_Input) {
         gli_tts_speak(&ch, 1);
     }
 
-    pw = (win->bbox.x1 - win->bbox.x0 - gli_tmarginx * 2 - gli_scroll_width) * GLI_SUBPIX;
-    pw = pw - 2 * SLOP - dwin->radjw - dwin->ladjw;
+    pw = (bbox.x1 - bbox.x0 - gli_tmarginx * 2 - gli_scroll_width) * GLI_SUBPIX;
+    pw = pw - 2 * SLOP - radjw - ladjw;
 
-    Color color = gli_override_bg.has_value() ? gli_window_color : win->bgcolor;
+    Color color = gli_override_bg.has_value() ? gli_window_color : bgcolor;
 
     // oops ... overflow
-    if (dwin->numchars + 1 >= TBLINELEN) {
-        scrolloneline(dwin, false);
+    if (numchars + 1 >= TBLINELEN) {
+        scrolloneline(this, false);
     }
 
     if (ch == '\n') {
-        scrolloneline(dwin, true);
+        scrolloneline(this, true);
         return;
     }
 
     if (gli_conf_quotes != 0) {
         // fails for 'tis a wonderful day in the '80s
         if (gli_conf_quotes == 2 && ch == '\'') {
-            if (dwin->numchars == 0 || leftquote(dwin->chars[dwin->numchars - 1])) {
+            if (numchars == 0 || leftquote(chars[numchars - 1])) {
                 ch = UNI_LSQUO;
             }
         }
@@ -927,7 +926,7 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
         }
 
         if (ch == '"') {
-            if (dwin->numchars == 0 || leftquote(dwin->chars[dwin->numchars - 1])) {
+            if (numchars == 0 || leftquote(chars[numchars - 1])) {
                 ch = UNI_LDQUO;
             } else {
                 ch = UNI_RDQUO;
@@ -939,105 +938,104 @@ void win_textbuffer_putchar_uni(window_t *win, glui32 ch)
     // the font file itself is actually monospace: if the font is monor,
     // monob, monoi, or monoz, then this will be true, regardless of
     // what font the user actually set as the monospace font.
-    bool monospace = gli_tstyles[win->attr.style].font.monospace;
+    bool monospace = gli_tstyles[attr.style].font.monospace;
 
     if (gli_conf_dashes != 0 && !monospace) {
         if (ch == '-') {
-            dwin->dashed++;
-            if (dwin->dashed == 2) {
-                dwin->numchars--;
+            dashed++;
+            if (dashed == 2) {
+                numchars--;
                 if (gli_conf_dashes == 2) {
                     ch = UNI_NDASH;
                 } else {
                     ch = UNI_MDASH;
                 }
             }
-            if (dwin->dashed == 3) {
-                dwin->numchars--;
+            if (dashed == 3) {
+                numchars--;
                 ch = UNI_MDASH;
-                dwin->dashed = 0;
+                dashed = 0;
             }
         } else {
-            dwin->dashed = 0;
+            dashed = 0;
         }
     }
 
     if (gli_conf_spaces != 0 && !monospace
-            && dwin->styles[win->attr.style].bg == color
-            && !dwin->styles[win->attr.style].reverse) {
+            && styles[attr.style].bg == color
+            && !styles[attr.style].reverse) {
         // turn (period space space) into (period space)
         if (gli_conf_spaces == 1) {
             if (ch == '.') {
-                dwin->spaced = 1;
-            } else if (ch == ' ' && dwin->spaced == 1) {
-                dwin->spaced = 2;
-            } else if (ch == ' ' && dwin->spaced == 2) {
-                dwin->spaced = 0;
+                spaced = 1;
+            } else if (ch == ' ' && spaced == 1) {
+                spaced = 2;
+            } else if (ch == ' ' && spaced == 2) {
+                spaced = 0;
                 return;
             } else {
-                dwin->spaced = 0;
+                spaced = 0;
             }
         }
 
         // turn (per sp x) into (per sp sp x)
         else if (gli_conf_spaces == 2) {
             if (ch == '.') {
-                dwin->spaced = 1;
-            } else if (ch == ' ' && dwin->spaced == 1) {
-                dwin->spaced = 2;
-            } else if (ch != ' ' && dwin->spaced == 2) {
-                dwin->spaced = 0;
-                win_textbuffer_putchar_uni(win, ' ');
+                spaced = 1;
+            } else if (ch == ' ' && spaced == 1) {
+                spaced = 2;
+            } else if (ch != ' ' && spaced == 2) {
+                spaced = 0;
+                put_char_uni(' ');
             } else {
-                dwin->spaced = 0;
+                spaced = 0;
             }
         }
     }
 
-    dwin->chars[dwin->numchars] = ch;
-    dwin->attrs[dwin->numchars] = win->attr;
-    dwin->numchars++;
+    chars[numchars] = ch;
+    attrs[numchars] = attr;
+    numchars++;
 
     // kill spaces at the end for line width calculation
-    linelen = dwin->numchars;
-    while (linelen > 1 && dwin->chars[linelen - 1] == ' '
-            && dwin->attrs[linelen - 1].bgcolor == color
-            && !dwin->attrs[linelen - 1].reverse) {
+    linelen = numchars;
+    while (linelen > 1 && chars[linelen - 1] == ' '
+            && attrs[linelen - 1].bgcolor == color
+            && !attrs[linelen - 1].reverse) {
         linelen--;
     }
 
-    if (calcwidth(dwin, dwin->chars, dwin->attrs, 0, linelen, -1) >= pw) {
-        bpoint = dwin->numchars;
+    if (calcwidth(this, chars, attrs, 0, linelen, -1) >= pw) {
+        bpoint = numchars;
 
-        for (i = dwin->numchars - 1; i > 0; i--) {
-            if (dwin->chars[i] == ' ') {
+        for (i = numchars - 1; i > 0; i--) {
+            if (chars[i] == ' ') {
                 bpoint = i + 1; // skip space
                 break;
             }
         }
 
-        saved = dwin->numchars - bpoint;
+        saved = numchars - bpoint;
 
-        std::memcpy(bchars.data(), dwin->chars + bpoint, saved * 4);
-        std::memcpy(battrs.data(), dwin->attrs + bpoint, saved * sizeof(attr_t));
-        dwin->numchars = bpoint;
+        std::memcpy(bchars.data(), chars + bpoint, saved * 4);
+        std::memcpy(battrs.data(), attrs + bpoint, saved * sizeof(attr_t));
+        numchars = bpoint;
 
-        scrolloneline(dwin, false);
+        scrolloneline(this, false);
 
-        std::memcpy(dwin->chars, bchars.data(), saved * 4);
-        std::memcpy(dwin->attrs, battrs.data(), saved * sizeof(attr_t));
-        dwin->numchars = saved;
+        std::memcpy(chars, bchars.data(), saved * 4);
+        std::memcpy(attrs, battrs.data(), saved * sizeof(attr_t));
+        numchars = saved;
     }
 
-    touch(dwin, 0);
+    touch(this, 0);
 }
 
-bool win_textbuffer_unputchar_uni(window_t *win, glui32 ch)
+bool window_textbuffer_t::unput_char_uni(glui32 ch)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
-    if (dwin->numchars > 0 && glk_char_to_upper(dwin->chars[dwin->numchars - 1]) == glk_char_to_upper(ch)) {
-        dwin->numchars--;
-        touch(dwin, 0);
+    if (numchars > 0 && glk_char_to_upper(chars[numchars - 1]) == glk_char_to_upper(ch)) {
+        numchars--;
+        touch(this, 0);
         return true;
     }
     return false;
@@ -1093,17 +1091,17 @@ static void win_textbuffer_init_impl(window_t *win, void *buf, int maxlen, int i
 
     // because '>' prompt is ugly without extra space
     if (dwin->numchars != 0 && dwin->chars[dwin->numchars - 1] == '>') {
-        win_textbuffer_putchar_uni(win, ' ');
+        win->put_char_uni(' ');
     }
      if (dwin->numchars != 0 && dwin->chars[dwin->numchars - 1] == '?') {
-        win_textbuffer_putchar_uni(win, ' ');
+        win->put_char_uni(' ');
     }
 
     // make sure we have some space left for typing...
     pw = (win->bbox.x1 - win->bbox.x0 - gli_tmarginx * 2) * GLI_SUBPIX;
     pw = pw - 2 * SLOP - dwin->radjw + dwin->ladjw;
     if (calcwidth(dwin, dwin->chars, dwin->attrs, 0, dwin->numchars, -1) >= pw * 3 / 4) {
-        win_textbuffer_putchar_uni(win, '\n');
+        win->put_char_uni('\n');
     }
 
     dwin->inbuf = buf;
@@ -1194,7 +1192,7 @@ void win_textbuffer_cancel_line(window_t *win, event_t *ev)
     dwin->inmax = 0;
 
     if (win->echo_line_input) {
-        win_textbuffer_putchar_uni(win, '\n');
+        win->put_char_uni('\n');
     } else {
         dwin->numchars = dwin->infence;
         touch(dwin, 0);
@@ -1390,7 +1388,7 @@ static void acceptline(window_t *win, glui32 keycode)
     dwin->inmax = 0;
 
     if (win->echo_line_input) {
-        win_textbuffer_putchar_uni(win, '\n');
+        win->put_char_uni('\n');
     } else {
         dwin->numchars = dwin->infence;
         touch(dwin, 0);
@@ -1583,7 +1581,7 @@ static bool put_picture(window_textbuffer_t *dwin, const std::shared_ptr<picture
 
     else {
         if (align != imagealign_MarginLeft && dwin->numchars != 0) {
-            win_textbuffer_putchar_uni(dwin, '\n');
+            dwin->put_char_uni('\n');
         }
 
         if (dwin->lines[0].lpic || dwin->numchars != 0) {
@@ -1634,7 +1632,7 @@ bool win_textbuffer_draw_picture(window_textbuffer_t *dwin,
 void win_textbuffer_flow_break(window_textbuffer_t *dwin)
 {
     while (dwin->ladjn != 0 || dwin->radjn != 0) {
-        win_textbuffer_putchar_uni(dwin, '\n');
+        dwin->put_char_uni('\n');
     }
 }
 

@@ -1087,26 +1087,12 @@ void gli_window_click(window_t *win, int x, int y)
 
 void gli_window_put_char_uni(window_t *win, glui32 ch)
 {
-    switch (win->type) {
-    case wintype_TextBuffer:
-        win_textbuffer_putchar_uni(win, ch);
-        break;
-    case wintype_TextGrid:
-        win_textgrid_putchar_uni(win, ch);
-        break;
-    }
+    win->put_char_uni(ch);
 }
 
 bool gli_window_unput_char_uni(window_t *win, glui32 ch)
 {
-    switch (win->type) {
-    case wintype_TextBuffer:
-        return win_textbuffer_unputchar_uni(win, ch);
-    case wintype_TextGrid:
-        return win_textgrid_unputchar_uni(win, ch);
-    default:
-        return false;
-    }
+    return win->unput_char_uni(ch);
 }
 
 void glk_window_clear(window_t *win)

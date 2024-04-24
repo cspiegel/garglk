@@ -144,87 +144,85 @@ void window_textgrid_t::redraw()
     }
 }
 
-void win_textgrid_putchar_uni(window_t *win, glui32 ch)
+void window_textgrid_t::put_char_uni(glui32 ch)
 {
-    window_textgrid_t *dwin = win->wingrid();
     tgline_t *ln;
 
     // Canonicalize the cursor position. That is, the cursor may have been
     // left outside the window area; wrap it if necessary.
-    if (dwin->curx < 0) {
-        dwin->curx = 0;
-    } else if (dwin->curx >= dwin->width) {
-        dwin->curx = 0;
-        dwin->cury++;
+    if (curx < 0) {
+        curx = 0;
+    } else if (curx >= width) {
+        curx = 0;
+        cury++;
     }
-    if (dwin->cury < 0) {
-        dwin->cury = 0;
-    } else if (dwin->cury >= dwin->height) {
+    if (cury < 0) {
+        cury = 0;
+    } else if (cury >= height) {
         return; // outside the window
     }
 
     if (ch == '\n') {
         // a newline just moves the cursor.
-        dwin->cury++;
-        dwin->curx = 0;
+        cury++;
+        curx = 0;
         return;
     }
 
-    touch(dwin, dwin->cury);
+    touch(this, cury);
 
-    ln = &(dwin->lines[dwin->cury]);
-    ln->chars[dwin->curx] = ch;
-    ln->attrs[dwin->curx] = win->attr;
+    ln = &(lines[cury]);
+    ln->chars[curx] = ch;
+    ln->attrs[curx] = this->attr;
 
-    dwin->curx++;
+    curx++;
     // We can leave the cursor outside the window, since it will be
     // canonicalized next time a character is printed.
 }
 
-bool win_textgrid_unputchar_uni(window_t *win, glui32 ch)
+bool window_textgrid_t::unput_char_uni(glui32 ch)
 {
-    window_textgrid_t *dwin = win->wingrid();
     tgline_t *ln;
-    int oldx = dwin->curx, oldy = dwin->cury;
+    int oldx = curx, oldy = cury;
 
     // Move the cursor back.
-    if (dwin->curx >= dwin->width) {
-        dwin->curx = dwin->width - 1;
+    if (curx >= width) {
+        curx = width - 1;
     } else {
-        dwin->curx--;
+        curx--;
     }
 
     // Canonicalize the cursor position. That is, the cursor may have been
     // left outside the window area; wrap it if necessary.
-    if (dwin->curx < 0) {
-        dwin->curx = dwin->width - 1;
-        dwin->cury--;
+    if (curx < 0) {
+        curx = width - 1;
+        cury--;
     }
-    if (dwin->cury < 0) {
-        dwin->cury = 0;
-    } else if (dwin->cury >= dwin->height) {
+    if (cury < 0) {
+        cury = 0;
+    } else if (cury >= height) {
         return false; // outside the window
     }
 
     if (ch == '\n') {
         // a newline just moves the cursor.
-        if (dwin->curx == dwin->width - 1) {
+        if (curx == width - 1) {
             return true; // deleted a newline
         }
-        dwin->curx = oldx;
-        dwin->cury = oldy;
+        curx = oldx;
+        cury = oldy;
         return false; // it wasn't there
     }
 
-    ln = &(dwin->lines[dwin->cury]);
-    if (glk_char_to_upper(ln->chars[dwin->curx]) == glk_char_to_upper(ch)) {
-        ln->chars[dwin->curx] = ' ';
-        ln->attrs[dwin->curx].clear();
-        touch(dwin, dwin->cury);
+    ln = &(lines[cury]);
+    if (glk_char_to_upper(ln->chars[curx]) == glk_char_to_upper(ch)) {
+        ln->chars[curx] = ' ';
+        ln->attrs[curx].clear();
+        touch(this, cury);
         return true; // deleted the char
     } else {
-        dwin->curx = oldx;
-        dwin->cury = oldy;
+        curx = oldx;
+        cury = oldy;
         return false; // it wasn't there
     }
 }
