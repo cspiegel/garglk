@@ -873,10 +873,10 @@ struct window_textgrid_t : public glk_window_struct {
     void redraw() override;
     void put_char_uni(glui32 ch) override;
     bool unput_char_uni(glui32 ch) override;
+    void clear() override;
     void init_line(char *buf, int maxlen, int initlen) override;
     void init_line_uni(glui32 *buf, int maxlen, int initlen) override;
     void cancel_line(event_t *ev) override;
-    void clear() override;
     void click(int sx, int sy) override;
 
     ~window_textgrid_t() override {
@@ -939,10 +939,10 @@ struct window_textbuffer_t : public glk_window_struct {
     void redraw() override;
     void put_char_uni(glui32 ch) override;
     bool unput_char_uni(glui32 ch) override;
+    void clear() override;
     void init_line(char *buf, int maxlen, int initlen) override;
     void init_line_uni(glui32 *buf, int maxlen, int initlen) override;
     void cancel_line(event_t *ev) override;
-    void clear() override;
     void click(int sx, int sy) override;
 
     int width = -1, height = -1;
