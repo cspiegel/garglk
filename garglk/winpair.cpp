@@ -24,59 +24,58 @@ std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, glui32 
     return std::make_unique<window_pair_t>(type, rock, method, key, size);
 }
 
-void win_pair_rearrange(window_t *win, const rect_t *box)
+void window_pair_t::rearrange(const rect_t *box)
 {
-    window_pair_t *dwin = win->winpair();
     rect_t box1, box2;
     int min, diff, split, splitwid, max;
     window_t *key;
     window_t *ch1, *ch2;
 
-    win->bbox = *box;
+    bbox = *box;
 
-    if (dwin->vertical) {
-        min = win->bbox.x0;
-        max = win->bbox.x1;
+    if (vertical) {
+        min = bbox.x0;
+        max = bbox.x1;
     } else {
-        min = win->bbox.y0;
-        max = win->bbox.y1;
+        min = bbox.y0;
+        max = bbox.y1;
     }
     diff = max - min;
 
     // We now figure split.
-    if (dwin->vertical) {
+    if (vertical) {
         splitwid = gli_wpaddingx; // want border?
     } else {
         splitwid = gli_wpaddingy; // want border?
     }
 
-    switch (dwin->division) {
+    switch (division) {
     case winmethod_Proportional:
-        split = (diff * dwin->size) / 100;
+        split = (diff * size) / 100;
         break;
 
     case winmethod_Fixed:
-        key = dwin->key;
+        key = this->key;
         if (key == nullptr) {
             split = 0;
         } else {
             switch (key->type) {
             case wintype_TextBuffer:
-                if (dwin->vertical) {
-                    split = dwin->size * gli_cellw + gli_tmarginx * 2;
+                if (vertical) {
+                    split = size * gli_cellw + gli_tmarginx * 2;
                 } else {
-                    split = dwin->size * gli_cellh + gli_tmarginy * 2;
+                    split = size * gli_cellh + gli_tmarginy * 2;
                 }
                 break;
             case wintype_TextGrid:
-                if (dwin->vertical) {
-                    split = dwin->size * gli_cellw;
+                if (vertical) {
+                    split = size * gli_cellw;
                 } else {
-                    split = dwin->size * gli_cellh;
+                    split = size * gli_cellh;
                 }
                 break;
             case wintype_Graphics:
-                split = gli_zoom_int(dwin->size);
+                split = gli_zoom_int(size);
                 break;
             default:
                 split = 0;
@@ -90,7 +89,7 @@ void win_pair_rearrange(window_t *win, const rect_t *box)
         break;
     }
 
-    if (!dwin->backward) {
+    if (!backward) {
         split = max - split - splitwid;
     } else {
         split = min + split;
@@ -108,32 +107,32 @@ void win_pair_rearrange(window_t *win, const rect_t *box)
 
     // TODO: constrain bboxes by wintype
 
-    if (dwin->vertical) {
-        box1.x0 = win->bbox.x0;
+    if (vertical) {
+        box1.x0 = bbox.x0;
         box1.x1 = split;
         box2.x0 = split + splitwid;
-        box2.x1 = win->bbox.x1;
-        box1.y0 = win->bbox.y0;
-        box1.y1 = win->bbox.y1;
-        box2.y0 = win->bbox.y0;
-        box2.y1 = win->bbox.y1;
+        box2.x1 = bbox.x1;
+        box1.y0 = bbox.y0;
+        box1.y1 = bbox.y1;
+        box2.y0 = bbox.y0;
+        box2.y1 = bbox.y1;
     } else {
-        box1.y0 = win->bbox.y0;
+        box1.y0 = bbox.y0;
         box1.y1 = split;
         box2.y0 = split + splitwid;
-        box2.y1 = win->bbox.y1;
-        box1.x0 = win->bbox.x0;
-        box1.x1 = win->bbox.x1;
-        box2.x0 = win->bbox.x0;
-        box2.x1 = win->bbox.x1;
+        box2.y1 = bbox.y1;
+        box1.x0 = bbox.x0;
+        box1.x1 = bbox.x1;
+        box2.x0 = bbox.x0;
+        box2.x1 = bbox.x1;
     }
 
-    if (!dwin->backward) {
-        ch1 = dwin->child1;
-        ch2 = dwin->child2;
+    if (!backward) {
+        ch1 = child1;
+        ch2 = child2;
     } else {
-        ch1 = dwin->child2;
-        ch2 = dwin->child1;
+        ch1 = child2;
+        ch2 = child1;
     }
 
     gli_window_rearrange(ch1, &box1);

@@ -723,23 +723,7 @@ void gli_windows_unechostream(stream_t *str)
 
 void gli_window_rearrange(window_t *win, rect_t *box)
 {
-    switch (win->type) {
-    case wintype_Blank:
-        win_blank_rearrange(win, box);
-        break;
-    case wintype_Pair:
-        win_pair_rearrange(win, box);
-        break;
-    case wintype_TextGrid:
-        win_textgrid_rearrange(win, box);
-        break;
-    case wintype_TextBuffer:
-        win_textbuffer_rearrange(win, box);
-        break;
-    case wintype_Graphics:
-        win_graphics_rearrange(win, box);
-        break;
-    }
+    win->rearrange(box);
 }
 
 void gli_windows_size_change(int w, int h)

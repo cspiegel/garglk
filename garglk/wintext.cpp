@@ -196,49 +196,48 @@ static void reflow(window_t *win)
     touchscroll(dwin);
 }
 
-void win_textbuffer_rearrange(window_t *win, rect_t *box)
+void window_textbuffer_t::rearrange(const rect_t *box)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
     int newwid, newhgt;
     int rnd;
 
-    win->bbox = *box;
+    bbox = *box;
 
     newwid = (box->x1 - box->x0 - gli_tmarginx * 2 - gli_scroll_width) / gli_cellw;
     newhgt = (box->y1 - box->y0 - gli_tmarginy * 2) / gli_cellh;
 
     // align text with bottom
     rnd = newhgt * gli_cellh + gli_tmarginy * 2;
-    win->yadj = (box->y1 - box->y0 - rnd);
-    dwin->bbox.y0 += (box->y1 - box->y0 - rnd);
+    yadj = (box->y1 - box->y0 - rnd);
+    bbox.y0 += (box->y1 - box->y0 - rnd);
 
-    if (newwid != dwin->width) {
-        dwin->width = newwid;
-        reflow(win);
+    if (newwid != width) {
+        width = newwid;
+        reflow(this);
     }
 
-    if (newhgt != dwin->height) {
+    if (newhgt != height) {
         // scroll up if we obscure new lines
-        if (dwin->lastseen >= newhgt - 1) {
-            dwin->scrollpos += (dwin->height - newhgt);
+        if (lastseen >= newhgt - 1) {
+            scrollpos += (height - newhgt);
         }
 
-        dwin->height = newhgt;
+        height = newhgt;
 
         // keep window within 'valid' lines
-        if (dwin->scrollpos > dwin->scrollmax - dwin->height + 1) {
-            dwin->scrollpos = dwin->scrollmax - dwin->height + 1;
+        if (scrollpos > scrollmax - height + 1) {
+            scrollpos = scrollmax - height + 1;
         }
-        if (dwin->scrollpos < 0) {
-            dwin->scrollpos = 0;
+        if (scrollpos < 0) {
+            scrollpos = 0;
         }
-        touchscroll(dwin);
+        touchscroll(this);
 
         // allocate copy buffer
-        dwin->copybuf.resize(dwin->height * TBLINELEN);
-        std::fill(dwin->copybuf.begin(), dwin->copybuf.end(), 0);
+        copybuf.resize(height * TBLINELEN);
+        std::fill(copybuf.begin(), copybuf.end(), 0);
 
-        dwin->copypos = 0;
+        copypos = 0;
     }
 }
 

@@ -774,6 +774,7 @@ struct glk_window_struct {
     }
 
     virtual void redraw() = 0;
+    virtual void rearrange(const rect_t *box) = 0;
 
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
     window_textbuffer_t *winbuffer() { return winget<window_textbuffer_t>(this); }
@@ -811,6 +812,7 @@ struct window_blank_t : public glk_window_struct {
         }
 
     void redraw() override;
+    void rearrange(const rect_t *box) override;
 };
 
 struct window_pair_t : public glk_window_struct {
@@ -827,6 +829,7 @@ struct window_pair_t : public glk_window_struct {
     }
 
     void redraw() override;
+    void rearrange(const rect_t *box) override;
 
     window_t *child1 = nullptr, *child2 = nullptr;
 
@@ -855,6 +858,7 @@ struct window_textgrid_t : public glk_window_struct {
     }
 
     void redraw() override;
+    void rearrange(const rect_t *box) override;
 
     ~window_textgrid_t() override {
         if (inbuf != nullptr && gli_unregister_arr != nullptr) {
@@ -913,6 +917,7 @@ struct window_textbuffer_t : public glk_window_struct {
     }
 
     void redraw() override;
+    void rearrange(const rect_t *box) override;
 
     int width = -1, height = -1;
     int spaced = 0;
@@ -965,6 +970,7 @@ struct window_graphics_t : public glk_window_struct {
     }
 
     void redraw() override;
+    void rearrange(const rect_t *box) override;
 
     Color bgnd;
     bool dirty = false;
@@ -994,11 +1000,9 @@ extern std::unique_ptr<window_blank_t> win_blank_create(glui32 type, glui32 rock
 extern void win_blank_rearrange(window_t *win, const rect_t *box);
 
 extern std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, glui32 method, window_t *key, glui32 size);
-extern void win_pair_rearrange(window_t *win, const rect_t *box);
 extern void win_pair_click(window_pair_t *dwin, int x, int y);
 
 extern std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock);
-extern void win_textgrid_rearrange(window_t *win, rect_t *box);
 extern void win_textgrid_putchar_uni(window_t *win, glui32 ch);
 extern bool win_textgrid_unputchar_uni(window_t *win, glui32 ch);
 extern void win_textgrid_clear(window_t *win);
@@ -1011,7 +1015,6 @@ extern void gcmd_grid_accept_readchar(window_t *win, glui32 arg);
 extern void gcmd_grid_accept_readline(window_t *win, glui32 arg);
 
 extern std::unique_ptr<window_textbuffer_t> win_textbuffer_create(glui32 type, glui32 rock);
-extern void win_textbuffer_rearrange(window_t *win, rect_t *box);
 extern void win_textbuffer_putchar_uni(window_t *win, glui32 ch);
 extern bool win_textbuffer_unputchar_uni(window_t *win, glui32 ch);
 extern void win_textbuffer_clear(window_t *win);
@@ -1100,7 +1103,6 @@ void gli_piclist_increment();
 void gli_piclist_decrement();
 
 std::unique_ptr<window_graphics_t> win_graphics_create(glui32 type, glui32 rock);
-void win_graphics_rearrange(window_t *win, rect_t *box);
 void win_graphics_click(window_graphics_t *dwin, int x, int y);
 
 bool win_graphics_draw_picture(window_graphics_t *dwin,

@@ -38,34 +38,33 @@ std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock)
     return std::make_unique<window_textgrid_t>(type, rock, gli_gstyles);
 }
 
-void win_textgrid_rearrange(window_t *win, rect_t *box)
+void window_textgrid_t::rearrange(const rect_t *box)
 {
     int newwid, newhgt;
     int k;
-    window_textgrid_t *dwin = win->wingrid();
-    dwin->bbox = *box;
+    bbox = *box;
 
     newwid = (box->x1 - box->x0) / gli_cellw;
     newhgt = (box->y1 - box->y0) / gli_cellh;
 
-    if (newwid == dwin->width && newhgt == dwin->height) {
+    if (newwid == width && newhgt == height) {
         return;
     }
 
-    for (k = dwin->height; k < newhgt; k++) {
-        dwin->lines[k].chars.fill(' ');
-        dwin->lines[k].attrs.fill(attr_t{});
+    for (k = height; k < newhgt; k++) {
+        lines[k].chars.fill(' ');
+        lines[k].attrs.fill(attr_t{});
     }
 
-    dwin->attr.clear();
-    dwin->width = newwid;
-    dwin->height = newhgt;
+    attr.clear();
+    width = newwid;
+    height = newhgt;
 
-    for (k = 0; k < dwin->height; k++) {
-        touch(dwin, k);
-        std::fill(dwin->lines[k].chars.begin() + dwin->width, dwin->lines[k].chars.end(), ' ');
-        auto *attr_end = (&dwin->lines[k].attrs[0]) + dwin->lines[k].attrs.size();
-        for (auto *attr = &dwin->lines[k].attrs[dwin->width]; attr < attr_end; ++attr) {
+    for (k = 0; k < height; k++) {
+        touch(this, k);
+        std::fill(lines[k].chars.begin() + width, lines[k].chars.end(), ' ');
+        auto *attr_end = (&lines[k].attrs[0]) + lines[k].attrs.size();
+        for (auto *attr = &lines[k].attrs[width]; attr < attr_end; ++attr) {
             attr->clear();
         }
     }

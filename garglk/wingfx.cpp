@@ -43,38 +43,37 @@ std::unique_ptr<window_graphics_t> win_graphics_create(glui32 type, glui32 rock)
     return std::make_unique<window_graphics_t>(type, rock);
 }
 
-void win_graphics_rearrange(window_t *win, rect_t *box)
+void window_graphics_t::rearrange(const rect_t *box)
 {
-    window_graphics_t *dwin = win->wingraphics();
     int newwid, newhgt;
     int oldw, oldh;
 
-    win->bbox = *box;
+    bbox = *box;
 
     newwid = box->x1 - box->x0;
     newhgt = box->y1 - box->y0;
-    oldw = dwin->w;
-    oldh = dwin->h;
+    oldw = w;
+    oldh = h;
 
     if (newwid <= 0 || newhgt <= 0) {
-        dwin->w = 0;
-        dwin->h = 0;
-        dwin->rgb.clear();
+        w = 0;
+        h = 0;
+        rgb.clear();
         return;
     }
 
-    dwin->rgb.resize(newwid, newhgt, true);
-    dwin->w = newwid;
-    dwin->h = newhgt;
+    rgb.resize(newwid, newhgt, true);
+    w = newwid;
+    h = newhgt;
 
     if (newwid > oldw) {
-        win_graphics_erase_rect(dwin, false, oldw, 0, newwid - oldw, newhgt);
+        win_graphics_erase_rect(this, false, oldw, 0, newwid - oldw, newhgt);
     }
     if (newhgt > oldh) {
-        win_graphics_erase_rect(dwin, false, 0, oldh, newwid, newhgt - oldh);
+        win_graphics_erase_rect(this, false, 0, oldh, newwid, newhgt - oldh);
     }
 
-    win_graphics_touch(dwin);
+    win_graphics_touch(this);
 }
 
 void window_graphics_t::redraw()

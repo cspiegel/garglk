@@ -25,9 +25,9 @@ std::unique_ptr<window_blank_t> win_blank_create(glui32 type, glui32 rock)
     return std::make_unique<window_blank_t>(type, rock);
 }
 
-void win_blank_rearrange(window_t *win, const rect_t *box)
+void window_blank_t::rearrange(const rect_t *box)
 {
-    win->bbox = *box;
+    bbox = *box;
 }
 
 void window_blank_t::redraw()
