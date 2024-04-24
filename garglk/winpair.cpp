@@ -19,6 +19,11 @@
 #include "glk.h"
 #include "garglk.h"
 
+std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, glui32 method, window_t *key, glui32 size)
+{
+    return std::make_unique<window_pair_t>(type, rock, method, key, size);
+}
+
 void win_pair_rearrange(window_t *win, const rect_t *box)
 {
     window_pair_t *dwin = win->winpair();
@@ -135,25 +140,18 @@ void win_pair_rearrange(window_t *win, const rect_t *box)
     gli_window_rearrange(ch2, &box2);
 }
 
-void win_pair_redraw(window_t *win)
+void window_pair_t::redraw()
 {
-    window_pair_t *dwin;
     window_t *child;
     int x0, y0, x1, y1;
 
-    if (win == nullptr) {
-        return;
-    }
+    gli_window_redraw(child1);
+    gli_window_redraw(child2);
 
-    dwin = win->winpair();
-
-    gli_window_redraw(dwin->child1);
-    gli_window_redraw(dwin->child2);
-
-    if (!dwin->backward) {
-        child = dwin->child1;
+    if (!backward) {
+        child = child1;
     } else {
-        child = dwin->child2;
+        child = child2;
     }
 
     x0 = child->bbox.x0;
@@ -161,12 +159,12 @@ void win_pair_redraw(window_t *win)
     x1 = child->bbox.x1;
     y1 = child->bbox.y1;
 
-    if (dwin->vertical) {
-        int xbord = dwin->wborder ? gli_wborderx : 0;
+    if (vertical) {
+        int xbord = wborder ? gli_wborderx : 0;
         int xpad = (gli_wpaddingx - xbord) / 2;
         gli_draw_rect(x1 + xpad, y0, xbord, y1 - y0, gli_border_color);
     } else {
-        int ybord = dwin->wborder ? gli_wbordery : 0;
+        int ybord = wborder ? gli_wbordery : 0;
         int ypad = (gli_wpaddingy - ybord) / 2;
         gli_draw_rect(x0, y1 + ypad, x1 - x0, ybord, gli_border_color);
     }

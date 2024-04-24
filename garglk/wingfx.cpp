@@ -32,10 +32,15 @@ static void win_graphics_touch(window_graphics_t *dest)
 {
     dest->dirty = true;
     winrepaint(
-            dest->owner->bbox.x0,
-            dest->owner->bbox.y0,
-            dest->owner->bbox.x1,
-            dest->owner->bbox.y1);
+            dest->bbox.x0,
+            dest->bbox.y0,
+            dest->bbox.x1,
+            dest->bbox.y1);
+}
+
+std::unique_ptr<window_graphics_t> win_graphics_create(glui32 type, glui32 rock)
+{
+    return std::make_unique<window_graphics_t>(type, rock);
 }
 
 void win_graphics_rearrange(window_t *win, rect_t *box)
@@ -72,24 +77,23 @@ void win_graphics_rearrange(window_t *win, rect_t *box)
     win_graphics_touch(dwin);
 }
 
-void win_graphics_redraw(window_t *win)
+void window_graphics_t::redraw()
 {
-    window_graphics_t *dwin = win->wingraphics();
     int x, y;
 
-    int x0 = win->bbox.x0;
-    int y0 = win->bbox.y0;
+    int x0 = bbox.x0;
+    int y0 = bbox.y0;
 
-    if (dwin->dirty || gli_force_redraw) {
-        dwin->dirty = false;
+    if (dirty || gli_force_redraw) {
+        dirty = false;
 
-        if (dwin->rgb.empty()) {
+        if (rgb.empty()) {
             return;
         }
 
-        for (y = 0; y < dwin->h; y++) {
-            for (x = 0; x < dwin->w; x++) {
-                gli_draw_pixel(x + x0, y + y0, dwin->rgb[y][x]);
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                gli_draw_pixel(x + x0, y + y0, rgb[y][x]);
             }
         }
     }
@@ -97,7 +101,7 @@ void win_graphics_redraw(window_t *win)
 
 void win_graphics_click(window_graphics_t *dwin, int sx, int sy)
 {
-    window_t *win = dwin->owner;
+    window_t *win = dwin;
     int x = sx - win->bbox.x0;
     int y = sy - win->bbox.y0;
 
@@ -127,7 +131,7 @@ bool win_graphics_draw_picture(window_graphics_t *dwin,
     bool scale, glui32 imagewidth, glui32 imageheight)
 {
     auto pic = gli_picture_load(image);
-    glui32 hyperlink = dwin->owner->attr.hyper;
+    glui32 hyperlink = dwin->attr.hyper;
     xpos = gli_zoom_int(xpos);
     ypos = gli_zoom_int(ypos);
 
@@ -135,9 +139,9 @@ bool win_graphics_draw_picture(window_graphics_t *dwin,
         return false;
     }
 
-    if (!dwin->owner->image_loaded) {
+    if (!dwin->image_loaded) {
         gli_piclist_increment();
-        dwin->owner->image_loaded = true;
+        dwin->image_loaded = true;
     }
 
     if (!scale) {
@@ -194,10 +198,10 @@ void win_graphics_erase_rect(window_graphics_t *dwin, bool whole,
         y1 = dwin->h;
     }
 
-    hx0 = dwin->owner->bbox.x0 + x0;
-    hx1 = dwin->owner->bbox.x0 + x1;
-    hy0 = dwin->owner->bbox.y0 + y0;
-    hy1 = dwin->owner->bbox.y0 + y1;
+    hx0 = dwin->bbox.x0 + x0;
+    hx1 = dwin->bbox.x0 + x1;
+    hy0 = dwin->bbox.y0 + y0;
+    hy1 = dwin->bbox.y0 + y1;
 
     // zero out hyperlinks for these coordinates
     gli_put_hyperlink(0, hx0, hy0, hx1, hy1);
@@ -232,10 +236,10 @@ void win_graphics_fill_rect(window_graphics_t *dwin, glui32 color,
     x1 = garglk::clamp(x1, 0, dwin->w);
     y1 = garglk::clamp(y1, 0, dwin->h);
 
-    hx0 = dwin->owner->bbox.x0 + x0;
-    hx1 = dwin->owner->bbox.x0 + x1;
-    hy0 = dwin->owner->bbox.y0 + y0;
-    hy1 = dwin->owner->bbox.y0 + y1;
+    hx0 = dwin->bbox.x0 + x0;
+    hx1 = dwin->bbox.x0 + x1;
+    hy0 = dwin->bbox.y0 + y0;
+    hy1 = dwin->bbox.y0 + y1;
 
     // zero out hyperlinks for these coordinates
     gli_put_hyperlink(0, hx0, hy0, hx1, hy1);
@@ -305,10 +309,10 @@ static void drawpicture(const picture_t *src, window_graphics_t *dst,
         y1 = dy1;
     }
 
-    hx0 = dst->owner->bbox.x0 + x0;
-    hx1 = dst->owner->bbox.x0 + x1;
-    hy0 = dst->owner->bbox.y0 + y0;
-    hy1 = dst->owner->bbox.y0 + y1;
+    hx0 = dst->bbox.x0 + x0;
+    hx1 = dst->bbox.x0 + x1;
+    hy0 = dst->bbox.y0 + y0;
+    hy1 = dst->bbox.y0 + y1;
 
     // zero out or set hyperlink for these coordinates
     gli_put_hyperlink(linkval, hx0, hy0, hx1, hy1);

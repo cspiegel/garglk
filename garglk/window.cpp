@@ -216,20 +216,20 @@ winid_t glk_window_open(winid_t splitwin,
     // This is to mesh with the C ancestry of the code, while still using RAII
     // to avoid leaks in error cases.
     try {
-        auto newwin = std::make_unique<window_t>(wintype, rock);
+        std::unique_ptr<window_t> newwin;
 
         switch (wintype) {
         case wintype_Blank:
-            newwin->window = std::make_unique<window_blank_t>(newwin.get());
+            newwin = win_blank_create(wintype, rock);
             break;
         case wintype_TextGrid:
-            newwin->window = std::make_unique<window_textgrid_t>(newwin.get());
+            newwin = win_textgrid_create(wintype, rock);
             break;
         case wintype_TextBuffer:
-            newwin->window = std::make_unique<window_textbuffer_t>(newwin.get());
+            newwin = win_textbuffer_create(wintype, rock);
             break;
         case wintype_Graphics:
-            newwin->window = std::make_unique<window_graphics_t>(newwin.get());
+            newwin = win_graphics_create(wintype, rock);
             break;
         case wintype_Pair:
             gli_strict_warning("window_open: cannot open pair window directly");
@@ -244,11 +244,10 @@ winid_t glk_window_open(winid_t splitwin,
             gli_rootwin = newwin.get();
         } else {
             // create pairwin, with newwin as the key
-            auto pairwin = std::make_unique<window_t>(wintype_Pair, 0);
-            pairwin->window = std::make_unique<window_pair_t>(pairwin.get(), method, newwin.get(), size);
+            auto pairwin = win_pair_create(wintype_Pair, rock, method, newwin.get(), size);
 
-            pairwin->winpair()->child1 = splitwin;
-            pairwin->winpair()->child2 = newwin.get();
+            pairwin->child1 = splitwin;
+            pairwin->child2 = newwin.get();
 
             splitwin->parent = pairwin.get();
             newwin->parent = pairwin.get();
@@ -765,23 +764,7 @@ void gli_window_redraw(window_t *win)
                 color);
     }
 
-    switch (win->type) {
-    case wintype_Blank:
-        win_blank_redraw(win);
-        break;
-    case wintype_Pair:
-        win_pair_redraw(win);
-        break;
-    case wintype_TextGrid:
-        win_textgrid_redraw(win);
-        break;
-    case wintype_TextBuffer:
-        win_textbuffer_redraw(win);
-        break;
-    case wintype_Graphics:
-        win_graphics_redraw(win);
-        break;
-    }
+    win->redraw();
 }
 
 void gli_window_refocus(window_t *win)

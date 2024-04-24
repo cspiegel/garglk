@@ -28,10 +28,14 @@
 
 static void touch(window_textgrid_t *dwin, int line)
 {
-    window_t *win = dwin->owner;
-    int y = win->bbox.y0 + line * gli_leading;
+    int y = dwin->bbox.y0 + line * gli_leading;
     dwin->lines[line].dirty = true;
-    winrepaint(win->bbox.x0, y, win->bbox.x1, y + gli_leading);
+    winrepaint(dwin->bbox.x0, y, dwin->bbox.x1, y + gli_leading);
+}
+
+std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock)
+{
+    return std::make_unique<window_textgrid_t>(type, rock, gli_gstyles);
 }
 
 void win_textgrid_rearrange(window_t *win, rect_t *box)
@@ -39,7 +43,7 @@ void win_textgrid_rearrange(window_t *win, rect_t *box)
     int newwid, newhgt;
     int k;
     window_textgrid_t *dwin = win->wingrid();
-    dwin->owner->bbox = *box;
+    dwin->bbox = *box;
 
     newwid = (box->x1 - box->x0) / gli_cellw;
     newhgt = (box->y1 - box->y0) / gli_cellh;
@@ -53,7 +57,7 @@ void win_textgrid_rearrange(window_t *win, rect_t *box)
         dwin->lines[k].attrs.fill(attr_t{});
     }
 
-    dwin->owner->attr.clear();
+    dwin->attr.clear();
     dwin->width = newwid;
     dwin->height = newhgt;
 
@@ -67,20 +71,19 @@ void win_textgrid_rearrange(window_t *win, rect_t *box)
     }
 }
 
-void win_textgrid_redraw(window_t *win)
+void window_textgrid_t::redraw()
 {
-    window_textgrid_t *dwin = win->wingrid();
     tgline_t *ln;
     int x0, y0;
     int x, y, w;
     int i, a, b, k, o;
     glui32 link;
 
-    x0 = win->bbox.x0;
-    y0 = win->bbox.y0;
+    x0 = bbox.x0;
+    y0 = bbox.y0;
 
-    for (i = 0; i < dwin->height; i++) {
-        ln = &dwin->lines[i];
+    for (i = 0; i < height; i++) {
+        ln = &lines[i];
         if (ln->dirty || gli_force_redraw) {
             ln->dirty = false;
 
@@ -88,15 +91,15 @@ void win_textgrid_redraw(window_t *win)
             y = y0 + i * gli_leading;
 
             // clear any stored hyperlink coordinates
-            gli_put_hyperlink(0, x0, y, x0 + gli_cellw * dwin->width, y + gli_leading);
+            gli_put_hyperlink(0, x0, y, x0 + gli_cellw * width, y + gli_leading);
 
             a = 0;
-            for (b = 0; b < dwin->width; b++) {
+            for (b = 0; b < width; b++) {
                 if (ln->attrs[a] != ln->attrs[b]) {
                     link = ln->attrs[a].hyper;
-                    auto font = ln->attrs[a].font(dwin->styles);
-                    Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(dwin->styles);
-                    Color bgcolor = ln->attrs[a].bg(dwin->styles);
+                    auto font = ln->attrs[a].font(styles);
+                    Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(styles);
+                    Color bgcolor = ln->attrs[a].bg(styles);
                     w = (b - a) * gli_cellw;
                     gli_draw_rect(x, y, w, gli_leading, bgcolor);
                     o = x;
@@ -118,11 +121,11 @@ void win_textgrid_redraw(window_t *win)
                 }
             }
             link = ln->attrs[a].hyper;
-            auto font = ln->attrs[a].font(dwin->styles);
-            Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(dwin->styles);
-            Color bgcolor = ln->attrs[a].bg(dwin->styles);
+            auto font = ln->attrs[a].font(styles);
+            Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(styles);
+            Color bgcolor = ln->attrs[a].bg(styles);
             w = (b - a) * gli_cellw;
-            w += win->bbox.x1 - (x + w);
+            w += bbox.x1 - (x + w);
             gli_draw_rect(x, y, w, gli_leading, bgcolor);
             o = x;
             for (k = a; k < b; k++) {
@@ -266,7 +269,7 @@ void win_textgrid_move_cursor(window_t *win, int xpos, int ypos)
 
 void win_textgrid_click(window_textgrid_t *dwin, int sx, int sy)
 {
-    window_t *win = dwin->owner;
+    window_t *win = dwin;
     int x = sx - win->bbox.x0;
     int y = sy - win->bbox.y0;
 
