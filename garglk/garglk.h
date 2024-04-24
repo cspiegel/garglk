@@ -792,7 +792,6 @@ struct glk_window_struct {
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
     window_textbuffer_t *winbuffer() { return winget<window_textbuffer_t>(this); }
     window_graphics_t *wingraphics() { return winget<window_graphics_t>(this); }
-    window_blank_t *winblank() { return winget<window_blank_t>(this); }
     window_pair_t *winpair() { return winget<window_pair_t>(this); }
 
     stream_t *str;               // the window stream.
