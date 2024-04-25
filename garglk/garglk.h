@@ -791,6 +791,8 @@ struct glk_window_struct {
     }
     virtual void cancel_line(event_t *ev) {}
     virtual void click(int sx, int sy) {}
+    virtual void accept_readchar(glui32 arg) {}
+    virtual void accept_readline(glui32 arg) {}
 
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
     window_textbuffer_t *winbuffer() { return winget<window_textbuffer_t>(this); }
@@ -882,6 +884,8 @@ struct window_textgrid_t : public glk_window_struct {
     void init_line_uni(glui32 *buf, int maxlen, int initlen) override;
     void cancel_line(event_t *ev) override;
     void click(int sx, int sy) override;
+    void accept_readchar(glui32 arg) override;
+    void accept_readline(glui32 arg) override;
 
     ~window_textgrid_t() override {
         if (inbuf != nullptr && gli_unregister_arr != nullptr) {
@@ -951,6 +955,8 @@ struct window_textbuffer_t : public glk_window_struct {
     void init_line_uni(glui32 *buf, int maxlen, int initlen) override;
     void cancel_line(event_t *ev) override;
     void click(int sx, int sy) override;
+    void accept_readchar(glui32 arg) override;
+    void accept_readline(glui32 arg) override;
 
     int width = -1, height = -1;
     int spaced = 0;
@@ -1037,12 +1043,8 @@ extern void win_blank_rearrange(window_t *win, const rect_t *box);
 extern std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, glui32 method, window_t *key, glui32 size);
 
 extern std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock);
-extern void gcmd_grid_accept_readchar(window_t *win, glui32 arg);
-extern void gcmd_grid_accept_readline(window_t *win, glui32 arg);
 
 extern std::unique_ptr<window_textbuffer_t> win_textbuffer_create(glui32 type, glui32 rock);
-extern void gcmd_buffer_accept_readchar(window_t *win, glui32 arg);
-extern void gcmd_buffer_accept_readline(window_t *win, glui32 arg);
 extern bool gcmd_accept_scroll(window_t *win, glui32 arg);
 
 // Declarations of library internal functions.

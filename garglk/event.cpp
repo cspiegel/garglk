@@ -161,28 +161,14 @@ static bool gli_input_handle_key(glui32 key, bool add_to_buffer)
         handled = false;
     };
 
-    switch (win->type) {
-    case wintype_TextGrid:
-        if (win->char_request || win->char_request_uni) {
-            gcmd_grid_accept_readchar(win, key);
-        } else if (win->line_request || win->line_request_uni) {
-            gcmd_grid_accept_readline(win, key);
-        } else {
-            buffer();
-        }
-        break;
-    case wintype_TextBuffer:
-        if (win->char_request || win->char_request_uni) {
-            gcmd_buffer_accept_readchar(win, key);
-        } else if (win->line_request || win->line_request_uni) {
-            gcmd_buffer_accept_readline(win, key);
-        } else if (!add_to_buffer && (win->more_request || win->scroll_request)) {
-            defer_exit = gcmd_accept_scroll(win, key);
-            handled = false;
-        } else {
-            buffer();
-        }
-        break;
+    if (win->char_request || win->char_request_uni) {
+        win->accept_readchar(key);
+    } else if (win->line_request || win->line_request_uni) {
+        win->accept_readline(key);
+    } else if (win->type == wintype_TextBuffer && !add_to_buffer && (win->more_request || win->scroll_request)) {
+        defer_exit = gcmd_accept_scroll(win, key);
+    } else {
+        buffer();
     }
 
     if (gli_terminated && !defer_exit) {

@@ -1247,19 +1247,18 @@ bool gcmd_accept_scroll(window_t *win, glui32 arg)
 }
 
 // Any key, during character input. Ends character input.
-void gcmd_buffer_accept_readchar(window_t *win, glui32 arg)
+void window_textbuffer_t::accept_readchar(glui32 arg)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
     glui32 key;
 
-    if (dwin->height < 2) {
-        dwin->scrollpos = 0;
+    if (height < 2) {
+        scrollpos = 0;
     }
 
-    if (dwin->scrollpos != 0
+    if (scrollpos != 0
             || arg == keycode_PageUp
             || arg == keycode_MouseWheelUp) {
-        gcmd_accept_scroll(win, arg);
+        gcmd_accept_scroll(this, arg);
         return;
     }
 
@@ -1277,14 +1276,14 @@ void gcmd_buffer_accept_readchar(window_t *win, glui32 arg)
     gli_tts_purge();
 
     if (key > 0xff && key < (0xffffffff - keycode_MAXVAL + 1)) {
-        if (!(win->char_request_uni) || key > 0x10ffff) {
+        if (!(char_request_uni) || key > 0x10ffff) {
             key = keycode_Unknown;
         }
     }
 
-    win->char_request = false;
-    win->char_request_uni = false;
-    gli_event_store(evtype_CharInput, win, key, 0);
+    char_request = false;
+    char_request_uni = false;
+    gli_event_store(evtype_CharInput, this, key, 0);
 }
 
 // Return or enter, during line input. Ends line input.
@@ -1391,28 +1390,26 @@ static void acceptline(window_t *win, glui32 keycode)
 }
 
 // Any key, during line input.
-void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
+void window_textbuffer_t::accept_readline(glui32 arg)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
-
-    if (dwin->height < 2) {
-        dwin->scrollpos = 0;
+    if (height < 2) {
+        scrollpos = 0;
     }
 
-    if (dwin->scrollpos != 0
+    if (scrollpos != 0
             || arg == keycode_PageUp
             || arg == keycode_MouseWheelUp) {
-        gcmd_accept_scroll(win, arg);
+        gcmd_accept_scroll(this, arg);
         return;
     }
 
-    if (dwin->inbuf == nullptr) {
+    if (inbuf == nullptr) {
         return;
     }
 
-    if (!win->line_terminators.empty() && gli_window_check_terminator(arg)) {
-        if (std::find(win->line_terminators.begin(), win->line_terminators.end(), arg) != win->line_terminators.end()) {
-            acceptline(win, arg);
+    if (!line_terminators.empty() && gli_window_check_terminator(arg)) {
+        if (std::find(line_terminators.begin(), line_terminators.end(), arg) != line_terminators.end()) {
+            acceptline(this, arg);
             return;
         }
     }
@@ -1423,123 +1420,123 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
 
     case keycode_Up:
         // There is no stored history, so do nothing.
-        if (dwin->history.empty()) {
+        if (history.empty()) {
             return;
         }
 
         // There is stored history, and this is the start of a cycle through
         // it. Store the currently-typed text (which may be empty) at the
         // front of the history buffer, and point the iterator there.
-        if (dwin->history_it == dwin->history.begin()) {
-            dwin->history.emplace_front(&dwin->chars[dwin->infence], &dwin->chars[dwin->numchars]);
-            dwin->history_it = dwin->history.begin();
+        if (history_it == history.begin()) {
+            history.emplace_front(&chars[infence], &chars[numchars]);
+            history_it = history.begin();
         }
 
         // The iterator is on the current history entry, so load the
         // previous (older) one, if any (if not, that means this is the end
         // of history, so do nothing).
-        if (dwin->history_it + 1 != dwin->history.end()) {
-            ++dwin->history_it;
-            put_text_uni(dwin, dwin->history_it->data(), dwin->history_it->size(), dwin->infence, dwin->numchars - dwin->infence);
+        if (history_it + 1 != history.end()) {
+            ++history_it;
+            put_text_uni(this, history_it->data(), history_it->size(), infence, numchars - infence);
         }
         break;
 
     case keycode_Down:
         // Already at the beginning (i.e. not actively cycling through
         // history), so do nothing.
-        if (dwin->history_it == dwin->history.begin()) {
+        if (history_it == history.begin()) {
             return;
         }
 
         // Load the next (newer) history entry.
-        --dwin->history_it;
-        put_text_uni(dwin, dwin->history_it->data(), dwin->history_it->size(), dwin->infence, dwin->numchars - dwin->infence);
+        --history_it;
+        put_text_uni(this, history_it->data(), history_it->size(), infence, numchars - infence);
 
         // If we're at the beginning now, we're done cycling, and have
         // reloaded the user's currently-typed text. Since cycling is over,
         // drop the text from the history and repoint the iterator to the
         // previous history entry.
-        if (dwin->history_it == dwin->history.begin()) {
-            dwin->history.pop_front();
-            dwin->history_it = dwin->history.begin();
+        if (history_it == history.begin()) {
+            history.pop_front();
+            history_it = history.begin();
         }
         break;
 
     // Cursor movement keys, during line input.
 
     case keycode_Left:
-        if (dwin->incurs <= dwin->infence) {
+        if (incurs <= infence) {
             return;
         }
-        dwin->incurs--;
+        incurs--;
         break;
 
     case keycode_Right:
-        if (dwin->incurs >= dwin->numchars) {
+        if (incurs >= numchars) {
             return;
         }
-        dwin->incurs++;
+        incurs++;
         break;
 
     case keycode_Home:
-        if (dwin->incurs <= dwin->infence) {
+        if (incurs <= infence) {
             return;
         }
-        dwin->incurs = dwin->infence;
+        incurs = infence;
         break;
 
     case keycode_End:
-        if (dwin->incurs >= dwin->numchars) {
+        if (incurs >= numchars) {
             return;
         }
-        dwin->incurs = dwin->numchars;
+        incurs = numchars;
         break;
 
     case keycode_SkipWordLeft:
-        while (dwin->incurs > dwin->infence && dwin->chars[dwin->incurs - 1] == ' ') {
-            dwin->incurs--;
+        while (incurs > infence && chars[incurs - 1] == ' ') {
+            incurs--;
         }
-        while (dwin->incurs > dwin->infence && dwin->chars[dwin->incurs - 1] != ' ') {
-            dwin->incurs--;
+        while (incurs > infence && chars[incurs - 1] != ' ') {
+            incurs--;
         }
         break;
 
     case keycode_SkipWordRight:
-        while (dwin->incurs < dwin->numchars && dwin->chars[dwin->incurs] != ' ') {
-            dwin->incurs++;
+        while (incurs < numchars && chars[incurs] != ' ') {
+            incurs++;
         }
-        while (dwin->incurs < dwin->numchars && dwin->chars[dwin->incurs] == ' ') {
-            dwin->incurs++;
+        while (incurs < numchars && chars[incurs] == ' ') {
+            incurs++;
         }
         break;
 
     // Delete keys, during line input.
 
     case keycode_Delete:
-        if (dwin->incurs <= dwin->infence) {
+        if (incurs <= infence) {
             return;
         }
-        put_text_uni(dwin, nullptr, 0, dwin->incurs - 1, 1);
+        put_text_uni(this, nullptr, 0, incurs - 1, 1);
         break;
 
     case keycode_Erase:
-        if (dwin->incurs >= dwin->numchars) {
+        if (incurs >= numchars) {
             return;
         }
-        put_text_uni(dwin, nullptr, 0, dwin->incurs, 1);
+        put_text_uni(this, nullptr, 0, incurs, 1);
         break;
 
     case keycode_Escape:
-        if (dwin->infence >= dwin->numchars) {
+        if (infence >= numchars) {
             return;
         }
-        put_text_uni(dwin, nullptr, 0, dwin->infence, dwin->numchars - dwin->infence);
+        put_text_uni(this, nullptr, 0, infence, numchars - infence);
         break;
 
     // Regular keys
 
     case keycode_Return:
-        acceptline(win, arg);
+        acceptline(this, arg);
         break;
 
     default:
@@ -1547,12 +1544,12 @@ void gcmd_buffer_accept_readline(window_t *win, glui32 arg)
             if (gli_conf_caps && (arg > 0x60 && arg < 0x7b)) {
                 arg -= 0x20;
             }
-            put_text_uni(dwin, &arg, 1, dwin->incurs, 0);
+            put_text_uni(this, &arg, 1, incurs, 0);
         }
         break;
     }
 
-    touch(dwin, 0);
+    touch(this, 0);
 }
 
 static bool put_picture(window_textbuffer_t *dwin, const std::shared_ptr<picture_t> &pic, glui32 align, glui32 linkval)

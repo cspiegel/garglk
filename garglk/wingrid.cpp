@@ -406,7 +406,7 @@ void window_textgrid_t::cancel_line(event_t *ev)
 // Keybinding functions.
 
 // Any key, during character input. Ends character input.
-void gcmd_grid_accept_readchar(window_t *win, glui32 arg)
+void window_textgrid_t::accept_readchar(glui32 arg)
 {
     glui32 key;
 
@@ -422,14 +422,14 @@ void gcmd_grid_accept_readchar(window_t *win, glui32 arg)
     }
 
     if (key > 0xff && key < (0xffffffff - keycode_MAXVAL + 1)) {
-        if (!(win->char_request_uni) || key > 0x10ffff) {
+        if (!(char_request_uni) || key > 0x10ffff) {
             key = keycode_Unknown;
         }
     }
 
-    win->char_request = false;
-    win->char_request_uni = false;
-    gli_event_store(evtype_CharInput, win, key, 0);
+    char_request = false;
+    char_request_uni = false;
+    gli_event_store(evtype_CharInput, this, key, 0);
 }
 
 // Return or enter, during line input. Ends line input.
@@ -496,19 +496,18 @@ static void acceptline(window_t *win, glui32 keycode)
 }
 
 // Any regular key, during line input.
-void gcmd_grid_accept_readline(window_t *win, glui32 arg)
+void window_textgrid_t::accept_readline(glui32 arg)
 {
     int ix;
-    window_textgrid_t *dwin = win->wingrid();
-    tgline_t *ln = &(dwin->lines[dwin->inorgy]);
+    tgline_t *ln = &(lines[inorgy]);
 
-    if (dwin->inbuf == nullptr) {
+    if (inbuf == nullptr) {
         return;
     }
 
-    if (!win->line_terminators.empty() && gli_window_check_terminator(arg)) {
-        if (std::find(win->line_terminators.begin(), win->line_terminators.end(), arg) != win->line_terminators.end()) {
-            acceptline(win, arg);
+    if (!line_terminators.empty() && gli_window_check_terminator(arg)) {
+        if (std::find(line_terminators.begin(), line_terminators.end(), arg) != line_terminators.end()) {
+            acceptline(this, arg);
             return;
         }
     }
@@ -518,81 +517,81 @@ void gcmd_grid_accept_readline(window_t *win, glui32 arg)
     // Delete keys, during line input.
 
     case keycode_Delete:
-        if (dwin->inlen <= 0) {
+        if (inlen <= 0) {
             return;
         }
-        if (dwin->incurs <= 0) {
+        if (incurs <= 0) {
             return;
         }
-        for (ix = dwin->incurs; ix < dwin->inlen; ix++) {
-            ln->chars[dwin->inorgx + ix - 1] = ln->chars[dwin->inorgx + ix];
+        for (ix = incurs; ix < inlen; ix++) {
+            ln->chars[inorgx + ix - 1] = ln->chars[inorgx + ix];
         }
-        ln->chars[dwin->inorgx + dwin->inlen - 1] = ' ';
-        dwin->incurs--;
-        dwin->inlen--;
+        ln->chars[inorgx + inlen - 1] = ' ';
+        incurs--;
+        inlen--;
         break;
 
     case keycode_Erase:
-        if (dwin->inlen <= 0) {
+        if (inlen <= 0) {
             return;
         }
-        if (dwin->incurs >= dwin->inlen) {
+        if (incurs >= inlen) {
             return;
         }
-        for (ix = dwin->incurs; ix < dwin->inlen - 1; ix++) {
-            ln->chars[dwin->inorgx + ix] = ln->chars[dwin->inorgx + ix + 1];
+        for (ix = incurs; ix < inlen - 1; ix++) {
+            ln->chars[inorgx + ix] = ln->chars[inorgx + ix + 1];
         }
-        ln->chars[dwin->inorgx + dwin->inlen - 1] = ' ';
-        dwin->inlen--;
+        ln->chars[inorgx + inlen - 1] = ' ';
+        inlen--;
         break;
 
     case keycode_Escape:
-        if (dwin->inlen <= 0) {
+        if (inlen <= 0) {
             return;
         }
-        for (ix = 0; ix < dwin->inlen; ix++) {
-            ln->chars[dwin->inorgx + ix] = ' ';
+        for (ix = 0; ix < inlen; ix++) {
+            ln->chars[inorgx + ix] = ' ';
         }
-        dwin->inlen = 0;
-        dwin->incurs = 0;
+        inlen = 0;
+        incurs = 0;
         break;
 
     // Cursor movement keys, during line input.
 
     case keycode_Left:
-        if (dwin->incurs <= 0) {
+        if (incurs <= 0) {
             return;
         }
-        dwin->incurs--;
+        incurs--;
         break;
 
     case keycode_Right:
-        if (dwin->incurs >= dwin->inlen) {
+        if (incurs >= inlen) {
             return;
         }
-        dwin->incurs++;
+        incurs++;
         break;
 
     case keycode_Home:
-        if (dwin->incurs <= 0) {
+        if (incurs <= 0) {
             return;
         }
-        dwin->incurs = 0;
+        incurs = 0;
         break;
 
     case keycode_End:
-        if (dwin->incurs >= dwin->inlen) {
+        if (incurs >= inlen) {
             return;
         }
-        dwin->incurs = dwin->inlen;
+        incurs = inlen;
         break;
 
     case keycode_Return:
-        acceptline(win, arg);
+        acceptline(this, arg);
         return;
 
     default:
-        if (dwin->inlen >= dwin->inmax) {
+        if (inlen >= inmax) {
             return;
         }
 
@@ -604,18 +603,18 @@ void gcmd_grid_accept_readline(window_t *win, glui32 arg)
             arg -= 0x20;
         }
 
-        for (ix = dwin->inlen; ix > dwin->incurs; ix--) {
-            ln->chars[dwin->inorgx + ix] = ln->chars[dwin->inorgx + ix - 1];
+        for (ix = inlen; ix > incurs; ix--) {
+            ln->chars[inorgx + ix] = ln->chars[inorgx + ix - 1];
         }
-        ln->attrs[dwin->inorgx + dwin->inlen].set(style_Input);
-        ln->chars[dwin->inorgx + dwin->incurs] = arg;
+        ln->attrs[inorgx + inlen].set(style_Input);
+        ln->chars[inorgx + incurs] = arg;
 
-        dwin->incurs++;
-        dwin->inlen++;
+        incurs++;
+        inlen++;
     }
 
-    dwin->curx = dwin->inorgx + dwin->incurs;
-    dwin->cury = dwin->inorgy;
+    curx = inorgx + incurs;
+    cury = inorgy;
 
-    touch(dwin, dwin->inorgy);
+    touch(this, inorgy);
 }
