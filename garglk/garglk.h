@@ -1062,8 +1062,6 @@ extern gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan);
 [[noreturn]]
 extern void gli_exit(int status);
 
-extern void win_blank_rearrange(window_t *win, const rect_t *box);
-
 // Declarations of library internal functions.
 
 extern void gli_initialize_misc();
