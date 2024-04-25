@@ -845,7 +845,7 @@ void glk_request_line_event_uni(window_t *win, glui32 *buf, glui32 maxlen,
         return;
     }
 
-    win->line_request = true;
+    win->line_request_uni = true;
     win->init_line_uni(buf, maxlen, initlen);
 }
 
