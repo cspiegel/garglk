@@ -52,11 +52,6 @@ void window_textbuffer_t::touchscroll()
     }
 }
 
-std::unique_ptr<window_textbuffer_t> win_textbuffer_create(glui32 type, glui32 rock)
-{
-    return std::make_unique<window_textbuffer_t>(type, rock, gli_tstyles, SCROLLBACK);
-}
-
 std::vector<char> gli_get_text(window_textbuffer_t *dwin)
 {
     int s = dwin->scrollmax < SCROLLBACK ? dwin->scrollmax : SCROLLBACK - 1;

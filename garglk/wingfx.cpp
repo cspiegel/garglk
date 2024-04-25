@@ -38,11 +38,6 @@ static void win_graphics_touch(window_graphics_t *dest)
             dest->bbox.y1);
 }
 
-std::unique_ptr<window_graphics_t> win_graphics_create(glui32 type, glui32 rock)
-{
-    return std::make_unique<window_graphics_t>(type, rock);
-}
-
 void window_graphics_t::rearrange(const rect_t *box)
 {
     int newwid, newhgt;

@@ -20,11 +20,6 @@
 
 // This code is just as simple as you think. A blank window does *nothing*.
 
-std::unique_ptr<window_blank_t> win_blank_create(glui32 type, glui32 rock)
-{
-    return std::make_unique<window_blank_t>(type, rock);
-}
-
 void window_blank_t::rearrange(const rect_t *box)
 {
     bbox = *box;

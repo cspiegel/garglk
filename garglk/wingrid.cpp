@@ -33,11 +33,6 @@ void window_textgrid_t::touch(int line)
     winrepaint(bbox.x0, y, bbox.x1, y + gli_leading);
 }
 
-std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock)
-{
-    return std::make_unique<window_textgrid_t>(type, rock, gli_gstyles);
-}
-
 void window_textgrid_t::rearrange(const rect_t *box)
 {
     int newwid, newhgt;

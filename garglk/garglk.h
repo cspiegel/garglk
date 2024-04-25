@@ -832,16 +832,16 @@ struct glk_window_struct {
 };
 
 struct window_blank_t : public glk_window_struct {
-    window_blank_t(glui32 type_, glui32 rock_) :
-        glk_window_struct(type_, rock_) {
+    window_blank_t(glui32 rock_) :
+        glk_window_struct(wintype_Blank, rock_) {
         }
 
     void rearrange(const rect_t *box) override;
 };
 
 struct window_pair_t : public glk_window_struct {
-    window_pair_t(glui32 type_, glui32 rock_, glui32 method, window_t *key_, glui32 size_) :
-        glk_window_struct(type_, rock_),
+    window_pair_t(glui32 rock_, glui32 method, window_t *key_, glui32 size_) :
+        glk_window_struct(wintype_Pair, rock_),
         dir(method & winmethod_DirMask),
         vertical(dir == winmethod_Left || dir == winmethod_Right),
         backward(dir == winmethod_Left || dir == winmethod_Above),
@@ -876,9 +876,8 @@ struct tgline_t {
 };
 
 struct window_textgrid_t : public glk_window_struct {
-    window_textgrid_t(glui32 type_, glui32 rock_, Styles styles) :
-        glk_window_struct(type_, rock_),
-        m_styles(std::move(styles))
+    window_textgrid_t(glui32 rock_) :
+        glk_window_struct(wintype_TextGrid, rock_)
     {
     }
 
@@ -918,7 +917,7 @@ struct window_textgrid_t : public glk_window_struct {
     gidispatch_rock_t inarrayrock;
 
     // style hints and settings
-    Styles m_styles;
+    Styles m_styles = gli_gstyles;
 
 private:
     void touch(int line);
@@ -940,10 +939,8 @@ struct tbline_t {
 };
 
 struct window_textbuffer_t : public glk_window_struct {
-    window_textbuffer_t(glui32 type_, glui32 rock_, Styles styles, int scrollback_) :
-        glk_window_struct(type_, rock_),
-        scrollback(scrollback_),
-        m_styles(std::move(styles))
+    window_textbuffer_t(glui32 rock_) :
+        glk_window_struct(wintype_TextBuffer, rock_)
     {
         lines.resize(scrollback);
         chars = lines[0].chars.data();
@@ -1009,7 +1006,7 @@ struct window_textbuffer_t : public glk_window_struct {
     gidispatch_rock_t inarrayrock;
 
     // style hints and settings
-    Styles m_styles;
+    Styles m_styles = gli_tstyles;
 
     // for copy selection
     std::vector<glui32> copybuf;
@@ -1030,8 +1027,8 @@ private:
 };
 
 struct window_graphics_t : public glk_window_struct {
-    explicit window_graphics_t(glui32 type_, glui32 rock_) :
-        glk_window_struct(type_, rock_),
+    explicit window_graphics_t(glui32 rock_) :
+        glk_window_struct(wintype_Graphics, rock_),
         bgnd(bgcolor)
     {
     }
@@ -1065,14 +1062,7 @@ extern gidispatch_rock_t gli_sound_get_channel_disprock(const channel_t *chan);
 [[noreturn]]
 extern void gli_exit(int status);
 
-extern std::unique_ptr<window_blank_t> win_blank_create(glui32 type, glui32 rock);
 extern void win_blank_rearrange(window_t *win, const rect_t *box);
-
-extern std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, glui32 method, window_t *key, glui32 size);
-
-extern std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock);
-
-extern std::unique_ptr<window_textbuffer_t> win_textbuffer_create(glui32 type, glui32 rock);
 
 // Declarations of library internal functions.
 
@@ -1149,8 +1139,6 @@ std::shared_ptr<picture_t> gli_picture_retrieve(unsigned long id, bool scaled);
 std::shared_ptr<picture_t> gli_picture_scale(const picture_t *src, int newcols, int newrows);
 void gli_piclist_increment();
 void gli_piclist_decrement();
-
-std::unique_ptr<window_graphics_t> win_graphics_create(glui32 type, glui32 rock);
 
 bool win_graphics_draw_picture(window_graphics_t *dwin,
   glui32 image, glsi32 xpos, glsi32 ypos,

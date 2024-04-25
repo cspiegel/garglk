@@ -19,11 +19,6 @@
 #include "glk.h"
 #include "garglk.h"
 
-std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, glui32 method, window_t *key, glui32 size)
-{
-    return std::make_unique<window_pair_t>(type, rock, method, key, size);
-}
-
 void window_pair_t::rearrange(const rect_t *box)
 {
     rect_t box1, box2;

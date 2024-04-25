@@ -220,16 +220,16 @@ winid_t glk_window_open(winid_t splitwin,
 
         switch (wintype) {
         case wintype_Blank:
-            newwin = win_blank_create(wintype, rock);
+            newwin = std::make_unique<window_blank_t>(rock);
             break;
         case wintype_TextGrid:
-            newwin = win_textgrid_create(wintype, rock);
+            newwin = std::make_unique<window_textgrid_t>(rock);
             break;
         case wintype_TextBuffer:
-            newwin = win_textbuffer_create(wintype, rock);
+            newwin = std::make_unique<window_textbuffer_t>(rock);
             break;
         case wintype_Graphics:
-            newwin = win_graphics_create(wintype, rock);
+            newwin = std::make_unique<window_graphics_t>(rock);
             break;
         case wintype_Pair:
             gli_strict_warning("window_open: cannot open pair window directly");
@@ -244,7 +244,7 @@ winid_t glk_window_open(winid_t splitwin,
             gli_rootwin = newwin.get();
         } else {
             // create pairwin, with newwin as the key
-            auto pairwin = win_pair_create(wintype_Pair, rock, method, newwin.get(), size);
+            auto pairwin = std::make_unique<window_pair_t>(rock, method, newwin.get(), size);
 
             pairwin->child1 = splitwin;
             pairwin->child2 = newwin.get();
