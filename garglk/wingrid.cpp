@@ -65,6 +65,14 @@ void window_textgrid_t::rearrange(const rect_t *box)
     }
 }
 
+void window_textgrid_t::get_size(glui32 &width, glui32 &height)
+{
+    width = bbox.x1 - bbox.x0;
+    height = bbox.y1 - bbox.y0;
+    width = width / gli_cellw;
+    height = height / gli_cellh;
+}
+
 void window_textgrid_t::redraw()
 {
     tgline_t *ln;

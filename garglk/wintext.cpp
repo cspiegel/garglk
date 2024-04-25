@@ -231,6 +231,14 @@ void window_textbuffer_t::rearrange(const rect_t *box)
     }
 }
 
+void window_textbuffer_t::get_size(glui32 &width, glui32 &height)
+{
+    width = bbox.x1 - bbox.x0 - gli_tmarginx * 2;
+    height = bbox.y1 - bbox.y0 - gli_tmarginy * 2;
+    width = width / gli_cellw;
+    height = height / gli_cellh;
+}
+
 int window_textbuffer_t::calcwidth(const glui32 *chars, const attr_t *attrs, int startchar, int numchars, int spw)
 {
     int w = 0;

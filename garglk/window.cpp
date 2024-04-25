@@ -513,28 +513,7 @@ void glk_window_get_size(window_t *win, glui32 *width, glui32 *height)
         return;
     }
 
-    switch (win->type) {
-    case wintype_Blank:
-    case wintype_Pair:
-        // always zero
-        break;
-    case wintype_TextGrid:
-        wid = win->bbox.x1 - win->bbox.x0;
-        hgt = win->bbox.y1 - win->bbox.y0;
-        wid = wid / gli_cellw;
-        hgt = hgt / gli_cellh;
-        break;
-    case wintype_TextBuffer:
-        wid = win->bbox.x1 - win->bbox.x0 - gli_tmarginx * 2;
-        hgt = win->bbox.y1 - win->bbox.y0 - gli_tmarginy * 2;
-        wid = wid / gli_cellw;
-        hgt = hgt / gli_cellh;
-        break;
-    case wintype_Graphics:
-        wid = gli_unzoom_int(win->bbox.x1 - win->bbox.x0);
-        hgt = gli_unzoom_int(win->bbox.y1 - win->bbox.y0);
-        break;
-    }
+    win->get_size(wid, hgt);
 
     if (width != nullptr) {
         *width = wid;

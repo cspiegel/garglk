@@ -71,6 +71,12 @@ void window_graphics_t::rearrange(const rect_t *box)
     win_graphics_touch(this);
 }
 
+void window_graphics_t::get_size(glui32 &width, glui32 &height)
+{
+    width = gli_unzoom_int(bbox.x1 - bbox.x0);
+    height = gli_unzoom_int(bbox.y1 - bbox.y0);
+}
+
 void window_graphics_t::redraw()
 {
     int x, y;

@@ -771,6 +771,10 @@ struct glk_window_struct {
     int yadj = 0;
 
     virtual void rearrange(const rect_t *box) {}
+    virtual void get_size(glui32 &width, glui32 &height) {
+        width = 0;
+        height = 0;
+    }
     virtual void redraw() {}
     virtual void put_char_uni(glui32 ch) {}
     virtual bool unput_char_uni(glui32 ch) { return false; }
@@ -882,6 +886,7 @@ struct window_textgrid_t : public glk_window_struct {
     }
 
     void rearrange(const rect_t *box) override;
+    void get_size(glui32 &width, glui32 &height) override;
     void redraw() override;
     void put_char_uni(glui32 ch) override;
     bool unput_char_uni(glui32 ch) override;
@@ -955,6 +960,7 @@ struct window_textbuffer_t : public glk_window_struct {
     }
 
     void rearrange(const rect_t *box) override;
+    void get_size(glui32 &width, glui32 &height) override;
     void redraw() override;
     void put_char_uni(glui32 ch) override;
     bool unput_char_uni(glui32 ch) override;
@@ -1034,6 +1040,7 @@ struct window_graphics_t : public glk_window_struct {
     }
 
     void rearrange(const rect_t *box) override;
+    void get_size(glui32 &width, glui32 &height) override;
     void redraw() override;
     void clear() override;
     void click(int sx, int sy) override;
