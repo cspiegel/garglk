@@ -1347,8 +1347,6 @@ void window_textbuffer_t::acceptline(glui32 keycode)
     }
     line_request = false;
     line_request_uni = false;
-    inbuf = nullptr;
-    inmax = 0;
 
     if (echo_line_input) {
         put_char_uni('\n');
@@ -1361,6 +1359,9 @@ void window_textbuffer_t::acceptline(glui32 keycode)
         const char *typedesc = (inunicode ? "&+#!Iu" : "&+#!Cn");
         (*gli_unregister_arr)(inbuf, inmax, const_cast<char *>(typedesc), inarrayrock);
     }
+
+    inbuf = nullptr;
+    inmax = 0;
 }
 
 // Any key, during line input.

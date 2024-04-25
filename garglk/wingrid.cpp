@@ -384,6 +384,11 @@ void window_textgrid_t::cancel_line(event_t *ev)
     ev->val1 = inlen;
     ev->val2 = 0;
 
+    if (gli_unregister_arr != nullptr) {
+        const char *typedesc = (inunicode ? "&+#!Iu" : "&+#!Cn");
+        (*gli_unregister_arr)(inbuf, inoriglen, const_cast<char *>(typedesc), inarrayrock);
+    }
+
     line_request = false;
     line_request_uni = false;
     inbuf = nullptr;
@@ -391,11 +396,6 @@ void window_textgrid_t::cancel_line(event_t *ev)
     inmax = 0;
     inorgx = 0;
     inorgy = 0;
-
-    if (gli_unregister_arr != nullptr) {
-        const char *typedesc = (inunicode ? "&+#!Iu" : "&+#!Cn");
-        (*gli_unregister_arr)(inbuf, inoriglen, const_cast<char *>(typedesc), inarrayrock);
-    }
 }
 
 // Keybinding functions.
