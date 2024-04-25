@@ -907,6 +907,7 @@ struct window_textgrid_t : public glk_window_struct {
         }
     }
 
+private:
     int width = 0, height = 0;
     std::array<tgline_t, 256> lines;
 
@@ -924,7 +925,6 @@ struct window_textgrid_t : public glk_window_struct {
     // style hints and settings
     Styles m_styles = gli_gstyles;
 
-private:
     void touch(int line);
     void init_impl(void *buf, int maxlen, int initlen, bool unicode);
     void acceptline(glui32 keycode);
