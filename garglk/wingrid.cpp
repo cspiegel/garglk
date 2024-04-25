@@ -96,9 +96,9 @@ void window_textgrid_t::redraw()
             for (b = 0; b < width; b++) {
                 if (ln->attrs[a] != ln->attrs[b]) {
                     link = ln->attrs[a].hyper;
-                    auto font = ln->attrs[a].font(styles);
-                    Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(styles);
-                    Color bgcolor = ln->attrs[a].bg(styles);
+                    auto font = ln->attrs[a].font(m_styles);
+                    Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(m_styles);
+                    Color bgcolor = ln->attrs[a].bg(m_styles);
                     w = (b - a) * gli_cellw;
                     gli_draw_rect(x, y, w, gli_leading, bgcolor);
                     o = x;
@@ -120,9 +120,9 @@ void window_textgrid_t::redraw()
                 }
             }
             link = ln->attrs[a].hyper;
-            auto font = ln->attrs[a].font(styles);
-            Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(styles);
-            Color bgcolor = ln->attrs[a].bg(styles);
+            auto font = ln->attrs[a].font(m_styles);
+            Color fgcolor = link != 0 ? gli_link_color : ln->attrs[a].fg(m_styles);
+            Color bgcolor = ln->attrs[a].bg(m_styles);
             w = (b - a) * gli_cellw;
             w += bbox.x1 - (x + w);
             gli_draw_rect(x, y, w, gli_leading, bgcolor);

@@ -39,6 +39,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -749,6 +750,12 @@ struct attr_t {
     Color fg(const Styles &styles) const;
 };
 
+struct NotImplemented : public std::logic_error {
+    NotImplemented() :
+        std::logic_error("internal error") {
+        }
+};
+
 struct glk_window_struct {
     glk_window_struct(glui32 type_, glui32 rock_);
     glk_window_struct(const glk_window_struct &) = delete;
@@ -793,6 +800,8 @@ struct glk_window_struct {
     virtual void click(int sx, int sy) {}
     virtual void accept_readchar(glui32 arg) {}
     virtual void accept_readline(glui32 arg) {}
+    virtual Styles &styles() { throw NotImplemented(); }
+    style_t style(glui32 styl) { return styles().at(styl); }
 
     window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
     window_textbuffer_t *winbuffer() { return winget<window_textbuffer_t>(this); }
@@ -868,9 +877,9 @@ struct tgline_t {
 };
 
 struct window_textgrid_t : public glk_window_struct {
-    window_textgrid_t(glui32 type_, glui32 rock_, Styles styles_) :
+    window_textgrid_t(glui32 type_, glui32 rock_, Styles styles) :
         glk_window_struct(type_, rock_),
-        styles(std::move(styles_))
+        m_styles(std::move(styles))
     {
     }
 
@@ -886,6 +895,7 @@ struct window_textgrid_t : public glk_window_struct {
     void click(int sx, int sy) override;
     void accept_readchar(glui32 arg) override;
     void accept_readline(glui32 arg) override;
+    Styles &styles() override { return m_styles; }
 
     ~window_textgrid_t() override {
         if (inbuf != nullptr && gli_unregister_arr != nullptr) {
@@ -909,7 +919,7 @@ struct window_textgrid_t : public glk_window_struct {
     gidispatch_rock_t inarrayrock;
 
     // style hints and settings
-    Styles styles = gli_gstyles;
+    Styles m_styles;
 
 private:
     void init_impl(void *buf, int maxlen, int initlen, bool unicode);
@@ -930,10 +940,10 @@ struct tbline_t {
 };
 
 struct window_textbuffer_t : public glk_window_struct {
-    window_textbuffer_t(glui32 type_, glui32 rock_, Styles styles_, int scrollback_) :
+    window_textbuffer_t(glui32 type_, glui32 rock_, Styles styles, int scrollback_) :
         glk_window_struct(type_, rock_),
         scrollback(scrollback_),
-        styles(std::move(styles_))
+        m_styles(std::move(styles))
     {
         lines.resize(scrollback);
         chars = lines[0].chars.data();
@@ -958,6 +968,7 @@ struct window_textbuffer_t : public glk_window_struct {
     void click(int sx, int sy) override;
     void accept_readchar(glui32 arg) override;
     void accept_readline(glui32 arg) override;
+    Styles &styles() override { return m_styles; }
 
     int width = -1, height = -1;
     int spaced = 0;
@@ -995,7 +1006,7 @@ struct window_textbuffer_t : public glk_window_struct {
     gidispatch_rock_t inarrayrock;
 
     // style hints and settings
-    Styles styles = gli_tstyles;
+    Styles m_styles;
 
     // for copy selection
     std::vector<glui32> copybuf;

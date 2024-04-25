@@ -251,13 +251,13 @@ static int calcwidth(window_textbuffer_t *dwin,
     a = startchar;
     for (b = startchar; b < numchars; b++) {
         if (attrs[a] != attrs[b]) {
-            w += gli_string_width_uni(attrs[a].font(dwin->styles),
+            w += gli_string_width_uni(attrs[a].font(dwin->styles()),
                     chars + a, b - a, spw);
             a = b;
         }
     }
 
-    w += gli_string_width_uni(attrs[a].font(dwin->styles),
+    w += gli_string_width_uni(attrs[a].font(dwin->styles()),
             chars + a, b - a, spw);
 
     return w;
@@ -456,8 +456,8 @@ void window_textbuffer_t::redraw()
         for (b = 0; b < linelen; b++) {
             if (ln.attrs[a] != ln.attrs[b]) {
                 link = ln.attrs[a].hyper;
-                auto font = ln.attrs[a].font(styles);
-                color = ln.attrs[a].bg(styles);
+                auto font = ln.attrs[a].font(m_styles);
+                color = ln.attrs[a].bg(m_styles);
                 w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
                 gli_draw_rect(x / GLI_SUBPIX, y,
                         w / GLI_SUBPIX, gli_leading,
@@ -477,8 +477,8 @@ void window_textbuffer_t::redraw()
             }
         }
         link = ln.attrs[a].hyper;
-        auto font = ln.attrs[a].font(styles);
-        color = ln.attrs[a].bg(styles);
+        auto font = ln.attrs[a].font(m_styles);
+        color = ln.attrs[a].bg(m_styles);
         w = gli_string_width_uni(font, &ln.chars[a], b - a, spw);
         gli_draw_rect(x / GLI_SUBPIX, y, w / GLI_SUBPIX,
                 gli_leading, color);
@@ -519,16 +519,16 @@ void window_textbuffer_t::redraw()
         for (b = 0; b < linelen; b++) {
             if (ln.attrs[a] != ln.attrs[b]) {
                 link = ln.attrs[a].hyper;
-                font = ln.attrs[a].font(styles);
-                color = link != 0 ? gli_link_color : ln.attrs[a].fg(styles);
+                font = ln.attrs[a].font(m_styles);
+                color = link != 0 ? gli_link_color : ln.attrs[a].fg(m_styles);
                 x = gli_draw_string_uni(x, y + gli_baseline,
                         font, color, &ln.chars[a], b - a, spw);
                 a = b;
             }
         }
         link = ln.attrs[a].hyper;
-        font = ln.attrs[a].font(styles);
-        color = link != 0 ? gli_link_color : ln.attrs[a].fg(styles);
+        font = ln.attrs[a].font(m_styles);
+        color = link != 0 ? gli_link_color : ln.attrs[a].fg(m_styles);
         gli_draw_string_uni(x, y + gli_baseline,
                 font, color, &ln.chars[a], linelen - a, spw);
     }
@@ -962,8 +962,8 @@ void window_textbuffer_t::put_char_uni(glui32 ch)
     }
 
     if (gli_conf_spaces != 0 && !monospace
-            && styles[attr.style].bg == color
-            && !styles[attr.style].reverse) {
+            && m_styles[attr.style].bg == color
+            && !m_styles[attr.style].reverse) {
         // turn (period space space) into (period space)
         if (gli_conf_spaces == 1) {
             if (ch == '.') {

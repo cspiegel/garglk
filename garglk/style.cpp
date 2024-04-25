@@ -138,15 +138,9 @@ void glk_stylehint_clear(glui32 wintype, glui32 styl, glui32 hint)
 glui32 glk_style_distinguish(winid_t win, glui32 styl1, glui32 styl2)
 {
     try {
-        if (win->type == wintype_TextGrid) {
-            window_textgrid_t *dwin = win->wingrid();
-            return dwin->styles.at(styl1) != dwin->styles.at(styl2);
-        }
-        if (win->type == wintype_TextBuffer) {
-            window_textbuffer_t *dwin = win->winbuffer();
-            return dwin->styles.at(styl1) != dwin->styles.at(styl2);
-        }
+        return win->style(styl1) != win->style(styl2);
     } catch (const std::out_of_range &) {
+    } catch (const NotImplemented &) {
     }
 
     return false;
@@ -159,8 +153,7 @@ glui32 glk_style_measure(winid_t win, glui32 styl, glui32 hint, glui32 *result)
     }
 
     try {
-        const style_t &style = win->type == wintype_TextGrid ? win->wingrid()->styles.at(styl) :
-                                                               win->winbuffer()->styles.at(styl);
+        const style_t &style = win->style(styl);
 
         switch (hint) {
         case stylehint_Indentation:
@@ -207,6 +200,7 @@ glui32 glk_style_measure(winid_t win, glui32 styl, glui32 hint, glui32 *result)
             return true;
         }
     } catch (const std::out_of_range &) {
+    } catch (const NotImplemented &) {
     }
 
     return false;
