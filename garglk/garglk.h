@@ -780,7 +780,7 @@ struct glk_window_struct {
         }
     }
 
-    virtual void rearrange(const rect_t *box) = 0;
+    virtual void rearrange(const rect_t *box) {}
     virtual void redraw() {}
     virtual void put_char_uni(glui32 ch) {}
     virtual bool unput_char_uni(glui32 ch) { return false; }
