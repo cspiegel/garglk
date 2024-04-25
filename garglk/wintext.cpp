@@ -239,13 +239,13 @@ int window_textbuffer_t::calcwidth(const glui32 *chars, const attr_t *attrs, int
     a = startchar;
     for (b = startchar; b < numchars; b++) {
         if (attrs[a] != attrs[b]) {
-            w += gli_string_width_uni(attrs[a].font(styles()),
+            w += gli_string_width_uni(attrs[a].font(m_styles),
                     chars + a, b - a, spw);
             a = b;
         }
     }
 
-    w += gli_string_width_uni(attrs[a].font(styles()),
+    w += gli_string_width_uni(attrs[a].font(m_styles),
             chars + a, b - a, spw);
 
     return w;
