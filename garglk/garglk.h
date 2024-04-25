@@ -766,7 +766,7 @@ struct glk_window_struct {
     glui32 type;
     glui32 rock;
 
-    window_t *parent = nullptr; // pair window which contains this one
+    window_pair_t *parent = nullptr; // pair window which contains this one
     rect_t bbox;
     int yadj = 0;
 

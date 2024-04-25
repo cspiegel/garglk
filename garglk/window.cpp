@@ -166,7 +166,7 @@ winid_t glk_window_open(winid_t splitwin,
         glui32 method, glui32 size,
         glui32 wintype, glui32 rock)
 {
-    window_t *oldparent;
+    window_pair_t *oldparent;
     glui32 val;
 
     if (wintype == wintype_Graphics && !gli_conf_graphics) {
@@ -254,11 +254,11 @@ winid_t glk_window_open(winid_t splitwin,
             pairwin->parent = oldparent;
 
             if (oldparent != nullptr) {
-                window_pair_t *dparentwin = oldparent->winpair();
-                if (dparentwin->child1 == splitwin) {
-                    dparentwin->child1 = pairwin.get();
+                window_pair_t *parentwin = oldparent;
+                if (parentwin->child1 == splitwin) {
+                    parentwin->child1 = pairwin.get();
                 } else {
-                    dparentwin->child2 = pairwin.get();
+                    parentwin->child2 = pairwin.get();
                 }
             } else {
                 gli_rootwin = pairwin.get();
@@ -278,19 +278,16 @@ winid_t glk_window_open(winid_t splitwin,
 
 static void gli_window_close(window_t *win, bool recurse)
 {
-    window_t *wx;
+    window_pair_t *wx;
 
     if (gli_focuswin == win) {
         gli_focuswin = nullptr;
     }
 
     for (wx = win->parent; wx != nullptr; wx = wx->parent) {
-        if (wx->type == wintype_Pair) {
-            window_pair_t *dwx = wx->winpair();
-            if (dwx->key == win) {
-                dwx->key = nullptr;
-                dwx->keydamage = true;
-            }
+        if (wx->key == win) {
+            wx->key = nullptr;
+            wx->keydamage = true;
         }
     }
 
@@ -333,15 +330,14 @@ void glk_window_close(window_t *win, stream_result_t *result)
 
     else {
         // have to jigger parent
-        window_t *pairwin, *sibwin, *grandparwin;
-        window_pair_t *dpairwin, *dgrandparwin;
+        window_t *sibwin;
+        window_pair_t *pairwin, *grandparwin;
 
         pairwin = win->parent;
-        dpairwin = pairwin->winpair();
-        if (win == dpairwin->child1) {
-            sibwin = dpairwin->child2;
-        } else if (win == dpairwin->child2) {
-            sibwin = dpairwin->child1;
+        if (win == pairwin->child1) {
+            sibwin = pairwin->child2;
+        } else if (win == pairwin->child2) {
+            sibwin = pairwin->child1;
         } else {
             gli_strict_warning("window_close: window tree is corrupted");
             return;
@@ -352,11 +348,10 @@ void glk_window_close(window_t *win, stream_result_t *result)
             gli_rootwin = sibwin;
             sibwin->parent = nullptr;
         } else {
-            dgrandparwin = grandparwin->winpair();
-            if (dgrandparwin->child1 == pairwin) {
-                dgrandparwin->child1 = sibwin;
+            if (grandparwin->child1 == pairwin) {
+                grandparwin->child1 = sibwin;
             } else {
-                dgrandparwin->child2 = sibwin;
+                grandparwin->child2 = sibwin;
             }
             sibwin->parent = grandparwin;
         }
@@ -371,10 +366,10 @@ void glk_window_close(window_t *win, stream_result_t *result)
 
         // This probably isn't necessary, but the child *is* gone, so just
         //  in case.
-        if (win == dpairwin->child1) {
-            dpairwin->child1 = nullptr;
-        } else if (win == dpairwin->child2) {
-            dpairwin->child2 = nullptr;
+        if (win == pairwin->child1) {
+            pairwin->child1 = nullptr;
+        } else if (win == pairwin->child2) {
+            pairwin->child2 = nullptr;
         }
 
         // Now we can delete the parent pair.
@@ -588,19 +583,17 @@ window_t *gli_window_iterate_treeorder(window_t *win)
             return dwin->child2;
         }
     } else {
-        window_t *parwin;
-        window_pair_t *dwin;
+        window_pair_t *parwin;
 
         while (win->parent != nullptr) {
             parwin = win->parent;
-            dwin = parwin->winpair();
-            if (!dwin->backward) {
-                if (win == dwin->child1) {
-                    return dwin->child2;
+            if (!parwin->backward) {
+                if (win == parwin->child1) {
+                    return parwin->child2;
                 }
             } else {
-                if (win == dwin->child2) {
-                    return dwin->child1;
+                if (win == parwin->child2) {
+                    return parwin->child1;
                 }
             }
             win = parwin;
@@ -640,7 +633,7 @@ winid_t glk_window_get_parent(window_t *win)
 
 winid_t glk_window_get_sibling(window_t *win)
 {
-    window_pair_t *dparwin;
+    window_pair_t *parwin;
 
     if (win == nullptr) {
         gli_strict_warning("window_get_sibling: invalid ref");
@@ -650,11 +643,11 @@ winid_t glk_window_get_sibling(window_t *win)
         return nullptr;
     }
 
-    dparwin = win->parent->winpair();
-    if (dparwin->child1 == win) {
-        return dparwin->child2;
-    } else if (dparwin->child2 == win) {
-        return dparwin->child1;
+    parwin = win->parent;
+    if (win->parent->child1 == win) {
+        return parwin->child2;
+    } else if (parwin->child2 == win) {
+        return parwin->child1;
     }
     return nullptr;
 }
