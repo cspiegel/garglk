@@ -921,6 +921,7 @@ struct window_textgrid_t : public glk_window_struct {
     Styles m_styles;
 
 private:
+    void touch(int line);
     void init_impl(void *buf, int maxlen, int initlen, bool unicode);
     void acceptline(glui32 keycode);
 };

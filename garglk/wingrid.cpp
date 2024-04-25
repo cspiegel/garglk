@@ -26,11 +26,11 @@
 // Within a line, just store an array of characters and an array
 // of style bytes, the same size.
 
-static void touch(window_textgrid_t *dwin, int line)
+void window_textgrid_t::touch(int line)
 {
-    int y = dwin->bbox.y0 + line * gli_leading;
-    dwin->lines[line].dirty = true;
-    winrepaint(dwin->bbox.x0, y, dwin->bbox.x1, y + gli_leading);
+    int y = bbox.y0 + line * gli_leading;
+    lines[line].dirty = true;
+    winrepaint(bbox.x0, y, bbox.x1, y + gli_leading);
 }
 
 std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock)
@@ -61,7 +61,7 @@ void window_textgrid_t::rearrange(const rect_t *box)
     height = newhgt;
 
     for (k = 0; k < height; k++) {
-        touch(this, k);
+        touch(k);
         std::fill(lines[k].chars.begin() + width, lines[k].chars.end(), ' ');
         auto *attr_end = (&lines[k].attrs[0]) + lines[k].attrs.size();
         for (auto *attr = &lines[k].attrs[width]; attr < attr_end; ++attr) {
@@ -169,7 +169,7 @@ void window_textgrid_t::put_char_uni(glui32 ch)
         return;
     }
 
-    touch(this, cury);
+    touch(cury);
 
     ln = &(lines[cury]);
     ln->chars[curx] = ch;
@@ -218,7 +218,7 @@ bool window_textgrid_t::unput_char_uni(glui32 ch)
     if (glk_char_to_upper(ln->chars[curx]) == glk_char_to_upper(ch)) {
         ln->chars[curx] = ' ';
         ln->attrs[curx].clear();
-        touch(this, cury);
+        touch(cury);
         return true; // deleted the char
     } else {
         curx = oldx;
@@ -236,7 +236,7 @@ void window_textgrid_t::clear()
     attr.reverse = false;
 
     for (k = 0; k < height; k++) {
-        touch(this, k);
+        touch(k);
         lines[k].chars.fill(' ');
         lines[k].attrs.fill(attr_t{});
     }
@@ -332,7 +332,7 @@ void window_textgrid_t::init_impl(void *buf, int maxlen, int initlen, bool unico
         curx = inorgx + incurs;
         cury = inorgy;
 
-        touch(this, inorgy);
+        touch(inorgy);
     }
 
     if (gli_register_arr != nullptr) {
@@ -606,5 +606,5 @@ void window_textgrid_t::accept_readline(glui32 arg)
     curx = inorgx + incurs;
     cury = inorgy;
 
-    touch(this, inorgy);
+    touch(inorgy);
 }
