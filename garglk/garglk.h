@@ -803,7 +803,6 @@ struct glk_window_struct {
     virtual Styles &styles() { throw NotImplemented(); }
     style_t style(glui32 styl) { return styles().at(styl); }
 
-    window_textgrid_t *wingrid() { return winget<window_textgrid_t>(this); }
     window_textbuffer_t *winbuffer() { return winget<window_textbuffer_t>(this); }
     window_graphics_t *wingraphics() { return winget<window_graphics_t>(this); }
     window_pair_t *winpair() { return winget<window_pair_t>(this); }
