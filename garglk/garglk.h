@@ -770,16 +770,6 @@ struct glk_window_struct {
     rect_t bbox;
     int yadj = 0;
 
-    template <typename T>
-    T *winget(glk_window_struct *me) {
-        auto *win = dynamic_cast<T *>(me);
-        if (win == nullptr) {
-            throw std::runtime_error("internal type error");
-        } else {
-            return win;
-        }
-    }
-
     virtual void rearrange(const rect_t *box) {}
     virtual void redraw() {}
     virtual void put_char_uni(glui32 ch) {}
@@ -802,6 +792,16 @@ struct glk_window_struct {
     virtual void accept_readline(glui32 arg) {}
     virtual Styles &styles() { throw NotImplemented(); }
     style_t style(glui32 styl) { return styles().at(styl); }
+
+    template <typename T>
+    T *winget(glk_window_struct *me) {
+        auto *win = dynamic_cast<T *>(me);
+        if (win == nullptr) {
+            throw std::runtime_error("internal type error");
+        } else {
+            return win;
+        }
+    }
 
     window_textbuffer_t *winbuffer() { return winget<window_textbuffer_t>(this); }
     window_graphics_t *wingraphics() { return winget<window_graphics_t>(this); }
