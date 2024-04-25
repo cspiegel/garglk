@@ -31,28 +31,24 @@
 // how many pixels we add to left/right margins
 #define SLOP (2 * GLI_SUBPIX)
 
-static void
-put_text(window_textbuffer_t *dwin, const char *buf, int len, int pos, int oldlen);
-static void
-put_text_uni(window_textbuffer_t *dwin, glui32 *buf, int len, int pos, int oldlen);
 static bool
 put_picture(window_textbuffer_t *dwin, const std::shared_ptr<picture_t> &pic, glui32 align, glui32 linkval);
 
-static void touch(window_textbuffer_t *dwin, int line)
+void window_textbuffer_t::touch(int line)
 {
-    int y = dwin->bbox.y0 + gli_tmarginy + (dwin->height - line - 1) * gli_leading;
-    dwin->lines[line].dirty = true;
+    int y = bbox.y0 + gli_tmarginy + (height - line - 1) * gli_leading;
+    lines[line].dirty = true;
     gli_clear_selection();
-    winrepaint(dwin->bbox.x0, y - 2, dwin->bbox.x1, y + gli_leading + 2);
+    winrepaint(bbox.x0, y - 2, bbox.x1, y + gli_leading + 2);
 }
 
-static void touchscroll(window_textbuffer_t *dwin)
+void window_textbuffer_t::touchscroll()
 {
     int i;
     gli_clear_selection();
-    winrepaint(dwin->bbox.x0, dwin->bbox.y0, dwin->bbox.x1, dwin->bbox.y1);
-    for (i = 0; i < dwin->scrollmax; i++) {
-        dwin->lines[i].dirty = true;
+    winrepaint(bbox.x0, bbox.y0, bbox.x1, bbox.y1);
+    for (i = 0; i < scrollmax; i++) {
+        lines[i].dirty = true;
     }
 }
 
@@ -81,20 +77,19 @@ std::vector<char> gli_get_text(window_textbuffer_t *dwin)
     return text;
 }
 
-static void reflow(window_t *win)
+void window_textbuffer_t::reflow()
 {
-    window_textbuffer_t *dwin = win->winbuffer();
     int inputbyte = -1;
     attr_t curattr;
     attr_t oldattr;
     int i, k, p, s;
     int x;
 
-    if (dwin->height < 4 || dwin->width < 20) {
+    if (height < 4 || width < 20) {
         return;
     }
 
-    dwin->lines[0].len = dwin->numchars;
+    lines[0].len = numchars;
 
     std::vector<attr_t> attrbuf;
     std::vector<glui32> charbuf;
@@ -117,41 +112,41 @@ static void reflow(window_t *win)
 
     // copy text to temp buffers
 
-    oldattr = win->attr;
+    oldattr = attr;
     curattr.clear();
 
     x = 0;
     p = 0;
-    s = dwin->scrollmax < SCROLLBACK ? dwin->scrollmax : SCROLLBACK - 1;
+    s = scrollmax < SCROLLBACK ? scrollmax : SCROLLBACK - 1;
 
     for (k = s; k >= 0; k--) {
-        if (k == 0 && win->line_request) {
-            inputbyte = p + dwin->infence;
+        if (k == 0 && line_request) {
+            inputbyte = p + infence;
         }
 
-        if (dwin->lines[k].lpic) {
+        if (lines[k].lpic) {
             offsetbuf[x] = p;
             alignbuf[x] = imagealign_MarginLeft;
-            pictbuf[x] = dwin->lines[k].lpic;
-            hyperbuf[x] = dwin->lines[k].lhyper;
+            pictbuf[x] = lines[k].lpic;
+            hyperbuf[x] = lines[k].lhyper;
             x++;
         }
 
-        if (dwin->lines[k].rpic) {
+        if (lines[k].rpic) {
             offsetbuf[x] = p;
             alignbuf[x] = imagealign_MarginRight;
-            pictbuf[x] = dwin->lines[k].rpic;
-            hyperbuf[x] = dwin->lines[k].rhyper;
+            pictbuf[x] = lines[k].rpic;
+            hyperbuf[x] = lines[k].rhyper;
             x++;
         }
 
-        for (i = 0; i < dwin->lines[k].len; i++) {
-            attrbuf[p] = curattr = dwin->lines[k].attrs[i];
-            charbuf[p] = dwin->lines[k].chars[i];
+        for (i = 0; i < lines[k].len; i++) {
+            attrbuf[p] = curattr = lines[k].attrs[i];
+            charbuf[p] = lines[k].chars[i];
             p++;
         }
 
-        if (dwin->lines[k].newline) {
+        if (lines[k].newline) {
             attrbuf[p] = curattr;
             charbuf[p] = '\n';
             p++;
@@ -162,7 +157,7 @@ static void reflow(window_t *win)
 
     // clear window
 
-    win->clear();
+    clear();
 
     // and dump text back
 
@@ -171,29 +166,29 @@ static void reflow(window_t *win)
         if (i == inputbyte) {
             break;
         }
-        win->attr = attrbuf[i];
+        attr = attrbuf[i];
 
         if (offsetbuf[x] == i) {
-            put_picture(dwin, pictbuf[x], alignbuf[x], hyperbuf[x]);
+            put_picture(this, pictbuf[x], alignbuf[x], hyperbuf[x]);
             x++;
         }
 
-        win->put_char_uni(charbuf[i]);
+        put_char_uni(charbuf[i]);
     }
 
     // terribly sorry about this...
-    dwin->lastseen = 0;
-    dwin->scrollpos = 0;
+    lastseen = 0;
+    scrollpos = 0;
 
     if (inputbyte != -1) {
-        dwin->infence = dwin->numchars;
-        put_text_uni(dwin, charbuf.data() + inputbyte, p - inputbyte, dwin->numchars, 0);
-        dwin->incurs = dwin->numchars;
+        infence = numchars;
+        put_text_uni(charbuf.data() + inputbyte, p - inputbyte, numchars, 0);
+        incurs = numchars;
     }
 
-    win->attr = oldattr;
+    attr = oldattr;
 
-    touchscroll(dwin);
+    touchscroll();
 }
 
 void window_textbuffer_t::rearrange(const rect_t *box)
@@ -213,7 +208,7 @@ void window_textbuffer_t::rearrange(const rect_t *box)
 
     if (newwid != width) {
         width = newwid;
-        reflow(this);
+        reflow();
     }
 
     if (newhgt != height) {
@@ -231,7 +226,7 @@ void window_textbuffer_t::rearrange(const rect_t *box)
         if (scrollpos < 0) {
             scrollpos = 0;
         }
-        touchscroll(this);
+        touchscroll();
 
         // allocate copy buffer
         copybuf.resize(height * TBLINELEN);
@@ -241,9 +236,7 @@ void window_textbuffer_t::rearrange(const rect_t *box)
     }
 }
 
-static int calcwidth(window_textbuffer_t *dwin,
-    const glui32 *chars, const attr_t *attrs,
-    int startchar, int numchars, int spw)
+int window_textbuffer_t::calcwidth(const glui32 *chars, const attr_t *attrs, int startchar, int numchars, int spw)
 {
     int w = 0;
     int a, b;
@@ -251,23 +244,21 @@ static int calcwidth(window_textbuffer_t *dwin,
     a = startchar;
     for (b = startchar; b < numchars; b++) {
         if (attrs[a] != attrs[b]) {
-            w += gli_string_width_uni(attrs[a].font(dwin->styles()),
+            w += gli_string_width_uni(attrs[a].font(styles()),
                     chars + a, b - a, spw);
             a = b;
         }
     }
 
-    w += gli_string_width_uni(attrs[a].font(dwin->styles()),
+    w += gli_string_width_uni(attrs[a].font(styles()),
             chars + a, b - a, spw);
 
     return w;
 }
 
-static int calcwidth(window_textbuffer_t *dwin,
-    const std::array<glui32, TBLINELEN> &chars, const std::array<attr_t, TBLINELEN> &attrs,
-    int startchar, int numchars, int spw)
+int window_textbuffer_t::calcwidth( const std::array<glui32, TBLINELEN> &chars, const std::array<attr_t, TBLINELEN> &attrs, int startchar, int numchars, int spw)
 {
-    return calcwidth(dwin, chars.data(), attrs.data(), startchar, numchars, spw);
+    return calcwidth(chars.data(), attrs.data(), startchar, numchars, spw);
 }
 
 void window_textbuffer_t::redraw()
@@ -359,7 +350,7 @@ void window_textbuffer_t::redraw()
         }
 
         // kill characters that would overwrite the scroll bar
-        while (linelen > 1 && calcwidth(this, ln.chars, ln.attrs, 0, linelen, -1) >= pw) {
+        while (linelen > 1 && calcwidth(ln.chars, ln.attrs, 0, linelen, -1) >= pw) {
             linelen--;
         }
 
@@ -370,7 +361,7 @@ void window_textbuffer_t::redraw()
                     nsp++;
                 }
             }
-            w = calcwidth(this, ln.chars, ln.attrs, 0, linelen, 0);
+            w = calcwidth(ln.chars, ln.attrs, 0, linelen, 0);
             if (nsp != 0) {
                 spw = (x1 - x0 - ln.lm - ln.rm - 2 * SLOP - w) / nsp;
             } else {
@@ -388,18 +379,18 @@ void window_textbuffer_t::redraw()
             // optimized case for all chars selected
             if (selleft && selright) {
                 rsc = linelen > 0 ? linelen - 1 : 0;
-                selchar = ((calcwidth(this, ln.chars, ln.attrs, lsc, rsc, spw) / GLI_SUBPIX) != 0);
+                selchar = ((calcwidth(ln.chars, ln.attrs, lsc, rsc, spw) / GLI_SUBPIX) != 0);
             } else {
                 // optimized case for leftmost char selected
                 if (selleft) {
                     tsc = linelen > 0 ? linelen - 1 : 0;
-                    selchar = ((calcwidth(this, ln.chars, ln.attrs, lsc, tsc, spw) / GLI_SUBPIX) != 0);
+                    selchar = ((calcwidth(ln.chars, ln.attrs, lsc, tsc, spw) / GLI_SUBPIX) != 0);
                 } else {
                     // find the substring contained by the selection
                     tx = (x0 + SLOP + ln.lm) / GLI_SUBPIX;
                     // measure string widths until we find left char
                     for (tsc = 0; tsc < linelen; tsc++) {
-                        tsw = calcwidth(this, ln.chars, ln.attrs, 0, tsc, spw) / GLI_SUBPIX;
+                        tsw = calcwidth(ln.chars, ln.attrs, 0, tsc, spw) / GLI_SUBPIX;
                         if (tsw + tx >= sx0 ||
                                 (tsw + tx + GLI_SUBPIX >= sx0 && ln.chars[tsc] != ' ')) {
                             lsc = tsc;
@@ -415,7 +406,7 @@ void window_textbuffer_t::redraw()
                     } else {
                         // measure string widths until we find right char
                         for (tsc = lsc; tsc < linelen; tsc++) {
-                            tsw = calcwidth(this, ln.chars, ln.attrs, lsc, tsc, spw) / GLI_SUBPIX;
+                            tsw = calcwidth(ln.chars, ln.attrs, lsc, tsc, spw) / GLI_SUBPIX;
                             if (tsw + sx0 < sx1) {
                                 rsc = tsc;
                             }
@@ -504,7 +495,7 @@ void window_textbuffer_t::redraw()
         //
 
         if (gli_focuswin == this && i == 0 && (line_request || line_request_uni)) {
-            w = calcwidth(this, chars, attrs, 0, incurs, spw);
+            w = calcwidth(chars, attrs, 0, incurs, spw);
             if (w < pw - gli_caret_shape * 2 * GLI_SUBPIX) {
                 gli_draw_caret(x0 + SLOP + ln.lm + w, y + gli_baseline);
             }
@@ -672,172 +663,172 @@ void window_textbuffer_t::redraw()
     }
 }
 
-static void scrollresize(window_textbuffer_t *dwin)
+void window_textbuffer_t::scrollresize()
 {
     int i;
 
-    dwin->lines.resize(dwin->scrollback + SCROLLBACK);
+    lines.resize(scrollback + SCROLLBACK);
 
-    dwin->chars = dwin->lines[0].chars.data();
-    dwin->attrs = dwin->lines[0].attrs.data();
+    chars = lines[0].chars.data();
+    attrs = lines[0].attrs.data();
 
-    for (i = dwin->scrollback; i < (dwin->scrollback + SCROLLBACK); i++) {
-        dwin->lines[i].dirty = false;
-        dwin->lines[i].repaint = false;
-        dwin->lines[i].lm = 0;
-        dwin->lines[i].rm = 0;
-        dwin->lines[i].lpic.reset();
-        dwin->lines[i].rpic.reset();
-        dwin->lines[i].lhyper = 0;
-        dwin->lines[i].rhyper = 0;
-        dwin->lines[i].len = 0;
-        dwin->lines[i].newline = false;
-        dwin->lines[i].chars.fill(' ');
-        dwin->lines[i].attrs.fill(attr_t{});
+    for (i = scrollback; i < (scrollback + SCROLLBACK); i++) {
+        lines[i].dirty = false;
+        lines[i].repaint = false;
+        lines[i].lm = 0;
+        lines[i].rm = 0;
+        lines[i].lpic.reset();
+        lines[i].rpic.reset();
+        lines[i].lhyper = 0;
+        lines[i].rhyper = 0;
+        lines[i].len = 0;
+        lines[i].newline = false;
+        lines[i].chars.fill(' ');
+        lines[i].attrs.fill(attr_t{});
     }
 
-    dwin->scrollback += SCROLLBACK;
+    scrollback += SCROLLBACK;
 }
 
-static void scrolloneline(window_textbuffer_t *dwin, bool forced)
+void window_textbuffer_t::scrolloneline(bool forced)
 {
     int i;
 
-    dwin->lastseen++;
-    dwin->scrollmax++;
+    lastseen++;
+    scrollmax++;
 
-    if (dwin->scrollmax > dwin->scrollback - 1
-            || dwin->lastseen > dwin->scrollback - 1) {
-        scrollresize(dwin);
+    if (scrollmax > scrollback - 1
+            || lastseen > scrollback - 1) {
+        scrollresize();
     }
 
-    if (dwin->lastseen >= dwin->height) {
-        dwin->scrollpos++;
+    if (lastseen >= height) {
+        scrollpos++;
     }
 
-    if (dwin->scrollpos > dwin->scrollmax - dwin->height + 1) {
-        dwin->scrollpos = dwin->scrollmax - dwin->height + 1;
+    if (scrollpos > scrollmax - height + 1) {
+        scrollpos = scrollmax - height + 1;
     }
-    if (dwin->scrollpos < 0) {
-        dwin->scrollpos = 0;
+    if (scrollpos < 0) {
+        scrollpos = 0;
     }
 
     if (forced) {
-        dwin->dashed = 0;
+        dashed = 0;
     }
-    dwin->spaced = 0;
+    spaced = 0;
 
-    dwin->lines[0].len = dwin->numchars;
-    dwin->lines[0].newline = forced;
+    lines[0].len = numchars;
+    lines[0].newline = forced;
 
-    for (i = dwin->scrollback - 1; i > 0; i--) {
-        dwin->lines[i] = dwin->lines[i - 1];
-        if (i < dwin->height) {
-            touch(dwin, i);
+    for (i = scrollback - 1; i > 0; i--) {
+        lines[i] = lines[i - 1];
+        if (i < height) {
+            touch(i);
         }
     }
 
-    if (dwin->radjn != 0) {
-        dwin->radjn--;
+    if (radjn != 0) {
+        radjn--;
     }
-    if (dwin->radjn == 0) {
-        dwin->radjw = 0;
+    if (radjn == 0) {
+        radjw = 0;
     }
-    if (dwin->ladjn != 0) {
-        dwin->ladjn--;
+    if (ladjn != 0) {
+        ladjn--;
     }
-    if (dwin->ladjn == 0) {
-        dwin->ladjw = 0;
+    if (ladjn == 0) {
+        ladjw = 0;
     }
 
-    touch(dwin, 0);
-    dwin->lines[0].len = 0;
-    dwin->lines[0].newline = false;
-    dwin->lines[0].lm = dwin->ladjw;
-    dwin->lines[0].rm = dwin->radjw;
-    dwin->lines[0].lpic.reset();
-    dwin->lines[0].rpic.reset();
-    dwin->lines[0].lhyper = 0;
-    dwin->lines[0].rhyper = 0;
-    dwin->lines[0].chars.fill(' ');
-    dwin->lines[0].attrs.fill(attr_t{});
+    touch(0);
+    lines[0].len = 0;
+    lines[0].newline = false;
+    lines[0].lm = ladjw;
+    lines[0].rm = radjw;
+    lines[0].lpic.reset();
+    lines[0].rpic.reset();
+    lines[0].lhyper = 0;
+    lines[0].rhyper = 0;
+    lines[0].chars.fill(' ');
+    lines[0].attrs.fill(attr_t{});
 
-    dwin->numchars = 0;
+    numchars = 0;
 
-    touchscroll(dwin);
+    touchscroll();
 }
 
 // only for input text
-static void put_text(window_textbuffer_t *dwin, const char *buf, int len, int pos, int oldlen)
+void window_textbuffer_t::put_text(const char *buf, int len, int pos, int oldlen)
 {
     int diff = len - oldlen;
 
-    if (dwin->numchars + diff >= TBLINELEN) {
+    if (numchars + diff >= TBLINELEN) {
         return;
     }
 
-    if (diff != 0 && pos + oldlen < dwin->numchars) {
-        std::memmove(dwin->chars + pos + len,
-                dwin->chars + pos + oldlen,
-                (dwin->numchars - (pos + oldlen)) * 4);
-        std::memmove(dwin->attrs + pos + len,
-                dwin->attrs + pos + oldlen,
-                (dwin->numchars - (pos + oldlen)) * sizeof(attr_t));
+    if (diff != 0 && pos + oldlen < numchars) {
+        std::memmove(chars + pos + len,
+                chars + pos + oldlen,
+                (numchars - (pos + oldlen)) * 4);
+        std::memmove(attrs + pos + len,
+                attrs + pos + oldlen,
+                (numchars - (pos + oldlen)) * sizeof(attr_t));
     }
     if (len > 0) {
         int i;
         for (i = 0; i < len; i++) {
-            dwin->chars[pos + i] = static_cast<unsigned char>(buf[i]);
-            dwin->attrs[pos + i].set(style_Input);
+            chars[pos + i] = static_cast<unsigned char>(buf[i]);
+            attrs[pos + i].set(style_Input);
         }
     }
-    dwin->numchars += diff;
+    numchars += diff;
 
-    if (dwin->inbuf != nullptr) {
-        if (dwin->incurs >= pos + oldlen) {
-            dwin->incurs += diff;
-        } else if (dwin->incurs >= pos) {
-            dwin->incurs = pos + len;
+    if (inbuf != nullptr) {
+        if (incurs >= pos + oldlen) {
+            incurs += diff;
+        } else if (incurs >= pos) {
+            incurs = pos + len;
         }
     }
 
-    touch(dwin, 0);
+    touch(0);
 }
 
-static void put_text_uni(window_textbuffer_t *dwin, glui32 *buf, int len, int pos, int oldlen)
+void window_textbuffer_t::put_text_uni(glui32 *buf, int len, int pos, int oldlen)
 {
     int diff = len - oldlen;
 
-    if (dwin->numchars + diff >= TBLINELEN) {
+    if (numchars + diff >= TBLINELEN) {
         return;
     }
 
-    if (diff != 0 && pos + oldlen < dwin->numchars) {
-        std::memmove(dwin->chars + pos + len,
-                dwin->chars + pos + oldlen,
-                (dwin->numchars - (pos + oldlen)) * 4);
-        std::memmove(dwin->attrs + pos + len,
-                dwin->attrs + pos + oldlen,
-                (dwin->numchars - (pos + oldlen)) * sizeof(attr_t));
+    if (diff != 0 && pos + oldlen < numchars) {
+        std::memmove(chars + pos + len,
+                chars + pos + oldlen,
+                (numchars - (pos + oldlen)) * 4);
+        std::memmove(attrs + pos + len,
+                attrs + pos + oldlen,
+                (numchars - (pos + oldlen)) * sizeof(attr_t));
     }
     if (len > 0) {
         int i;
-        std::memmove(dwin->chars + pos, buf, len * 4);
+        std::memmove(chars + pos, buf, len * 4);
         for (i = 0; i < len; i++) {
-            dwin->attrs[pos + i].set(style_Input);
+            attrs[pos + i].set(style_Input);
         }
     }
-    dwin->numchars += diff;
+    numchars += diff;
 
-    if (dwin->inbuf != nullptr) {
-        if (dwin->incurs >= pos + oldlen) {
-            dwin->incurs += diff;
-        } else if (dwin->incurs >= pos) {
-            dwin->incurs = pos + len;
+    if (inbuf != nullptr) {
+        if (incurs >= pos + oldlen) {
+            incurs += diff;
+        } else if (incurs >= pos) {
+            incurs = pos + len;
         }
     }
 
-    touch(dwin, 0);
+    touch(0);
 }
 
 // Return true if a following quotation mark should be an opening mark,
@@ -901,11 +892,11 @@ void window_textbuffer_t::put_char_uni(glui32 ch)
 
     // oops ... overflow
     if (numchars + 1 >= TBLINELEN) {
-        scrolloneline(this, false);
+        scrolloneline(false);
     }
 
     if (ch == '\n') {
-        scrolloneline(this, true);
+        scrolloneline(true);
         return;
     }
 
@@ -1005,7 +996,7 @@ void window_textbuffer_t::put_char_uni(glui32 ch)
         linelen--;
     }
 
-    if (calcwidth(this, chars, attrs, 0, linelen, -1) >= pw) {
+    if (calcwidth(chars, attrs, 0, linelen, -1) >= pw) {
         bpoint = numchars;
 
         for (i = numchars - 1; i > 0; i--) {
@@ -1021,21 +1012,21 @@ void window_textbuffer_t::put_char_uni(glui32 ch)
         std::memcpy(battrs.data(), attrs + bpoint, saved * sizeof(attr_t));
         numchars = bpoint;
 
-        scrolloneline(this, false);
+        scrolloneline(false);
 
         std::memcpy(chars, bchars.data(), saved * 4);
         std::memcpy(attrs, battrs.data(), saved * sizeof(attr_t));
         numchars = saved;
     }
 
-    touch(this, 0);
+    touch(0);
 }
 
 bool window_textbuffer_t::unput_char_uni(glui32 ch)
 {
     if (numchars > 0 && glk_char_to_upper(chars[numchars - 1]) == glk_char_to_upper(ch)) {
         numchars--;
-        touch(this, 0);
+        touch(0);
         return true;
     }
     return false;
@@ -1077,63 +1068,62 @@ void window_textbuffer_t::clear()
     scrollmax = 0;
 
     for (i = 0; i < height; i++) {
-        touch(this, i);
+        touch(i);
     }
 }
 
 // Prepare the window for line input.
-static void win_textbuffer_init_impl(window_t *win, void *buf, int maxlen, int initlen, bool unicode)
+void window_textbuffer_t::init_impl(void *buf, int maxlen, int initlen, bool unicode)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
     int pw;
 
     gli_tts_flush();
 
     // because '>' prompt is ugly without extra space
-    if (dwin->numchars != 0 && dwin->chars[dwin->numchars - 1] == '>') {
-        win->put_char_uni(' ');
+    if (numchars != 0 && chars[numchars - 1] == '>') {
+        put_char_uni(' ');
     }
-     if (dwin->numchars != 0 && dwin->chars[dwin->numchars - 1] == '?') {
-        win->put_char_uni(' ');
+     if (numchars != 0 && chars[numchars - 1] == '?') {
+        put_char_uni(' ');
     }
 
     // make sure we have some space left for typing...
-    pw = (win->bbox.x1 - win->bbox.x0 - gli_tmarginx * 2) * GLI_SUBPIX;
-    pw = pw - 2 * SLOP - dwin->radjw + dwin->ladjw;
-    if (calcwidth(dwin, dwin->chars, dwin->attrs, 0, dwin->numchars, -1) >= pw * 3 / 4) {
-        win->put_char_uni('\n');
+    pw = (bbox.x1 - bbox.x0 - gli_tmarginx * 2) * GLI_SUBPIX;
+    pw = pw - 2 * SLOP - radjw + ladjw;
+    if (calcwidth(chars, attrs, 0, numchars, -1) >= pw * 3 / 4) {
+        put_char_uni('\n');
     }
 
-    dwin->inbuf = buf;
-    dwin->inunicode = unicode;
-    dwin->inmax = maxlen;
-    dwin->infence = dwin->numchars;
-    dwin->incurs = dwin->numchars;
-    dwin->origattr = win->attr;
-    win->attr.set(style_Input);
+    inbuf = buf;
+    inunicode = unicode;
+    inmax = maxlen;
+    infence = numchars;
+    incurs = numchars;
+    origattr = attr;
+    attr.set(style_Input);
 
     if (initlen != 0) {
-        touch(dwin, 0);
+        touch(0);
         if (unicode) {
-            put_text_uni(dwin, static_cast<glui32 *>(buf), initlen, dwin->incurs, 0);
+            put_text_uni(static_cast<glui32 *>(buf), initlen, incurs, 0);
         } else {
-            put_text(dwin, static_cast<char *>(buf), initlen, dwin->incurs, 0);
+            put_text(static_cast<char *>(buf), initlen, incurs, 0);
         }
     }
 
     if (gli_register_arr != nullptr) {
-        dwin->inarrayrock = (*gli_register_arr)(dwin->inbuf, maxlen, const_cast<char *>(unicode ? "&+#!Iu" : "&+#!Cn"));
+        inarrayrock = (*gli_register_arr)(inbuf, maxlen, const_cast<char *>(unicode ? "&+#!Iu" : "&+#!Cn"));
     }
 }
 
 void window_textbuffer_t::init_line(char *buf, int maxlen, int initlen)
 {
-    win_textbuffer_init_impl(this, buf, maxlen, initlen, false);
+    init_impl(buf, maxlen, initlen, false);
 }
 
 void window_textbuffer_t::init_line_uni(glui32 *buf, int maxlen, int initlen)
 {
-    win_textbuffer_init_impl(this, buf, maxlen, initlen, true);
+    init_impl(buf, maxlen, initlen, true);
 }
 
 // Abort line input, storing whatever's been typed so far.
@@ -1185,7 +1175,7 @@ void window_textbuffer_t::cancel_line(event_t *ev)
         put_char_uni('\n');
     } else {
         numchars = infence;
-        touch(this, 0);
+        touch(0);
     }
 
     if (gli_unregister_arr != nullptr) {
@@ -1197,53 +1187,52 @@ void window_textbuffer_t::cancel_line(event_t *ev)
 // Keybinding functions.
 
 // Any key, when text buffer is scrolled.
-bool gcmd_accept_scroll(window_t *win, glui32 arg)
+bool window_textbuffer_t::accept_scroll(glui32 arg)
 {
-    window_textbuffer_t *dwin = win->winbuffer();
-    int pageht = dwin->height - 2; // 1 for prompt, 1 for overlap
-    bool startpos = dwin->scrollpos != 0;
+    int pageht = height - 2; // 1 for prompt, 1 for overlap
+    bool startpos = scrollpos != 0;
 
     switch (arg) {
     case keycode_PageUp:
-        dwin->scrollpos += pageht;
+        scrollpos += pageht;
         break;
     case keycode_End:
-        dwin->scrollpos = 0;
+        scrollpos = 0;
         break;
     case keycode_Up:
-        dwin->scrollpos++;
+        scrollpos++;
         break;
     case keycode_Down:
     case keycode_Return:
-        dwin->scrollpos--;
+        scrollpos--;
         break;
     case keycode_MouseWheelUp:
-        dwin->scrollpos += 3;
+        scrollpos += 3;
         startpos = true;
         break;
     case keycode_MouseWheelDown:
-        dwin->scrollpos -= 3;
+        scrollpos -= 3;
         startpos = true;
         break;
     case ' ':
     case keycode_PageDown:
         if (pageht != 0) {
-            dwin->scrollpos -= pageht;
+            scrollpos -= pageht;
         } else {
-            dwin->scrollpos = 0;
+            scrollpos = 0;
         }
         break;
     }
 
-    if (dwin->scrollpos > dwin->scrollmax - dwin->height + 1) {
-        dwin->scrollpos = dwin->scrollmax - dwin->height + 1;
+    if (scrollpos > scrollmax - height + 1) {
+        scrollpos = scrollmax - height + 1;
     }
-    if (dwin->scrollpos < 0) {
-        dwin->scrollpos = 0;
+    if (scrollpos < 0) {
+        scrollpos = 0;
     }
-    touchscroll(dwin);
+    touchscroll();
 
-    return startpos || dwin->scrollpos != 0;
+    return startpos || scrollpos != 0;
 }
 
 // Any key, during character input. Ends character input.
@@ -1258,7 +1247,7 @@ void window_textbuffer_t::accept_readchar(glui32 arg)
     if (scrollpos != 0
             || arg == keycode_PageUp
             || arg == keycode_MouseWheelUp) {
-        gcmd_accept_scroll(this, arg);
+        accept_scroll(arg);
         return;
     }
 
@@ -1287,33 +1276,23 @@ void window_textbuffer_t::accept_readchar(glui32 arg)
 }
 
 // Return or enter, during line input. Ends line input.
-static void acceptline(window_t *win, glui32 keycode)
+void window_textbuffer_t::acceptline(glui32 keycode)
 {
     int ix;
     int len;
-    void *inbuf;
-    int inmax;
-    bool inunicode;
-    gidispatch_rock_t inarrayrock;
-    window_textbuffer_t *dwin = win->winbuffer();
 
-    if (dwin->inbuf == nullptr) {
+    if (inbuf == nullptr) {
         return;
     }
 
-    inbuf = dwin->inbuf;
-    inmax = dwin->inmax;
-    inarrayrock = dwin->inarrayrock;
-    inunicode = dwin->inunicode;
-
-    len = dwin->numchars - dwin->infence;
-    if (win->echostr != nullptr) {
-        gli_stream_echo_line_uni(win->echostr, dwin->chars + dwin->infence, len);
+    len = numchars - infence;
+    if (echostr != nullptr) {
+        gli_stream_echo_line_uni(echostr, chars + infence, len);
     }
 
     gli_tts_purge();
     if (gli_conf_speak_input) {
-        gli_tts_speak(dwin->chars + dwin->infence, len);
+        gli_tts_speak(chars + infence, len);
         std::array<glui32, 1> newline = {'\n'};
         gli_tts_speak(newline.data(), 1);
     }
@@ -1324,20 +1303,20 @@ static void acceptline(window_t *win, glui32 keycode)
         // If the iterator's not at the beginning, that means the user is in the
         // middle of a history cycle. If that's the case, the first history
         // entry is the currently-typed text, which is no longer relevant. Drop it.
-        if (dwin->history_it != dwin->history.begin()) {
-            dwin->history.pop_front();
+        if (history_it != history.begin()) {
+            history.pop_front();
         }
 
-        std::vector<glui32> line(&dwin->chars[dwin->infence], &dwin->chars[dwin->numchars]);
-        if (dwin->history.empty() || dwin->history.front() != line) {
-            dwin->history.push_front(line);
+        std::vector<glui32> line(&chars[infence], &chars[numchars]);
+        if (history.empty() || history.front() != line) {
+            history.push_front(line);
         }
 
-        while (dwin->history.size() > HISTORYLEN) {
-            dwin->history.pop_back();
+        while (history.size() > HISTORYLEN) {
+            history.pop_back();
         }
 
-        dwin->history_it = dwin->history.begin();
+        history_it = history.begin();
     }
 
     // Store in event buffer.
@@ -1348,7 +1327,7 @@ static void acceptline(window_t *win, glui32 keycode)
 
     if (!inunicode) {
         for (ix = 0; ix < len; ix++) {
-            glui32 ch = dwin->chars[dwin->infence + ix];
+            glui32 ch = chars[infence + ix];
             if (ch > 0xff) {
                 ch = '?';
             }
@@ -1356,31 +1335,31 @@ static void acceptline(window_t *win, glui32 keycode)
         }
     } else {
         for (ix = 0; ix < len; ix++) {
-            (static_cast<glui32 *>(inbuf))[ix] = dwin->chars[dwin->infence + ix];
+            (static_cast<glui32 *>(inbuf))[ix] = chars[infence + ix];
         }
     }
 
-    win->attr = dwin->origattr;
+    attr = origattr;
 
-    if (!win->line_terminators.empty()) {
+    if (!line_terminators.empty()) {
         glui32 val2 = keycode;
         if (val2 == keycode_Return) {
             val2 = 0;
         }
-        gli_event_store(evtype_LineInput, win, len, val2);
+        gli_event_store(evtype_LineInput, this, len, val2);
     } else {
-        gli_event_store(evtype_LineInput, win, len, 0);
+        gli_event_store(evtype_LineInput, this, len, 0);
     }
-    win->line_request = false;
-    win->line_request_uni = false;
-    dwin->inbuf = nullptr;
-    dwin->inmax = 0;
+    line_request = false;
+    line_request_uni = false;
+    inbuf = nullptr;
+    inmax = 0;
 
-    if (win->echo_line_input) {
-        win->put_char_uni('\n');
+    if (echo_line_input) {
+        put_char_uni('\n');
     } else {
-        dwin->numchars = dwin->infence;
-        touch(dwin, 0);
+        numchars = infence;
+        touch(0);
     }
 
     if (gli_unregister_arr != nullptr) {
@@ -1399,7 +1378,7 @@ void window_textbuffer_t::accept_readline(glui32 arg)
     if (scrollpos != 0
             || arg == keycode_PageUp
             || arg == keycode_MouseWheelUp) {
-        gcmd_accept_scroll(this, arg);
+        accept_scroll(arg);
         return;
     }
 
@@ -1409,7 +1388,7 @@ void window_textbuffer_t::accept_readline(glui32 arg)
 
     if (!line_terminators.empty() && gli_window_check_terminator(arg)) {
         if (std::find(line_terminators.begin(), line_terminators.end(), arg) != line_terminators.end()) {
-            acceptline(this, arg);
+            acceptline(arg);
             return;
         }
     }
@@ -1437,7 +1416,7 @@ void window_textbuffer_t::accept_readline(glui32 arg)
         // of history, so do nothing).
         if (history_it + 1 != history.end()) {
             ++history_it;
-            put_text_uni(this, history_it->data(), history_it->size(), infence, numchars - infence);
+            put_text_uni(history_it->data(), history_it->size(), infence, numchars - infence);
         }
         break;
 
@@ -1450,7 +1429,7 @@ void window_textbuffer_t::accept_readline(glui32 arg)
 
         // Load the next (newer) history entry.
         --history_it;
-        put_text_uni(this, history_it->data(), history_it->size(), infence, numchars - infence);
+        put_text_uni(history_it->data(), history_it->size(), infence, numchars - infence);
 
         // If we're at the beginning now, we're done cycling, and have
         // reloaded the user's currently-typed text. Since cycling is over,
@@ -1516,27 +1495,27 @@ void window_textbuffer_t::accept_readline(glui32 arg)
         if (incurs <= infence) {
             return;
         }
-        put_text_uni(this, nullptr, 0, incurs - 1, 1);
+        put_text_uni(nullptr, 0, incurs - 1, 1);
         break;
 
     case keycode_Erase:
         if (incurs >= numchars) {
             return;
         }
-        put_text_uni(this, nullptr, 0, incurs, 1);
+        put_text_uni(nullptr, 0, incurs, 1);
         break;
 
     case keycode_Escape:
         if (infence >= numchars) {
             return;
         }
-        put_text_uni(this, nullptr, 0, infence, numchars - infence);
+        put_text_uni(nullptr, 0, infence, numchars - infence);
         break;
 
     // Regular keys
 
     case keycode_Return:
-        acceptline(this, arg);
+        acceptline(arg);
         break;
 
     default:
@@ -1544,12 +1523,12 @@ void window_textbuffer_t::accept_readline(glui32 arg)
             if (gli_conf_caps && (arg > 0x60 && arg < 0x7b)) {
                 arg -= 0x20;
             }
-            put_text_uni(this, &arg, 1, incurs, 0);
+            put_text_uni(&arg, 1, incurs, 0);
         }
         break;
     }
 
-    touch(this, 0);
+    touch(0);
 }
 
 static bool put_picture(window_textbuffer_t *dwin, const std::shared_ptr<picture_t> &pic, glui32 align, glui32 linkval)
@@ -1648,13 +1627,13 @@ void window_textbuffer_t::click(int sx, int sy)
 
     if (sx > bbox.x1 - gli_scroll_width) {
         if (sy < bbox.y0 + gli_tmarginy + gli_scroll_width) {
-            gcmd_accept_scroll(this, keycode_Up);
+            accept_scroll(keycode_Up);
         } else if (sy > bbox.y1 - gli_tmarginy - gli_scroll_width) {
-            gcmd_accept_scroll(this, keycode_Down);
+            accept_scroll(keycode_Down);
         } else if (sy < (bbox.y0 + bbox.y1) / 2) {
-            gcmd_accept_scroll(this, keycode_PageUp);
+            accept_scroll(keycode_PageUp);
         } else {
-            gcmd_accept_scroll(this, keycode_PageDown);
+            accept_scroll(keycode_PageDown);
         }
         gs = true;
     }

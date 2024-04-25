@@ -166,7 +166,7 @@ static bool gli_input_handle_key(glui32 key, bool add_to_buffer)
     } else if (win->line_request || win->line_request_uni) {
         win->accept_readline(key);
     } else if (win->type == wintype_TextBuffer && !add_to_buffer && (win->more_request || win->scroll_request)) {
-        defer_exit = gcmd_accept_scroll(win, key);
+        defer_exit = win->winbuffer()->accept_scroll(key);
     } else {
         buffer();
     }

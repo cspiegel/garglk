@@ -969,6 +969,9 @@ struct window_textbuffer_t : public glk_window_struct {
     void accept_readline(glui32 arg) override;
     Styles &styles() override { return m_styles; }
 
+    // XXX Non-virtual for now... (needed by event)
+    bool accept_scroll(glui32 arg);
+
     int width = -1, height = -1;
     int spaced = 0;
     int dashed = 0;
@@ -1010,6 +1013,19 @@ struct window_textbuffer_t : public glk_window_struct {
     // for copy selection
     std::vector<glui32> copybuf;
     int copypos = 0;
+
+private:
+    void touch(int line);
+    void touchscroll();
+    int calcwidth(const glui32 *chars, const attr_t *attrs, int startchar, int numchars, int spw);
+    int calcwidth(const std::array<glui32, TBLINELEN> &chars, const std::array<attr_t, TBLINELEN> &attrs, int startchar, int numchars, int spw);
+    void reflow();
+    void scrollresize();
+    void scrolloneline(bool forced);
+    void put_text(const char *buf, int len, int pos, int oldlen);
+    void put_text_uni(glui32 *buf, int len, int pos, int oldlen);
+    void init_impl(void *buf, int maxlen, int initlen, bool unicode);
+    void acceptline(glui32 keycode);
 };
 
 struct window_graphics_t : public glk_window_struct {
@@ -1056,7 +1072,6 @@ extern std::unique_ptr<window_pair_t> win_pair_create(glui32 type, glui32 rock, 
 extern std::unique_ptr<window_textgrid_t> win_textgrid_create(glui32 type, glui32 rock);
 
 extern std::unique_ptr<window_textbuffer_t> win_textbuffer_create(glui32 type, glui32 rock);
-extern bool gcmd_accept_scroll(window_t *win, glui32 arg);
 
 // Declarations of library internal functions.
 
