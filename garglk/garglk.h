@@ -906,6 +906,9 @@ struct window_textgrid_t : public glk_window_struct {
 
     // style hints and settings
     Styles styles = gli_gstyles;
+
+private:
+    void init_impl(void *buf, int maxlen, int initlen, bool unicode);
 };
 
 struct tbline_t {

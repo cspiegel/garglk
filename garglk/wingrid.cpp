@@ -293,24 +293,22 @@ void window_textgrid_t::click(int sx, int sy)
 }
 
 // Prepare the window for line input.
-static void win_textgrid_init_impl(window_t *win, void *buf, int maxlen, int initlen, bool unicode)
+void window_textgrid_t::init_impl(void *buf, int maxlen, int initlen, bool unicode)
 {
-    window_textgrid_t *dwin = win->wingrid();
-
-    dwin->inunicode = unicode;
-    dwin->inoriglen = maxlen;
-    if (maxlen > (dwin->width - dwin->curx)) {
-        maxlen = (dwin->width - dwin->curx);
+    inunicode = unicode;
+    inoriglen = maxlen;
+    if (maxlen > (width - curx)) {
+        maxlen = (width - curx);
     }
 
-    dwin->inbuf = buf;
-    dwin->inmax = maxlen;
-    dwin->inlen = 0;
-    dwin->incurs = 0;
-    dwin->inorgx = dwin->curx;
-    dwin->inorgy = dwin->cury;
-    dwin->origattr = win->attr;
-    win->attr.set(style_Input);
+    inbuf = buf;
+    inmax = maxlen;
+    inlen = 0;
+    incurs = 0;
+    inorgx = curx;
+    inorgy = cury;
+    origattr = attr;
+    attr.set(style_Input);
 
     if (initlen > maxlen) {
         initlen = maxlen;
@@ -318,38 +316,38 @@ static void win_textgrid_init_impl(window_t *win, void *buf, int maxlen, int ini
 
     if (initlen != 0) {
         int ix;
-        tgline_t *ln = &(dwin->lines[dwin->inorgy]);
+        tgline_t *ln = &(lines[inorgy]);
 
         for (ix = 0; ix < initlen; ix++) {
-            ln->attrs[dwin->inorgx + ix].set(style_Input);
+            ln->attrs[inorgx + ix].set(style_Input);
             if (unicode) {
-                ln->chars[dwin->inorgx + ix] = (static_cast<glui32 *>(buf))[ix];
+                ln->chars[inorgx + ix] = (static_cast<glui32 *>(buf))[ix];
             } else {
-                ln->chars[dwin->inorgx + ix] = (static_cast<unsigned char *>(buf))[ix];
+                ln->chars[inorgx + ix] = (static_cast<unsigned char *>(buf))[ix];
             }
         }
 
-        dwin->incurs += initlen;
-        dwin->inlen += initlen;
-        dwin->curx = dwin->inorgx + dwin->incurs;
-        dwin->cury = dwin->inorgy;
+        incurs += initlen;
+        inlen += initlen;
+        curx = inorgx + incurs;
+        cury = inorgy;
 
-        touch(dwin, dwin->inorgy);
+        touch(this, inorgy);
     }
 
     if (gli_register_arr != nullptr) {
-        dwin->inarrayrock = (*gli_register_arr)(dwin->inbuf, dwin->inoriglen, const_cast<char *>(unicode ? "&+#!Iu" : "&+#!Cn"));
+        inarrayrock = (*gli_register_arr)(inbuf, inoriglen, const_cast<char *>(unicode ? "&+#!Iu" : "&+#!Cn"));
     }
 }
 
 void window_textgrid_t::init_line(char *buf, int maxlen, int initlen)
 {
-    win_textgrid_init_impl(this, buf, maxlen, initlen, false);
+    init_impl(buf, maxlen, initlen, false);
 }
 
 void window_textgrid_t::init_line_uni(glui32 *buf, int maxlen, int initlen)
 {
-    win_textgrid_init_impl(this, buf, maxlen, initlen, true);
+    init_impl(buf, maxlen, initlen, true);
 }
 
 // Abort line input, storing whatever's been typed so far.
