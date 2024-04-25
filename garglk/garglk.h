@@ -913,6 +913,7 @@ struct window_textgrid_t : public glk_window_struct {
 
 private:
     void init_impl(void *buf, int maxlen, int initlen, bool unicode);
+    void acceptline(glui32 keycode);
 };
 
 struct tbline_t {

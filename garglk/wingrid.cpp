@@ -433,61 +433,51 @@ void window_textgrid_t::accept_readchar(glui32 arg)
 }
 
 // Return or enter, during line input. Ends line input.
-static void acceptline(window_t *win, glui32 keycode)
+void window_textgrid_t::acceptline(glui32 keycode)
 {
     int ix;
-    void *inbuf;
-    int inoriglen;
-    bool inunicode;
-    gidispatch_rock_t inarrayrock;
-    window_textgrid_t *dwin = win->wingrid();
-    tgline_t *ln = &(dwin->lines[dwin->inorgy]);
+    tgline_t *ln = &(lines[inorgy]);
 
-    if (dwin->inbuf == nullptr) {
+    if (inbuf == nullptr) {
         return;
     }
 
-    inbuf = dwin->inbuf;
-    inoriglen = dwin->inoriglen;
-    inarrayrock = dwin->inarrayrock;
-    inunicode = dwin->inunicode;
-
     if (!inunicode) {
-        for (ix = 0; ix < dwin->inlen; ix++) {
-            (static_cast<char *>(inbuf))[ix] = static_cast<char>(ln->chars[dwin->inorgx + ix]);
+        for (ix = 0; ix < inlen; ix++) {
+            (static_cast<char *>(inbuf))[ix] = static_cast<char>(ln->chars[inorgx + ix]);
         }
-        if (win->echostr != nullptr) {
-            gli_stream_echo_line(win->echostr, static_cast<char *>(inbuf), dwin->inlen);
+        if (echostr != nullptr) {
+            gli_stream_echo_line(echostr, static_cast<char *>(inbuf), inlen);
         }
     } else {
-        for (ix = 0; ix < dwin->inlen; ix++) {
-            (static_cast<glui32 *>(inbuf))[ix] = ln->chars[dwin->inorgx + ix];
+        for (ix = 0; ix < inlen; ix++) {
+            (static_cast<glui32 *>(inbuf))[ix] = ln->chars[inorgx + ix];
         }
-        if (win->echostr != nullptr) {
-            gli_stream_echo_line_uni(win->echostr, static_cast<glui32 *>(inbuf), dwin->inlen);
+        if (echostr != nullptr) {
+            gli_stream_echo_line_uni(echostr, static_cast<glui32 *>(inbuf), inlen);
         }
     }
 
-    dwin->cury = dwin->inorgy + 1;
-    dwin->curx = 0;
-    win->attr = dwin->origattr;
+    cury = inorgy + 1;
+    curx = 0;
+    attr = origattr;
 
-    if (!win->line_terminators.empty()) {
+    if (!line_terminators.empty()) {
         glui32 val2 = keycode;
         if (val2 == keycode_Return) {
             val2 = 0;
         }
-        gli_event_store(evtype_LineInput, win, dwin->inlen, val2);
+        gli_event_store(evtype_LineInput, this, inlen, val2);
     } else {
-        gli_event_store(evtype_LineInput, win, dwin->inlen, 0);
+        gli_event_store(evtype_LineInput, this, inlen, 0);
     }
-    win->line_request = false;
-    win->line_request_uni = false;
-    dwin->inbuf = nullptr;
-    dwin->inoriglen = 0;
-    dwin->inmax = 0;
-    dwin->inorgx = 0;
-    dwin->inorgy = 0;
+    line_request = false;
+    line_request_uni = false;
+    inbuf = nullptr;
+    inoriglen = 0;
+    inmax = 0;
+    inorgx = 0;
+    inorgy = 0;
 
     if (gli_unregister_arr != nullptr) {
         const char *typedesc = (inunicode ? "&+#!Iu" : "&+#!Cn");
@@ -507,7 +497,7 @@ void window_textgrid_t::accept_readline(glui32 arg)
 
     if (!line_terminators.empty() && gli_window_check_terminator(arg)) {
         if (std::find(line_terminators.begin(), line_terminators.end(), arg) != line_terminators.end()) {
-            acceptline(this, arg);
+            acceptline(arg);
             return;
         }
     }
@@ -587,7 +577,7 @@ void window_textgrid_t::accept_readline(glui32 arg)
         break;
 
     case keycode_Return:
-        acceptline(this, arg);
+        acceptline(arg);
         return;
 
     default:
