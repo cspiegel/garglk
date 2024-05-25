@@ -58,11 +58,8 @@ endif()
 option(WITH_FRANKENDRIFT "Indicates that the FrankenDrift interpreter for ADRIFT 5 games will be made available" OFF)
 add_subdirectory(garglk)
 
-# xBRZ requires C++17.
-if(CXX_VERSION EQUAL 17)
-    add_subdirectory(support/xbrz)
-    add_subdirectory(support/hqx)
-endif()
+add_subdirectory(support/xbrz)
+add_subdirectory(support/hqx)
 
 if(WITH_INTERPRETERS)
     add_subdirectory(terps)
