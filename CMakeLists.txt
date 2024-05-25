@@ -58,12 +58,9 @@ endif()
 option(WITH_FRANKENDRIFT "Build the FrankenDrift interpreter for ADRIFT 5 games (requires the .NET 8 SDK)" OFF)
 add_subdirectory(garglk)
 
-# xBRZ requires C++17.
-if(CXX_VERSION EQUAL 17)
-    add_subdirectory(support/xbrz)
-    add_subdirectory(support/xbrz-null)
-    add_subdirectory(support/hqx)
-endif()
+add_subdirectory(support/xbrz)
+add_subdirectory(support/xbrz-null)
+add_subdirectory(support/hqx)
 
 if(WITH_INTERPRETERS)
     add_subdirectory(terps)
