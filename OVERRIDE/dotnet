@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+export WINEDEBUG=-all
+export WINEPREFIX="$HOME/Wine/DotNet"
+exec wine "$HOME/Wine/DotNet/drive_c/Program Files/dotnet/dotnet.exe" "$@"

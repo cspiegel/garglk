@@ -17,12 +17,12 @@ else()
 endif()
 
 # Cannot cross-compile FrankenDrift for another OS ...
-if(NOT CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
-    message(FATAL_ERROR "Cross-compiling to another OS is not supported for FrankenDrift.")
-endif()
+# if(NOT CMAKE_SYSTEM_NAME STREQUAL CMAKE_HOST_SYSTEM_NAME)
+#     message(FATAL_ERROR "Cross-compiling to another OS is not supported for FrankenDrift.")
+# endif()
 
 # ... but CAN cross-compile for a different CPU architecture:
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|x64|amd64)$")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(X86_64|x86_64|AMD64|x64|amd64)$")
     set(GARGLK_DOTNET_RID "${GARGLK_DOTNET_RID}-x64")
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64|armv8l)$")
     set(GARGLK_DOTNET_RID "${GARGLK_DOTNET_RID}-arm64")
