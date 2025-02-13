@@ -11,16 +11,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Update brew
-        run: brew update
+      - name: Install x86_64 brew
+        run: /usr/bin/arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
       - name: Install packages
-        run: brew install fmt jpeg-turbo pkg-config sdl2 sdl2_mixer
+        run: PATH=/usr/local/bin:$PATH brew install fmt jpeg-turbo pkg-config sdl2 sdl2_mixer
 
       - name: Build
         run: |
           echo $(date +"%Y%m%d").$(echo $GITHUB_SHA | cut -b 1-7) > VERSION
-          sh gargoyle_osx.sh
+          bash gargoyle_osx.sh -c
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
