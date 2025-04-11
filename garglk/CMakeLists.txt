@@ -251,7 +251,7 @@ if("${SOUND}" STREQUAL "QT")
         pkg_check_modules(SOUND REQUIRED IMPORTED_TARGET sndfile libmpg123 libopenmpt)
 
         if(SOUND_libopenmpt_VERSION VERSION_LESS "0.6.0")
-            target_compile_definitions(garglk PRIVATE GARGLK_CONFIG_OLD_LIBOPENMPT)
+            target_compile_definitions(garglk-common PRIVATE GARGLK_CONFIG_OLD_LIBOPENMPT)
         endif()
 
         target_link_libraries(garglk-common PRIVATE Qt${QT_VERSION}::Multimedia PkgConfig::SOUND)
