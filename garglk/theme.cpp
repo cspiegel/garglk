@@ -208,21 +208,21 @@ private:
         }
 
         styles.erase("default");
-        for (const auto &style : styles) {
+        for (const auto &[style, color] : styles) {
             try {
-                parse_colors(style.second, stylemap.at(style.first));
+                parse_colors(color, stylemap.at(style));
             } catch (const std::out_of_range &) {
-                throw std::runtime_error(Format("invalid style in {}: {}", wintype, style.first));
+                throw std::runtime_error(Format("invalid style in {}: {}", wintype, style));
             }
         }
 
         auto colors = make_array<style_NUMSTYLES>(ColorPair{white, black});
         std::vector<std::string> missing;
-        for (const auto &s : stylemap) {
+        for (const auto &[style, val] : stylemap) {
             try {
-                colors[s.second] = possible_colors[s.second].value();
+                colors[val] = possible_colors[val].value();
             } catch (const std::bad_optional_access &) {
-                missing.push_back(s.first);
+                missing.push_back(style);
             }
         }
 
@@ -341,8 +341,8 @@ std::vector<std::string> garglk::theme::names()
 {
     std::vector<std::string> theme_names;
 
-    for (const auto &theme : themes) {
-        theme_names.push_back(theme.first);
+    for (const auto &[name, _] : themes) {
+        theme_names.push_back(name);
     }
 
     theme_names.push_back(Format("system ({})", system_theme_name()));
