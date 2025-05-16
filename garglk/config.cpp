@@ -413,7 +413,7 @@ std::string garglk::user_config()
 
     // Find first user config which already exists, if any.
     auto cfg = std::find_if(cfgs.begin(), cfgs.end(), [](const ConfigFile &config) {
-        return std::ifstream(config.path).good();
+        return std::filesystem::exists(config.path);
     });
 
     if (cfg != cfgs.end()) {
