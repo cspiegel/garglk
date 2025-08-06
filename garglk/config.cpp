@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <clocale>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -36,6 +37,8 @@
 #if __cplusplus >= 201703L
 #include <filesystem>
 #endif
+
+#include <locale.h> // NOLINT(*-deprecated-headers)
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -536,12 +539,66 @@ T parse_number(const std::string &s, std::function<T(const std::string &, std::s
     }
 }
 
+// std::stod is locale-aware regarding the decimal point character; and
+// while Gargoyle doesn't call setlocale(), due to the rather awful
+// behavior of locales, the fact that a library can (and, for example,
+// Qt does) means that we might well be aware of the user's locale here.
+// That means that ',' might be expected for the decimal point character
+// instead of '.'. If that happens, the default config file breaks
+// because it uses '.'. As a "solution", rewrite any comma to period in
+// floating point numbers, and temporarily set the locale to C to force
+// a '.'. This means that both ',' and '.' can be used, giving backward
+// compatibility as well as config-file compatibility.
+//
+// On POSIX systems, make use of uselocale() to be thread safe.
+// Otherwise, use setlocale() and hope for the best.
+#ifdef GARGLK_CONFIG_HAVE_USELOCALE
+class LocaleGuard {
+public:
+    LocaleGuard() {
+        m_old_locale = uselocale(static_cast<locale_t>(0)); // NOLINT(*-use-nullptr)
+        m_c_locale = newlocale(LC_NUMERIC_MASK, "C", static_cast<locale_t>(0)); // NOLINT(*-use-nullptr)
+        uselocale(m_c_locale);
+    }
+
+    ~LocaleGuard() {
+        uselocale(m_old_locale);
+        freelocale(m_c_locale);
+    }
+
+private:
+    locale_t m_old_locale;
+    locale_t m_c_locale;
+};
+#else
+class LocaleGuard {
+public:
+    LocaleGuard() {
+        const char *old = std::setlocale(LC_NUMERIC, nullptr);
+        if (old != nullptr) {
+            m_old_c_locale_str = old;
+        }
+        std::setlocale(LC_NUMERIC, "C");
+    }
+
+    ~LocaleGuard() {
+        if (!m_old_c_locale_str.empty()) {
+            std::setlocale(LC_NUMERIC, m_old_c_locale_str.c_str());
+        }
+    }
+private:
+    std::string m_old_c_locale_str;
+};
+#endif
+
 double parse_double(const std::string &s)
 {
-    return parse_number<double>(s, [](const std::string &str, std::size_t *idx) {
+    return parse_number<double>(s, [](std::string str, std::size_t *idx) {
         if (str.find_first_of("eE") != std::string::npos) {
             throw std::invalid_argument(str);
         }
+        std::replace(str.begin(), str.end(), ',', '.');
+        LocaleGuard lguard;
         return std::stod(str, idx);
     });
 }
