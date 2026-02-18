@@ -3,10 +3,20 @@
 set -ex
 
 qt="$HOME/Qt/current/msvc2022_64"
+llvm_version="21.1.8"
 
 nproc=$(getconf _NPROCESSORS_ONLN)
 
 [[ -e build/dist ]] && exit 1
+
+# NativeAOT's linker runs inside Wine, so it needs Windows PE builds of
+# lld-link.exe and llvm-lib.exe. Download them from LLVM if missing.
+if [[ ! -e OVERRIDE/lld-link.exe || ! -e OVERRIDE/llvm-lib.exe ]]
+then
+    llvm_tar="clang+llvm-${llvm_version}-x86_64-pc-windows-msvc"
+    curl -L "https://github.com/llvm/llvm-project/releases/download/llvmorg-${llvm_version}/${llvm_tar}.tar.xz" \
+        | tar xJ --strip-components=2 --occurrence -C OVERRIDE "${llvm_tar}/bin/lld-link.exe" "${llvm_tar}/bin/llvm-lib.exe"
+fi
 
 (
 mkdir build-msvc
