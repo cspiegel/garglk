@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup Condition="'$(GarglkSdkLibDir)' != ''">
+    <AdditionalNativeLibraryDirectories Include="$(GarglkSdkLibDir)" />
+    <AdditionalNativeLibraryDirectories Include="$(GarglkUcrtLibDir)" />
+    <AdditionalNativeLibraryDirectories Include="$(GarglkCrtLibDir)" />
+  </ItemGroup>
+</Project>
