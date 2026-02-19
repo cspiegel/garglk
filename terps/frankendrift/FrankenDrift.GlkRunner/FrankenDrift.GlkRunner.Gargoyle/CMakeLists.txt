@@ -39,13 +39,12 @@ else()
 endif()
 
 if(WIN32 AND CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-    # Cross-compiling for Windows via Wine: provide the LLVM linker and
+    # Cross-compiling for Windows from Linux: use the native lld-link and
     # Windows SDK library paths so NativeAOT can link without Visual Studio.
-    get_filename_component(GARGLK_OVERRIDE_DIR "${DOTNET}" DIRECTORY)
     set(GARGLK_DOTNET_AOT_FLAGS
+        -p:DisableUnsupportedError=true
+        -p:CppLinker=lld-link
         -p:IlcUseEnvironmentalTools=true
-        "-p:CppLinker=${GARGLK_OVERRIDE_DIR}/lld-link.exe"
-        "-p:CppLibCreator=${GARGLK_OVERRIDE_DIR}/llvm-lib.exe"
         "-p:GarglkSdkLibDir=${CMAKE_FIND_ROOT_PATH}/winsdk/sdk/lib/um/x64"
         "-p:GarglkUcrtLibDir=${CMAKE_FIND_ROOT_PATH}/winsdk/sdk/lib/ucrt/x64"
         "-p:GarglkCrtLibDir=${CMAKE_FIND_ROOT_PATH}/winsdk/crt/lib/x64"
@@ -56,7 +55,7 @@ add_custom_target(frankendrift
     ALL
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy "${GARGLK_FRANKEN_DYLIB}" "${CMAKE_CURRENT_SOURCE_DIR}"
-    COMMAND ${DOTNET} publish --self-contained -c Release -r "${GARGLK_DOTNET_RID}" -p:GarglkMode=dynamic "-p:GarglkBuildDir=${CMAKE_CURRENT_BINARY_DIR}" "-p:BaseOutputPath=${CMAKE_CURRENT_BINARY_DIR}/bin/" ${GARGLK_DOTNET_AOT_FLAGS} -o "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMAND ${DOTNET} publish --self-contained -c Release -r "${GARGLK_DOTNET_RID}" -p:GarglkMode=dynamic "-p:GarglkBuildDir=${CMAKE_CURRENT_BINARY_DIR}" "-p:BaseOutputPath=${CMAKE_CURRENT_BINARY_DIR}/bin/" "-p:GarglkLibDir=${CMAKE_BINARY_DIR}/garglk" ${GARGLK_DOTNET_AOT_FLAGS} -o "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Building FrankenDrift with ${DOTNET}"
 )
 

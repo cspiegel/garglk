@@ -4,4 +4,7 @@
     <AdditionalNativeLibraryDirectories Include="$(GarglkUcrtLibDir)" />
     <AdditionalNativeLibraryDirectories Include="$(GarglkCrtLibDir)" />
   </ItemGroup>
+  <ItemGroup Condition="'$(GarglkLibDir)' != ''">
+    <AdditionalNativeLibraryDirectories Include="$(GarglkLibDir)" />
+  </ItemGroup>
 </Project>
