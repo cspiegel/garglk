@@ -47,6 +47,41 @@
 #include <QStringList>
 #include <QVector>
 
+#ifdef GARGLK_CONFIG_QT_BROKER
+#include <QAction>
+#include <QCloseEvent>
+#include <QEvent>
+#include <QFileInfo>
+#include <QFileOpenEvent>
+#include <QGuiApplication>
+#include <QImage>
+#include <QInputMethodEvent>
+#include <QKeyEvent>
+#include <QKeySequence>
+#include <QLocalServer>
+#include <QLocalSocket>
+#include <QMainWindow>
+#include <QMenu>
+#include <QMenuBar>
+#include <QMouseEvent>
+#include <QMoveEvent>
+#include <QPainter>
+#include <QPaintEvent>
+#include <QPoint>
+#include <QProcessEnvironment>
+#include <QResizeEvent>
+#include <QScreen>
+#include <QSettings>
+#include <QTimer>
+#include <QVariant>
+#include <QWheelEvent>
+#include <QWidget>
+
+#include <vector>
+
+#include "brokerqt.h"
+#endif
+
 #include "garglk.h"
 #include "garversion.h"
 #include "launcher.h"
@@ -124,6 +159,491 @@ static QString winbrowsefile()
     return QFileDialog::getOpenFileName(nullptr, AppName, "", filter_string, nullptr, options);
 }
 
+#ifdef GARGLK_CONFIG_QT_BROKER
+
+// Broker mode (used on macOS): this launcher is a single long-lived
+// application which owns the menu bar and all game windows, behaving
+// like a normal Mac application: it can run multiple games at once,
+// and stays running after the last game window closes. Interpreters
+// are spawned with GARGOYLE_SOCKET set, causing them to create no
+// window of their own, instead shipping rendered frames here and
+// receiving input events back (see brokerqt.h for the protocol). This
+// is the Qt equivalent of the Cocoa launcher in launchmac.mm.
+
+namespace {
+
+namespace broker = garglk::broker;
+
+QLocalServer *broker_server = nullptr;
+QString broker_name;
+double broker_dpr = 1.0;
+bool game_launched = false;
+
+QSettings &broker_settings()
+{
+    // These names match the QSettings used in sysqt.cpp.
+    static QSettings settings("io.github.garglk", "Gargoyle");
+    return settings;
+}
+
+class GameView : public QWidget {
+public:
+    explicit GameView(QLocalSocket *sock, QWidget *parent) :
+        QWidget(parent),
+        m_sock(sock)
+    {
+        setFocusPolicy(Qt::StrongFocus);
+        setMouseTracking(true);
+        setAttribute(Qt::WA_InputMethodEnabled, true);
+    }
+
+    void set_frame(qint32 width, qint32 height, qint32 stride, const QByteArray &data)
+    {
+        m_data = data;
+        m_frame = QImage(reinterpret_cast<const uchar *>(m_data.constData()), width, height, stride, QImage::Format_RGB888);
+        m_frame.setDevicePixelRatio(broker_dpr);
+        update();
+    }
+
+    QVariant inputMethodQuery(Qt::InputMethodQuery query) const override
+    {
+        switch (query) {
+        case Qt::ImEnabled:
+            return QVariant(true);
+        default:
+            return QVariant();
+        }
+    }
+
+protected:
+    void paintEvent(QPaintEvent *event) override
+    {
+        if (!m_frame.isNull()) {
+            QPainter painter(this);
+            painter.drawImage(QPoint(0, 0), m_frame);
+        }
+        event->accept();
+    }
+
+    void resizeEvent(QResizeEvent *event) override
+    {
+        QWidget::resizeEvent(event);
+        broker::send(m_sock, broker::MsgType::Resized, broker::pack(
+            static_cast<qint32>(event->size().width()),
+            static_cast<qint32>(event->size().height())));
+    }
+
+    void keyPressEvent(QKeyEvent *event) override
+    {
+        broker::send(m_sock, broker::MsgType::KeyEvent, broker::pack(
+            static_cast<qint32>(event->key()),
+            static_cast<quint32>(static_cast<int>(event->modifiers())),
+            event->text()));
+        event->accept();
+    }
+
+    // Handle compose key events (probably other input method events
+    // too); see the corresponding code in sysqt.cpp.
+    void inputMethodEvent(QInputMethodEvent *event) override
+    {
+        if (!event->commitString().isEmpty()) {
+            broker::send(m_sock, broker::MsgType::KeyEvent, broker::pack(
+                static_cast<qint32>(0),
+                static_cast<quint32>(0),
+                event->commitString()));
+        }
+        event->accept();
+    }
+
+    void mousePressEvent(QMouseEvent *event) override
+    {
+        send_mouse(QEvent::MouseButtonPress, event);
+    }
+
+    void mouseMoveEvent(QMouseEvent *event) override
+    {
+        send_mouse(QEvent::MouseMove, event);
+    }
+
+    void mouseReleaseEvent(QMouseEvent *event) override
+    {
+        send_mouse(QEvent::MouseButtonRelease, event);
+    }
+
+    void wheelEvent(QWheelEvent *event) override
+    {
+        broker::send(m_sock, broker::MsgType::WheelEvent, broker::pack(
+            static_cast<qint32>(event->pixelDelta().x()),
+            static_cast<qint32>(event->pixelDelta().y()),
+            static_cast<qint32>(event->angleDelta().x()),
+            static_cast<qint32>(event->angleDelta().y()),
+            event->modifiers() == Qt::ShiftModifier));
+        event->accept();
+    }
+
+private:
+    void send_mouse(QEvent::Type type, QMouseEvent *event)
+    {
+        broker::send(m_sock, broker::MsgType::MouseEvent, broker::pack(
+            static_cast<qint32>(type),
+            static_cast<qint32>(event->pos().x()),
+            static_cast<qint32>(event->pos().y()),
+            static_cast<qint32>(event->button())));
+        event->accept();
+    }
+
+    QLocalSocket *m_sock;
+    QByteArray m_data;
+    QImage m_frame;
+};
+
+class GameWindow : public QMainWindow {
+public:
+    explicit GameWindow(QLocalSocket *sock) :
+        m_sock(sock),
+        m_view(new GameView(sock, this))
+    {
+        setCentralWidget(m_view);
+        setAttribute(Qt::WA_DeleteOnClose);
+        m_sock->setParent(this);
+
+        QObject::connect(m_sock, &QLocalSocket::readyRead, this, [this]() {
+            m_buffer.append(m_sock->readAll());
+
+            std::vector<broker::Message> messages;
+            broker::extract(m_buffer, messages);
+
+            for (const auto &msg : messages) {
+                dispatch(msg);
+            }
+        });
+
+        // The interpreter exited (or crashed), so close its window.
+        QObject::connect(m_sock, &QLocalSocket::disconnected, this, [this]() {
+            close();
+        });
+    }
+
+    void send_key(Qt::KeyboardModifiers modifiers, int key, const QString &text)
+    {
+        broker::send(m_sock, broker::MsgType::KeyEvent, broker::pack(
+            static_cast<qint32>(key),
+            static_cast<quint32>(static_cast<int>(modifiers)),
+            text));
+    }
+
+protected:
+    void closeEvent(QCloseEvent *event) override
+    {
+        // Cut the connection; the interpreter exits when it notices.
+        m_sock->abort();
+        event->accept();
+    }
+
+    void resizeEvent(QResizeEvent *event) override
+    {
+        QMainWindow::resizeEvent(event);
+
+        if (gli_conf_save_window_size) {
+            broker_settings().setValue("window/size", event->size());
+        }
+
+        if (gli_conf_save_window_location || gli_conf_save_window_size) {
+            broker_settings().setValue("window/fullscreen", isFullScreen());
+        }
+    }
+
+    void moveEvent(QMoveEvent *event) override
+    {
+        if (gli_conf_save_window_location) {
+            broker_settings().setValue("window/position", event->pos());
+        }
+
+        event->accept();
+    }
+
+    void changeEvent(QEvent *event) override
+    {
+        QMainWindow::changeEvent(event);
+
+        if (event->type() == QEvent::WindowStateChange) {
+            broker::send(m_sock, broker::MsgType::FullscreenState, broker::pack(isFullScreen()));
+        }
+    }
+
+private:
+    void dispatch(const broker::Message &msg)
+    {
+        QDataStream in(msg.payload);
+
+        switch (msg.type) {
+        case broker::MsgType::NewWindow: {
+            bool move, fullscreen;
+            qint32 x, y, width, height, minwidth, minheight;
+            in >> move >> x >> y >> width >> height >> minwidth >> minheight >> fullscreen;
+
+            setMinimumSize(minwidth, minheight);
+            resize(width, height);
+            if (move) {
+                this->move(x, y);
+            }
+
+            if (fullscreen) {
+                showFullScreen();
+            } else {
+                show();
+            }
+
+            // The interpreter is waiting on the actual window size to
+            // set up its canvas.
+            broker::send(m_sock, broker::MsgType::Resized, broker::pack(
+                static_cast<qint32>(m_view->width()),
+                static_cast<qint32>(m_view->height())));
+            broker::send(m_sock, broker::MsgType::FullscreenState, broker::pack(isFullScreen()));
+            break;
+        }
+        case broker::MsgType::SetTitle: {
+            QString title;
+            in >> title;
+            setWindowTitle(title);
+            break;
+        }
+        case broker::MsgType::Frame: {
+            qint32 width, height, stride;
+            QByteArray data;
+            in >> width >> height >> stride >> data;
+            m_view->set_frame(width, height, stride, data);
+            break;
+        }
+        case broker::MsgType::SetCursor: {
+            qint32 cursor;
+            in >> cursor;
+
+            switch (static_cast<broker::Cursor>(cursor)) {
+            case broker::Cursor::Arrow:
+                m_view->unsetCursor();
+                break;
+            case broker::Cursor::IBeam:
+                m_view->setCursor(Qt::IBeamCursor);
+                break;
+            case broker::Cursor::Hand:
+                m_view->setCursor(Qt::PointingHandCursor);
+                break;
+            }
+            break;
+        }
+        case broker::MsgType::ToggleFullscreen:
+            if (isFullScreen()) {
+                if (m_fullscreen_from_maximized) {
+                    showMaximized();
+                } else {
+                    showNormal();
+                }
+            } else {
+                m_fullscreen_from_maximized = isMaximized();
+                showFullScreen();
+            }
+            break;
+        case broker::MsgType::ShowText: {
+            qint32 style;
+            QString title, text;
+            bool rich;
+            in >> style >> title >> text >> rich;
+
+            auto icon = QMessageBox::Icon::Information;
+            switch (static_cast<broker::TextStyle>(style)) {
+            case broker::TextStyle::Info:
+                icon = QMessageBox::Icon::Information;
+                break;
+            case broker::TextStyle::Warning:
+                icon = QMessageBox::Icon::Warning;
+                break;
+            case broker::TextStyle::Critical:
+                icon = QMessageBox::Icon::Critical;
+                break;
+            }
+
+            QMessageBox box(icon, title, text, QMessageBox::Ok, this);
+            box.setTextFormat(rich ? Qt::TextFormat::RichText : Qt::TextFormat::PlainText);
+            box.exec();
+            break;
+        }
+        case broker::MsgType::FileDialog: {
+            bool save;
+            QString prompt, filter, start;
+            in >> save >> prompt >> filter >> start;
+
+            QFileDialog::Options options;
+#ifdef GARGLK_CONFIG_NO_NATIVE_FILE_DIALOGS
+            options |= QFileDialog::DontUseNativeDialog;
+#endif
+
+            QString filename = save
+                ? QFileDialog::getSaveFileName(this, prompt, start, filter, nullptr, options)
+                : QFileDialog::getOpenFileName(this, prompt, start, filter, nullptr, options);
+
+            broker::send(m_sock, broker::MsgType::FileDialogResult, broker::pack(filename));
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    QLocalSocket *m_sock;
+    GameView *m_view;
+    QByteArray m_buffer;
+    bool m_fullscreen_from_maximized = false;
+};
+
+void start_broker()
+{
+    broker_name = QString("gargoyle-%1").arg(QCoreApplication::applicationPid());
+    broker_dpr = QGuiApplication::primaryScreen()->devicePixelRatio();
+
+    QLocalServer::removeServer(broker_name);
+    broker_server = new QLocalServer();
+    broker_server->setSocketOptions(QLocalServer::UserAccessOption);
+    if (!broker_server->listen(broker_name)) {
+        garglk::winmsg("Unable to listen on local socket: " + broker_server->errorString().toStdString());
+        std::exit(EXIT_FAILURE);
+    }
+
+    QObject::connect(broker_server, &QLocalServer::newConnection, broker_server, []() {
+        while (auto *sock = broker_server->nextPendingConnection()) {
+            new GameWindow(sock);
+        }
+    });
+}
+
+void add_recent(const QString &game)
+{
+    auto &settings = broker_settings();
+    auto games = settings.value("recent/games").toStringList();
+    auto path = QFileInfo(game).absoluteFilePath();
+
+    games.removeAll(path);
+    games.prepend(path);
+    while (games.size() > 10) {
+        games.removeLast();
+    }
+
+    settings.setValue("recent/games", games);
+}
+
+bool launch_game(const QString &story)
+{
+    if (story.isEmpty()) {
+        return false;
+    }
+
+    game_launched = true;
+
+    if (!garglk::rungame(story.toStdString())) {
+        return false;
+    }
+
+    add_recent(story);
+
+    return true;
+}
+
+void create_menubar()
+{
+    // On macOS a parentless menu bar becomes the global menu bar,
+    // shared by all windows.
+    auto *menubar = new QMenuBar(nullptr);
+
+    auto *file_menu = menubar->addMenu("File");
+
+    auto *open = file_menu->addAction("Open...");
+    open->setShortcut(QKeySequence::Open);
+    QObject::connect(open, &QAction::triggered, open, []() {
+        launch_game(winbrowsefile());
+    });
+
+    auto *recent_menu = file_menu->addMenu("Open Recent");
+    QObject::connect(recent_menu, &QMenu::aboutToShow, recent_menu, [recent_menu]() {
+        recent_menu->clear();
+
+        const auto games = broker_settings().value("recent/games").toStringList();
+        for (const auto &game : games) {
+            auto *action = recent_menu->addAction(QFileInfo(game).fileName());
+            QObject::connect(action, &QAction::triggered, action, [game]() {
+                launch_game(game);
+            });
+        }
+
+        if (games.isEmpty()) {
+            recent_menu->addAction("No Recent Games")->setEnabled(false);
+        } else {
+            recent_menu->addSeparator();
+            auto *clear = recent_menu->addAction("Clear Menu");
+            QObject::connect(clear, &QAction::triggered, clear, []() {
+                broker_settings().remove("recent/games");
+            });
+        }
+    });
+
+    auto *close = file_menu->addAction("Close");
+    close->setShortcut(QKeySequence::Close);
+    QObject::connect(close, &QAction::triggered, close, []() {
+        auto *window = dynamic_cast<GameWindow *>(QApplication::activeWindow());
+        if (window != nullptr) {
+            window->close();
+        }
+    });
+
+    auto *edit_menu = menubar->addMenu("Edit");
+
+    // As with the Cocoa launcher, cut/copy/paste are delivered to the
+    // focused game as the corresponding key combination.
+    auto forward = [&edit_menu](const QString &name, QKeySequence::StandardKey shortcut, int key, const QString &text) {
+        auto *action = edit_menu->addAction(name);
+        action->setShortcut(shortcut);
+        QObject::connect(action, &QAction::triggered, action, [key, text]() {
+            auto *window = dynamic_cast<GameWindow *>(QApplication::activeWindow());
+            if (window != nullptr) {
+                window->send_key(Qt::ControlModifier, key, text);
+            }
+        });
+    };
+
+    forward("Cut", QKeySequence::Cut, Qt::Key_X, "x");
+    forward("Copy", QKeySequence::Copy, Qt::Key_C, "c");
+    forward("Paste", QKeySequence::Paste, Qt::Key_V, "v");
+
+    edit_menu->addSeparator();
+
+    auto *config = edit_menu->addAction("Edit Configuration...");
+    config->setMenuRole(QAction::PreferencesRole);
+    config->setShortcut(QKeySequence::Preferences);
+    QObject::connect(config, &QAction::triggered, config, []() {
+        gli_edit_config();
+    });
+}
+
+class GargoyleApplication : public QApplication {
+public:
+    using QApplication::QApplication;
+
+protected:
+    bool event(QEvent *event) override
+    {
+        // Sent when a game is opened via Finder, the Dock, etc.
+        if (event->type() == QEvent::FileOpen) {
+            launch_game(static_cast<QFileOpenEvent *>(event)->file());
+            return true;
+        }
+
+        return QApplication::event(event);
+    }
+};
+
+}
+
+#endif
+
 bool garglk::winterp(const std::string &exe, const std::vector<std::string> &flags, const std::string &game)
 {
     // Find the directory that contains the interpreters. By default
@@ -154,6 +674,32 @@ bool garglk::winterp(const std::string &exe, const std::vector<std::string> &fla
     }
     args.push_back(QString::fromStdString(game));
 
+#ifdef GARGLK_CONFIG_QT_BROKER
+    // Spawn the interpreter and return immediately: its window is
+    // managed by this process (see GameWindow above), and multiple
+    // games can run at once.
+    auto *proc = new QProcess();
+
+    auto env = QProcessEnvironment::systemEnvironment();
+    env.insert("GARGOYLE_SOCKET", broker_name);
+    env.insert("GARGOYLE_DPR", QString::number(broker_dpr));
+    // Game windows belong to the launcher, so don't let interpreter
+    // processes show up in the Dock.
+    env.insert("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1");
+    proc->setProcessEnvironment(env);
+
+    proc->setProcessChannelMode(QProcess::ForwardedChannels);
+    QObject::connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), proc, &QObject::deleteLater);
+    proc->start(argv0, args);
+
+    if (!proc->waitForStarted(5000)) {
+        garglk::winmsg("Could not start interpreter " + argv0.toStdString());
+        proc->deleteLater();
+        return false;
+    }
+
+    return true;
+#else
     QProcess proc;
     proc.setProcessChannelMode(QProcess::ForwardedChannels);
     proc.start(argv0, args);
@@ -170,6 +716,7 @@ bool garglk::winterp(const std::string &exe, const std::vector<std::string> &fla
     } else {
         return proc.exitCode() == 0;
     }
+#endif
 }
 
 static QString parse_args(const QApplication &app)
@@ -308,7 +855,11 @@ int main(int argc, char **argv)
     }
 #endif
 
+#ifdef GARGLK_CONFIG_QT_BROKER
+    GargoyleApplication app(argc, argv);
+#else
     QApplication app(argc, argv);
+#endif
 
     QApplication::setApplicationName("gargoyle");
     QApplication::setApplicationVersion(GARGOYLE_VERSION);
@@ -337,6 +888,31 @@ int main(int argc, char **argv)
     }
 #endif
 
+#ifdef GARGLK_CONFIG_QT_BROKER
+    gli_read_config(argc, argv);
+
+    // Stay running after the last game window closes, like a normal
+    // Mac application; quitting is done explicitly (e.g. ⌘Q).
+    QApplication::setQuitOnLastWindowClosed(false);
+
+    start_broker();
+    create_menubar();
+
+    if (!story.isEmpty()) {
+        launch_game(story);
+    } else {
+        // Show a file chooser once the event loop is running, unless
+        // a game was already opened via an Apple event (e.g. a file
+        // double-clicked in Finder) by then.
+        QTimer::singleShot(0, []() {
+            if (!game_launched) {
+                launch_game(winbrowsefile());
+            }
+        });
+    }
+
+    return QApplication::exec();
+#else
     if (story.isEmpty()) {
         story = winbrowsefile();
     }
@@ -349,4 +925,5 @@ int main(int argc, char **argv)
 
     // run story file
     return garglk::rungame(story.toStdString()) ? 0 : 1;
+#endif
 }

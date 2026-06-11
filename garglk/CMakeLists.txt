@@ -261,6 +261,20 @@ else()
         target_link_libraries(gargoyle PRIVATE Qt${QT_VERSION}::Widgets)
     endif()
 
+    # On macOS the launcher acts as a window broker (a single
+    # application owning the menu bar and all game windows, mirroring
+    # the Cocoa interface), with interpreters shipping frames to it
+    # over a local socket; see brokerqt.h.
+    if(APPLE)
+        find_package(Qt${QT_VERSION} COMPONENTS Network REQUIRED CONFIG)
+        target_link_libraries(garglk-common PRIVATE Qt${QT_VERSION}::Network)
+        target_compile_definitions(garglk-common PRIVATE GARGLK_CONFIG_QT_BROKER)
+        if(WITH_LAUNCHER)
+            target_link_libraries(gargoyle PRIVATE Qt${QT_VERSION}::Network)
+            target_compile_definitions(gargoyle PRIVATE GARGLK_CONFIG_QT_BROKER)
+        endif()
+    endif()
+
     target_compile_definitions(garglk-common PRIVATE GARGLK_CONFIG_TICK)
     set(GARGLK_NEEDS_TICK TRUE CACHE INTERNAL "")
 endif()

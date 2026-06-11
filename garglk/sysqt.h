@@ -10,9 +10,7 @@
 #include <QPaintEvent>
 #include <QPoint>
 #include <QResizeEvent>
-#include <QSettings>
 #include <QShowEvent>
-#include <QTimer>
 #include <QWheelEvent>
 #include <QWidget>
 
@@ -45,7 +43,6 @@ protected:
 private:
     int count_click(const QPoint &pos);
 
-    bool m_fullscreen_from_maximized = false;
     QElapsedTimer m_click_timer;
     QPoint m_click_pos;
     int m_clicks = 0;
@@ -57,12 +54,6 @@ public:
     Window();
 
     void refresh() { m_view->refresh(); }
-
-    void start_timer(unsigned long);
-    bool timed_out() const { return m_timed_out; }
-    void reset_timeout() { m_timed_out = false; }
-
-    const QSettings *settings() { return m_settings; }
 
 protected:
     void showEvent(QShowEvent *) override;
@@ -81,9 +72,6 @@ private:
     void updateBufferSize(const QSize &logicalSize);
 
     View *const m_view;
-    QTimer *const m_timer;
-    QSettings *const m_settings;
-    bool m_timed_out = false;
 };
 
 

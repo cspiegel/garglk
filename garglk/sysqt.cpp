@@ -97,6 +97,16 @@
 #include <utility>
 #include <vector>
 
+#ifdef GARGLK_CONFIG_QT_BROKER
+#include <QLocalSocket>
+#include <QPoint>
+
+#include <cmath>
+#include <deque>
+
+#include "brokerqt.h"
+#endif
+
 #include "format.h"
 
 #include "sysqt.h"
@@ -123,10 +133,46 @@ static const std::unordered_map<FileFilter, std::pair<QString, QString>> filters
 static QApplication *app;
 static garglk::Window *window;
 
+// These live outside of Window because in broker mode (see below)
+// there is no Window instance, but timers and settings are still
+// needed.
+static QTimer *timer;
+static bool timer_expired = false;
+static QSettings *settings;
+
+static bool fullscreen_from_maximized = false;
+
 static bool refresh_needed = true;
 
 static constexpr int TICK_PERIOD_MILLIS = 10;
 static std::atomic<bool> process_events(false);
+
+// Broker mode: if the environment variable GARGOYLE_SOCKET is set,
+// this process was spawned by a launcher which acts as a window
+// broker (this is how Gargoyle behaves like a normal application on
+// macOS: a single launcher process owns the menu bar and all game
+// windows). In that case no window is created here; instead, frames
+// are shipped to the launcher and input events are received from it.
+// See brokerqt.h for the protocol.
+enum class TextStyle {
+    Info,
+    Warning,
+    Critical,
+};
+
+static bool broker_mode();
+static void broker_init();
+static void broker_drain();
+static void broker_refresh();
+static void broker_open_window();
+static void broker_settitle(const QString &title);
+static void broker_toggle_fullscreen();
+static bool broker_fullscreen();
+static void broker_show_text(TextStyle style, const QString &title, const QString &text, bool rich);
+static QString broker_file_dialog(bool save, const QString &prompt, const QString &filter, const QString &start);
+
+static void handle_key_event(QKeyEvent *event);
+static void handle_wheel_change(QPoint pixels, QPoint degrees, bool page);
 
 static void handle_input(const QString &input, bool from_paste)
 {
@@ -144,25 +190,45 @@ static void handle_input(const QString &input, bool from_paste)
 
 void glk_request_timer_events(glui32 ms)
 {
-    window->start_timer(ms);
+    if (timer->isActive()) {
+        timer->stop();
+    }
+
+    // QTimer::setInterval() takes int, so limit to avoid wrapping.
+    if (ms > std::numeric_limits<int>::max()) {
+        ms = std::numeric_limits<int>::max();
+    }
+
+    if (ms != 0) {
+        timer->setInterval(ms);
+        timer->start();
+    }
 }
 
 void gli_notification_waiting()
 {
-    QApplication::postEvent(window, new QEvent(QEvent::None));
+    QApplication::postEvent(window != nullptr ? static_cast<QObject *>(window) : app, new QEvent(QEvent::None));
 }
 
 void garglk::winabort(const std::string &msg)
 {
     std::cerr << "fatal: " << msg << std::endl;
-    QMessageBox::critical(nullptr, "Error", msg.c_str());
+    if (broker_mode()) {
+        broker_show_text(TextStyle::Critical, "Error", msg.c_str(), false);
+    } else {
+        QMessageBox::critical(nullptr, "Error", msg.c_str());
+    }
     gli_exit(EXIT_FAILURE);
 }
 
 void garglk::winwarning(const std::string &title, const std::string &msg)
 {
     std::cerr << "warning: " << msg << std::endl;
-    QMessageBox::warning(nullptr, title.c_str(), msg.c_str());
+    if (broker_mode()) {
+        broker_show_text(TextStyle::Warning, title.c_str(), msg.c_str(), false);
+    } else {
+        QMessageBox::warning(nullptr, title.c_str(), msg.c_str());
+    }
 }
 
 void winexit()
@@ -206,7 +272,18 @@ static std::string winchoosefile(const QString &prompt, FileFilter filter, Actio
     }
 
     QString filename;
-    if (dialog.exec() == QDialog::Accepted) {
+    if (broker_mode()) {
+        // The launcher owns all dialogs in broker mode, so instead of
+        // running this one, ship its settings over and let the launcher
+        // put up a dialog of its own.
+        if (action == Action::Open) {
+            QString filterstring = QString("%1;;All files (*)").arg(filters.at(filter).first);
+            filename = broker_file_dialog(false, prompt, filterstring, dialog.directory().absolutePath());
+        } else {
+            QString start = dialog.directory().filePath(QString("Untitled.%1").arg(filters.at(filter).second));
+            filename = broker_file_dialog(true, prompt, filters.at(filter).first, start);
+        }
+    } else if (dialog.exec() == QDialog::Accepted) {
         filename = dialog.selectedFiles().value(0);
     }
 
@@ -259,29 +336,353 @@ static void winclipreceive(QClipboard::Mode mode)
     handle_input(text, true);
 }
 
-garglk::Window::Window() :
-    m_view(new View(this)),
-    m_timer(new QTimer(this)),
-    // Qt programs have an organization and name that can be set, and
-    // Gargoyle used to set these to "io.github.garglk" and "Gargoyle".
-    // The QSettings here followed that. However, Gargoyle now uses an
-    // empty organization and the name "gargoyle" (on Unix) so that
-    // directories are more conventionally-named, e.g. /usr/share/gargoyle
-    // instead of /usr/share/io.github.garglk/Gargoyle. But QSettings
-    // _requires_ an organization name. Given that this is a setting
-    // users aren't ever supposed to see anyhow, and that these exact
-    // names were used in the past, keep them the same so that older
-    // configurations can be loaded. Ideally this would probably just be
-    // "gargoyle" and "gargoyle" but aesthetics are nowhere near as
-    // important as not losing settings; and since nobody is going to
-    // see these names in the normal course of using Gargoyle, it
-    // doesn't really matter anyway.
-    m_settings(new QSettings("io.github.garglk", "Gargoyle", this))
+#ifdef GARGLK_CONFIG_QT_BROKER
+
+static QLocalSocket *broker_sock = nullptr;
+static QByteArray broker_inbuf;
+static std::deque<garglk::broker::Message> broker_pending;
+static bool broker_disconnected = false;
+static double broker_dpr = 1.0;
+static bool broker_is_fullscreen = false;
+
+static bool broker_mode()
 {
-    m_timer->setTimerType(Qt::TimerType::PreciseTimer);
-    connect(m_timer, &QTimer::timeout, this, [&]() {
-        m_timed_out = true;
+    return broker_sock != nullptr;
+}
+
+static void broker_post(garglk::broker::MsgType type, const QByteArray &payload = QByteArray())
+{
+    garglk::broker::send(broker_sock, type, payload);
+}
+
+// The window is gone, or the launcher died. Stop all sound channels
+// before exiting so the interpreter doesn't keep playing while it
+// shuts down.
+static void broker_exit(int status)
+{
+    for (channel_t *chan = glk_schannel_iterate(nullptr, nullptr); chan != nullptr; chan = glk_schannel_iterate(chan, nullptr)) {
+        glk_schannel_stop(chan);
+    }
+
+    gli_exit(status);
+}
+
+static void broker_refresh()
+{
+    if (!gli_drawselect) {
+        gli_windows_redraw();
+    } else {
+        gli_drawselect = false;
+    }
+
+    QByteArray payload;
+    QDataStream out(&payload, QIODevice::WriteOnly);
+    out << static_cast<qint32>(gli_image_rgb.width())
+        << static_cast<qint32>(gli_image_rgb.height())
+        << static_cast<qint32>(gli_image_rgb.stride())
+        << QByteArray::fromRawData(reinterpret_cast<const char *>(gli_image_rgb.data()), gli_image_rgb.size());
+    broker_post(garglk::broker::MsgType::Frame, payload);
+
+    refresh_needed = false;
+}
+
+static void broker_set_cursor(garglk::broker::Cursor cursor)
+{
+    static auto last = garglk::broker::Cursor::Arrow;
+
+    if (cursor != last) {
+        last = cursor;
+        broker_post(garglk::broker::MsgType::SetCursor, garglk::broker::pack(static_cast<qint32>(cursor)));
+    }
+}
+
+static void broker_handle(const garglk::broker::Message &msg)
+{
+    using garglk::broker::MsgType;
+
+    QDataStream in(msg.payload);
+
+    switch (msg.type) {
+    case MsgType::Resized: {
+        static bool first_resize = true;
+
+        qint32 w, h;
+        in >> w >> h;
+
+        int neww = std::lround(w * broker_dpr);
+        int newh = std::lround(h * broker_dpr);
+
+        if (neww == gli_image_rgb.width() && newh == gli_image_rgb.height()) {
+            break;
+        }
+
+        refresh_needed = true;
+
+        // As with the non-broker resize handler, the initial resize
+        // occurs before the Glk program even starts, so shouldn't
+        // create an arrange event.
+        gli_windows_size_change(neww, newh, !first_resize);
+
+        first_resize = false;
+        break;
+    }
+    case MsgType::KeyEvent: {
+        qint32 key;
+        quint32 modifiers;
+        QString text;
+        in >> key >> modifiers >> text;
+
+        QKeyEvent event(QEvent::KeyPress, key, static_cast<Qt::KeyboardModifiers>(modifiers), text);
+        handle_key_event(&event);
+        break;
+    }
+    case MsgType::MouseEvent: {
+        qint32 type, x, y, button;
+        in >> type >> x >> y >> button;
+
+        x = std::lround(x * broker_dpr);
+        y = std::lround(y * broker_dpr);
+
+        switch (static_cast<QEvent::Type>(type)) {
+        case QEvent::MouseButtonPress:
+            if (button == Qt::LeftButton) {
+                gli_input_handle_click(x, y);
+            } else if (button == Qt::MiddleButton) {
+                winclipreceive(QClipboard::Selection);
+            }
+            break;
+        case QEvent::MouseMove:
+            if (gli_copyselect) {
+                broker_set_cursor(garglk::broker::Cursor::IBeam);
+                gli_move_selection(x, y);
+            } else {
+                broker_set_cursor(gli_get_hyperlink(x, y) != 0 ? garglk::broker::Cursor::Hand : garglk::broker::Cursor::Arrow);
+            }
+            break;
+        case QEvent::MouseButtonRelease:
+            if (button == Qt::LeftButton) {
+                gli_copyselect = false;
+                broker_set_cursor(garglk::broker::Cursor::Arrow);
+                winclipsend(QClipboard::Selection);
+            }
+            break;
+        default:
+            break;
+        }
+
+        break;
+    }
+    case MsgType::WheelEvent: {
+        qint32 pixel_x, pixel_y, degree_x, degree_y;
+        bool page;
+        in >> pixel_x >> pixel_y >> degree_x >> degree_y >> page;
+
+        handle_wheel_change(QPoint(pixel_x, pixel_y), QPoint(degree_x, degree_y) / 8, page);
+        break;
+    }
+    case MsgType::FullscreenState: {
+        bool fullscreen;
+        in >> fullscreen;
+        broker_is_fullscreen = fullscreen;
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+static void broker_drain()
+{
+    if (!broker_mode()) {
+        return;
+    }
+
+    while (!broker_pending.empty()) {
+        auto msg = std::move(broker_pending.front());
+        broker_pending.pop_front();
+        broker_handle(msg);
+    }
+
+    if (broker_disconnected) {
+        broker_exit(1);
+    }
+}
+
+// Wait for a specific message, dispatching any others that arrive in
+// the meantime. Used where the protocol is synchronous from the
+// interpreter's point of view (file dialogs, initial window size).
+static garglk::broker::Message broker_wait_for(garglk::broker::MsgType type)
+{
+    while (true) {
+        while (!broker_pending.empty()) {
+            auto msg = std::move(broker_pending.front());
+            broker_pending.pop_front();
+
+            if (msg.type == type) {
+                return msg;
+            }
+
+            broker_handle(msg);
+        }
+
+        if (broker_disconnected) {
+            broker_exit(1);
+        }
+
+        app->processEvents(QEventLoop::WaitForMoreEvents);
+    }
+}
+
+static void broker_open_window()
+{
+    using garglk::broker::MsgType;
+
+    int defw = gli_wmarginx * 2 + gli_cellw * gli_cols;
+    int defh = gli_wmarginy * 2 + gli_cellh * gli_rows;
+    QSize size(std::lround(defw / broker_dpr), std::lround(defh / broker_dpr));
+
+    if (gli_conf_save_window_size) {
+        auto stored_size = settings->value("window/size");
+        if (stored_size.canConvert<QSize>()) {
+            size = stored_size.toSize();
+        }
+    }
+
+    bool move = false;
+    QPoint position;
+    if (gli_conf_save_window_location) {
+        auto stored_position = settings->value("window/position");
+        if (stored_position.canConvert<QPoint>()) {
+            position = stored_position.toPoint();
+            move = true;
+        }
+    }
+
+    bool do_fullscreen = gli_conf_fullscreen;
+    if (gli_conf_save_window_location || gli_conf_save_window_size) {
+        auto fullscreen = settings->value("window/fullscreen");
+        if (fullscreen.canConvert<bool>()) {
+            do_fullscreen = fullscreen.toBool();
+        }
+    }
+
+    broker_post(MsgType::NewWindow, garglk::broker::pack(
+        move,
+        static_cast<qint32>(position.x()),
+        static_cast<qint32>(position.y()),
+        static_cast<qint32>(size.width()),
+        static_cast<qint32>(size.height()),
+        static_cast<qint32>(std::lround(gli_wmarginx * 2 / broker_dpr)),
+        static_cast<qint32>(std::lround(gli_wmarginy * 2 / broker_dpr)),
+        do_fullscreen));
+
+    // The canvas can't be set up until the actual window size is
+    // known, so wait for the launcher to report it.
+    auto msg = broker_wait_for(MsgType::Resized);
+    broker_handle(msg);
+}
+
+static void broker_settitle(const QString &title)
+{
+    broker_post(garglk::broker::MsgType::SetTitle, garglk::broker::pack(title));
+}
+
+static void broker_toggle_fullscreen()
+{
+    broker_post(garglk::broker::MsgType::ToggleFullscreen);
+}
+
+static bool broker_fullscreen()
+{
+    return broker_is_fullscreen;
+}
+
+static void broker_show_text(TextStyle style, const QString &title, const QString &text, bool rich)
+{
+    broker_post(garglk::broker::MsgType::ShowText, garglk::broker::pack(static_cast<qint32>(style), title, text, rich));
+}
+
+static QString broker_file_dialog(bool save, const QString &prompt, const QString &filter, const QString &start)
+{
+    broker_post(garglk::broker::MsgType::FileDialog, garglk::broker::pack(save, prompt, filter, start));
+
+    auto msg = broker_wait_for(garglk::broker::MsgType::FileDialogResult);
+    QDataStream in(msg.payload);
+    QString filename;
+    in >> filename;
+
+    return filename;
+}
+
+static void broker_init()
+{
+    const char *sockname = std::getenv("GARGOYLE_SOCKET");
+    if (sockname == nullptr) {
+        return;
+    }
+
+    const char *dpr = std::getenv("GARGOYLE_DPR");
+    if (dpr != nullptr) {
+        broker_dpr = std::max(1.0, std::atof(dpr));
+    }
+
+    broker_sock = new QLocalSocket();
+
+    QObject::connect(broker_sock, &QLocalSocket::readyRead, []() {
+        broker_inbuf.append(broker_sock->readAll());
+        garglk::broker::extract(broker_inbuf, broker_pending);
     });
+
+    QObject::connect(broker_sock, &QLocalSocket::disconnected, []() {
+        broker_disconnected = true;
+    });
+
+    broker_sock->connectToServer(sockname);
+    if (!broker_sock->waitForConnected(5000)) {
+        std::cerr << "fatal: unable to connect to gargoyle launcher: " << broker_sock->errorString().toStdString() << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    gli_backingscalefactor = broker_dpr;
+
+    // Ensure the final frame (e.g. any parting message from the game)
+    // is delivered before exiting.
+    std::atexit([]() {
+        if (broker_sock->state() == QLocalSocket::ConnectedState) {
+            while (broker_sock->bytesToWrite() > 0 && broker_sock->waitForBytesWritten(1000)) {
+            }
+            broker_sock->disconnectFromServer();
+        }
+    });
+}
+
+#else
+
+static bool broker_mode() { return false; }
+static void broker_init() { }
+static void broker_drain() { }
+static void broker_refresh() { }
+static void broker_open_window() { }
+static void broker_settitle(const QString &) { }
+static void broker_toggle_fullscreen() { }
+static bool broker_fullscreen() { return false; }
+static void broker_show_text(TextStyle, const QString &, const QString &, bool) { }
+static QString broker_file_dialog(bool, const QString &, const QString &, const QString &) { return QString(); }
+
+#endif
+
+static void do_refresh()
+{
+    if (broker_mode()) {
+        broker_refresh();
+    } else {
+        window->refresh();
+    }
+}
+
+garglk::Window::Window() :
+    m_view(new View(this))
+{
 }
 
 void garglk::Window::showEvent(QShowEvent *event)
@@ -353,11 +754,11 @@ void garglk::Window::updateBufferSize(const QSize &logicalSize)
     gli_windows_size_change(physwid, physhgt, !first_call);
 
     if (gli_conf_save_window_size) {
-        m_settings->setValue("window/size", logicalSize);
+        settings->setValue("window/size", logicalSize);
     }
 
     if (gli_conf_save_window_location || gli_conf_save_window_size) {
-        m_settings->setValue("window/fullscreen", ::window->isFullScreen());
+        settings->setValue("window/fullscreen", ::window->isFullScreen());
     }
 
     first_call = false;
@@ -377,7 +778,7 @@ void garglk::Window::resizeEvent(QResizeEvent *event)
 void garglk::Window::moveEvent(QMoveEvent *event)
 {
     if (gli_conf_save_window_location) {
-        m_settings->setValue("window/position", event->pos());
+        settings->setValue("window/position", event->pos());
     }
 
     event->accept();
@@ -429,23 +830,6 @@ void garglk::View::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.drawImage(QPoint(0, 0), image);
     event->accept();
-}
-
-void garglk::Window::start_timer(unsigned long ms)
-{
-    if (m_timer->isActive()) {
-        m_timer->stop();
-    }
-
-    // QTimer::setInterval() takes int, so limit to avoid wrapping.
-    if (ms > std::numeric_limits<int>::max()) {
-        ms = std::numeric_limits<int>::max();
-    }
-
-    if (ms != 0) {
-        m_timer->setInterval(ms);
-        m_timer->start();
-    }
 }
 
 void gli_edit_config()
@@ -517,6 +901,11 @@ static void show_paths()
     }
     text += "</pre>";
 
+    if (broker_mode()) {
+        broker_show_text(TextStyle::Info, "Paths", text, true);
+        return;
+    }
+
     QMessageBox box(QMessageBox::Icon::Information, "Paths", text);
     box.setTextFormat(Qt::TextFormat::RichText);
     box.exec();
@@ -528,6 +917,11 @@ static void show_themes()
 
     for (const auto &theme_name : garglk::theme::names()) {
         text += QString("• ") + QString::fromStdString(theme_name) + "\n";
+    }
+
+    if (broker_mode()) {
+        broker_show_text(TextStyle::Info, "Themes", text, false);
+        return;
     }
 
     QMessageBox box(QMessageBox::Icon::Information, "Themes", text);
@@ -543,7 +937,7 @@ static constexpr Qt::KeyboardModifier RealCtrl = Qt::MetaModifier;
 static constexpr Qt::KeyboardModifier RealCtrl = Qt::ControlModifier;
 #endif
 
-void garglk::View::keyPressEvent(QKeyEvent *event)
+static void handle_key_event(QKeyEvent *event)
 {
     Qt::KeyboardModifiers modmasked = event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier);
 
@@ -639,21 +1033,28 @@ void garglk::View::keyPressEvent(QKeyEvent *event)
 
         {{Qt::ShiftModifier | Qt::ControlModifier, Qt::Key_S}, []{
             auto text = gli_get_scrollback();
-            if (text.has_value()) {
-                auto filename = QFileDialog::getSaveFileName(::window, "Save transcript", "transcript.txt", "Text files (*.txt)");
-                if (!filename.isNull()) {
-                    QFile file(filename);
-                    if (file.open(QIODevice::WriteOnly)) {
-                        std::size_t n = file.write(text->data(), text->size());
-                        if (n != text->size()) {
-                            QMessageBox::critical(nullptr, "Error", "Error writing entire transcript.");
-                        }
-                    } else {
-                        QMessageBox::critical(nullptr, "Error", "Unable to open file for writing.");
-                    }
-                }
+            if (!text.has_value()) {
+                garglk::winwarning("Warning", "Could not find appropriate window for scrollback.");
+                return;
+            }
+
+            QString filename;
+            if (broker_mode()) {
+                filename = broker_file_dialog(true, "Save transcript", "Text files (*.txt)", "transcript.txt");
             } else {
-                QMessageBox::warning(nullptr, "Warning", "Could not find appropriate window for scrollback.");
+                filename = QFileDialog::getSaveFileName(::window, "Save transcript", "transcript.txt", "Text files (*.txt)");
+            }
+
+            if (!filename.isNull()) {
+                QFile file(filename);
+                if (file.open(QIODevice::WriteOnly)) {
+                    std::size_t n = file.write(text->data(), text->size());
+                    if (n != text->size()) {
+                        garglk::winwarning("Error", "Error writing entire transcript.");
+                    }
+                } else {
+                    garglk::winwarning("Error", "Unable to open file for writing.");
+                }
             }
         }},
 
@@ -663,18 +1064,23 @@ void garglk::View::keyPressEvent(QKeyEvent *event)
         // change. For Mac, use Meta+Ctrl+F, and Alt-Enter everywhere
         // else.
 #ifdef Q_OS_MAC
-        {{Qt::MetaModifier | Qt::ControlModifier, Qt::Key_F}, [this]{
+        {{Qt::MetaModifier | Qt::ControlModifier, Qt::Key_F}, []{
 #else
-        {{Qt::AltModifier, Qt::Key_Return}, [this]{
+        {{Qt::AltModifier, Qt::Key_Return}, []{
 #endif
+            if (broker_mode()) {
+                broker_toggle_fullscreen();
+                return;
+            }
+
             if (::window->isFullScreen()) {
-                if (m_fullscreen_from_maximized) {
+                if (fullscreen_from_maximized) {
                     ::window->showMaximized();
                 } else {
                     ::window->showNormal();
                 }
             } else {
-                m_fullscreen_from_maximized = ::window->isMaximized();
+                fullscreen_from_maximized = ::window->isMaximized();
                 ::window->showFullScreen();
             }
         }},
@@ -694,6 +1100,11 @@ void garglk::View::keyPressEvent(QKeyEvent *event)
     }
 
     handle_input(event->text(), false);
+}
+
+void garglk::View::keyPressEvent(QKeyEvent *event)
+{
+    handle_key_event(event);
 }
 
 void garglk::View::mouseMoveEvent(QMouseEvent *event)
@@ -772,12 +1183,9 @@ void garglk::View::mouseReleaseEvent(QMouseEvent *event)
     event->accept();
 }
 
-void garglk::View::wheelEvent(QWheelEvent *event)
+static void handle_wheel_change(QPoint pixels, QPoint degrees, bool page)
 {
-    QPoint pixels = event->pixelDelta();
-    QPoint degrees = event->angleDelta() / 8;
     int change = 0;
-    bool page = event->modifiers() == Qt::ShiftModifier;
 
     if (!pixels.isNull()) {
         change = pixels.y();
@@ -803,7 +1211,11 @@ void garglk::View::wheelEvent(QWheelEvent *event)
             gli_input_handle_key(keycode_MouseWheelDown);
         }
     }
+}
 
+void garglk::View::wheelEvent(QWheelEvent *event)
+{
+    handle_wheel_change(event->pixelDelta(), event->angleDelta() / 8, event->modifiers() == Qt::ShiftModifier);
     event->accept();
 }
 
@@ -855,6 +1267,30 @@ void wininit()
     QApplication::setApplicationName("gargoyle");
 #endif
 
+    timer = new QTimer();
+    timer->setTimerType(Qt::TimerType::PreciseTimer);
+    QObject::connect(timer, &QTimer::timeout, []() {
+        timer_expired = true;
+    });
+
+    // Qt programs have an organization and name that can be set, and
+    // Gargoyle used to set these to "io.github.garglk" and "Gargoyle".
+    // The QSettings here followed that. However, Gargoyle now uses an
+    // empty organization and the name "gargoyle" (on Unix) so that
+    // directories are more conventionally-named, e.g. /usr/share/gargoyle
+    // instead of /usr/share/io.github.garglk/Gargoyle. But QSettings
+    // _requires_ an organization name. Given that this is a setting
+    // users aren't ever supposed to see anyhow, and that these exact
+    // names were used in the past, keep them the same so that older
+    // configurations can be loaded. Ideally this would probably just be
+    // "gargoyle" and "gargoyle" but aesthetics are nowhere near as
+    // important as not losing settings; and since nobody is going to
+    // see these names in the normal course of using Gargoyle, it
+    // doesn't really matter anyway.
+    settings = new QSettings("io.github.garglk", "Gargoyle");
+
+    broker_init();
+
     std::thread([]() {
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(TICK_PERIOD_MILLIS));
@@ -866,6 +1302,12 @@ void wininit()
 
 void winopen()
 {
+    if (broker_mode()) {
+        broker_open_window();
+        wintitle();
+        return;
+    }
+
     window = new garglk::Window();
 
     // Qt window geometry is in logical pixels, but the metrics here are
@@ -878,7 +1320,7 @@ void winopen()
     int defh = std::round((gli_wmarginy * 2 + gli_cellh * gli_rows) / gli_backingscalefactor);
     QSize size(defw, defh);
     if (gli_conf_save_window_size) {
-        auto stored_size = window->settings()->value("window/size");
+        auto stored_size = settings->value("window/size");
         if (stored_size.canConvert<QSize>()) {
             size = stored_size.toSize();
         }
@@ -886,7 +1328,7 @@ void winopen()
     window->resize(size);
 
     if (gli_conf_save_window_location) {
-        auto position = window->settings()->value("window/position");
+        auto position = settings->value("window/position");
         if (position.canConvert<QPoint>()) {
             window->move(position.toPoint());
         }
@@ -897,7 +1339,7 @@ void winopen()
     bool do_fullscreen = gli_conf_fullscreen;
 
     if (gli_conf_save_window_location || gli_conf_save_window_size) {
-        auto fullscreen = window->settings()->value("window/fullscreen");
+        auto fullscreen = settings->value("window/fullscreen");
         if (fullscreen.canConvert<bool>()) {
             do_fullscreen = fullscreen.toBool();
         }
@@ -922,7 +1364,11 @@ void wintitle()
         title = QString::fromStdString(gli_program_name);
     }
 
-    window->setWindowTitle(title);
+    if (broker_mode()) {
+        broker_settitle(title);
+    } else {
+        window->setWindowTitle(title);
+    }
 }
 
 void winrepaint(int x0, int y0, int x1, int y1)
@@ -1026,6 +1472,10 @@ std::optional<std::string> garglk::winappdir()
 
 bool garglk::winisfullscreen()
 {
+    if (broker_mode()) {
+        return broker_fullscreen();
+    }
+
     return window->isFullScreen();
 }
 
@@ -1050,28 +1500,30 @@ void gli_select(event_t *event, bool polled)
     gli_event_clearevent(event);
 
     app->processEvents();
+    broker_drain();
 
     gli_dispatch_event(event, polled);
 
     if (refresh_needed) {
-        window->refresh();
+        do_refresh();
     }
 
     if (!polled) {
-        while (event->type == evtype_None && !window->timed_out()) {
+        while (event->type == evtype_None && !timer_expired) {
             if (refresh_needed) {
-                window->refresh();
+                do_refresh();
             }
 
             app->processEvents(QEventLoop::WaitForMoreEvents);
+            broker_drain();
             gli_dispatch_event(event, polled);
         }
     }
 
-    if (event->type == evtype_None && window->timed_out()) {
+    if (event->type == evtype_None && timer_expired) {
         gli_event_store(evtype_Timer, nullptr, 0, 0);
         gli_dispatch_event(event, polled);
-        window->reset_timeout();
+        timer_expired = false;
     }
 
     process_events.store(false, std::memory_order_relaxed);
