@@ -9,12 +9,13 @@ fatal() {
 
 GARGOYLE_CLEAN=
 GARGOYLE_FRANKENDRIFT="OFF"
+GARGOYLE_INTERFACE="COCOA"
 GARGOYLE_NO_DMG=
 GARGOYLE_SOUND="SDL3"
 GARGOYLE_SCARE="OFF"
 GARGOYLE_CMAKE_EXTRAS=""
 
-while getopts "2cfns" o
+while getopts "2cfnqs" o
 do
     case "${o}" in
         2)
@@ -29,11 +30,16 @@ do
         n)
             GARGOYLE_NO_DMG=1
             ;;
+        q)
+            # Build with the Qt interface instead of Cocoa. When
+            # switching interfaces, a clean build (-c) is recommended.
+            GARGOYLE_INTERFACE="QT"
+            ;;
         s)
             GARGOYLE_SCARE="ON"
             ;;
         *)
-            fatal "Usage: $0 [-2cfns]"
+            fatal "Usage: $0 [-2cfnqs]"
             ;;
     esac
 done
@@ -103,6 +109,14 @@ case "${HOMEBREW_ARCH}" in
         ;;
 esac
 
+# The Qt interface uses Qt for sound as well, so that the whole stack
+# (including the plugins deployed by macdeployqt) is Qt. This overrides
+# the SDL default (or an explicit -2).
+if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
+then
+    GARGOYLE_SOUND="QT"
+fi
+
 # Ensure a sane environment (mainly be certain GNU programs aren't visible).
 export PATH="${HOMEBREW_OR_MACPORTS_LOCATION}/bin:/usr/bin:/bin:/usr/sbin"
 
@@ -130,7 +144,7 @@ mkdir -p "$BUNDLE/PlugIns"
 rm -rf $GARGDIST
 mkdir -p build-osx
 cd build-osx
-cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_MIN_VER} -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DSOUND="${GARGOYLE_SOUND}" -DWITH_FRANKENDRIFT="${GARGOYLE_FRANKENDRIFT}" -DWITH_SCARE="${GARGOYLE_SCARE}" ${GARGOYLE_CMAKE_EXTRAS}
+cmake .. -DBUILD_SHARED_LIBS=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOS_MIN_VER} -DDIST_INSTALL=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_FRAMEWORK=LAST -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DSOUND="${GARGOYLE_SOUND}" -DWITH_FRANKENDRIFT="${GARGOYLE_FRANKENDRIFT}" -DWITH_SCARE="${GARGOYLE_SCARE}" -DINTERFACE="${GARGOYLE_INTERFACE}" ${GARGOYLE_CMAKE_EXTRAS}
 make "-j${NUMJOBS}"
 make install
 cd -
@@ -138,20 +152,40 @@ cd -
 # Copy the main executable to the MacOS directory;
 cp "$GARGDIST/gargoyle" "$BUNDLE/MacOS/Gargoyle"
 
-# Copy terps to the PlugIns directory.
-find "${GARGDIST}" -type f -not -name '*.dylib' -not -name 'gargoyle' -print0 | xargs -0 -J @ cp @ "$BUNDLE/PlugIns"
+# Copy terps: the Cocoa launcher loads them from the bundle's PlugIns
+# directory, while the Qt launcher looks in its own directory.
+if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
+then
+    TERP_DIR="$BUNDLE/MacOS"
+else
+    TERP_DIR="$BUNDLE/PlugIns"
+fi
+find "${GARGDIST}" -type f -not -name '*.dylib' -not -name 'gargoyle' -print0 | xargs -0 -J @ cp @ "$TERP_DIR"
 
 # Copy the dylibs built to the Frameworks directory.
 find "${GARGDIST}" -type f -name '*.dylib' -exec cp {} "$BUNDLE/Frameworks" \;
 
 echo "Copying all required dylibs..."
+
+# List the Homebrew/MacPorts dylibs a file references. For Qt builds,
+# Qt frameworks (and their plugins) are deployed by macdeployqt
+# instead, so leave them out here.
+homebrew_dylibs() {
+  if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
+  then
+    otool -L "${1}" | grep -F "${HOMEBREW_OR_MACPORTS_LOCATION}" | grep -v '\.framework/' | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/'
+  else
+    otool -L "${1}" | grep -F "${HOMEBREW_OR_MACPORTS_LOCATION}" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/'
+  fi
+}
+
 PREVIOUS_UNIQUE_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
 copy_new_dylibs() {
   # Get the dylibs needed.
   ALL_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
   find "${BUNDLE}" -type f -print0 | while IFS= read -r -d "" file
   do
-    otool -L "${file}" | grep -F "${HOMEBREW_OR_MACPORTS_LOCATION}" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/' >> "${ALL_DYLIB_PATHS}"
+    homebrew_dylibs "${file}" >> "${ALL_DYLIB_PATHS}"
   done
   UNIQUE_DYLIB_PATHS="$(mktemp -t gargoylebuild)"
   sort "${ALL_DYLIB_PATHS}" | uniq > "${UNIQUE_DYLIB_PATHS}"
@@ -185,7 +219,7 @@ find "${BUNDLE}/Frameworks" -type f -exec install_name_tool -id "@executable_pat
 find "${BUNDLE}" -type f -print0 | while IFS= read -r -d "" file_path
 do
   # Replace dylib paths.
-  for original_dylib_path in $(otool -L "${file_path}" | grep -F "${HOMEBREW_OR_MACPORTS_LOCATION}" | sed -E -e 's/^[[:space:]]+(.*)[[:space:]]+\([^)]*\)$/\1/'); do
+  for original_dylib_path in $(homebrew_dylibs "${file_path}"); do
     install_name_tool -change "${original_dylib_path}" "@executable_path/../Frameworks/$(basename "${original_dylib_path}")" "${file_path}"
   done
 done
@@ -197,13 +231,48 @@ do
 done
 
 # Ensure interpreters can find libgarglk
-find Gargoyle.app/Contents/PlugIns/ -type f -exec install_name_tool -add_rpath '@executable_path/../Frameworks' {} \;
+find "$TERP_DIR" -type f -not -name 'Gargoyle' -exec install_name_tool -add_rpath '@executable_path/../Frameworks' {} \;
 install_name_tool -add_rpath '@executable_path/../Frameworks' "$BUNDLE/MacOS/Gargoyle"
+
+if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
+then
+    echo "Deploying Qt..."
+    MACDEPLOYQT="$(command -v macdeployqt || command -v macdeployqt6 || echo "${HOMEBREW_OR_MACPORTS_LOCATION}/libexec/qt6/bin/macdeployqt")"
+    [[ -x "${MACDEPLOYQT}" ]] || fatal "macdeployqt not found"
+
+    # macdeployqt needs Info.plist to locate the main executable.
+    /usr/bin/sed -E -e "s/INSERT_VERSION_HERE/$GARVERSION/" garglk/launcher.plist > $BUNDLE/Info.plist
+
+    # All executables (the launcher and the terps) need their Qt
+    # references fixed up.
+    MACDEPLOYQT_ARGS=()
+    while IFS= read -r -d "" file
+    do
+        MACDEPLOYQT_ARGS+=("-executable=${file}")
+    done < <(find "$BUNDLE/MacOS" -type f -print0)
+
+    "${MACDEPLOYQT}" Gargoyle.app "${MACDEPLOYQT_ARGS[@]}"
+
+    # Interpreters are plain executables rather than the bundle's main
+    # binary, so they don't see the qt.conf that macdeployqt puts in
+    # Resources; give them one next to the binaries so they can find
+    # the Qt plugins (e.g. the cocoa platform plugin).
+    printf '[Paths]\nPlugins = ../PlugIns\n' > "$BUNDLE/MacOS/qt.conf"
+
+    # macdeployqt deploys the SVG icon-engine plugin without its QtSvg
+    # framework, since nothing in Gargoyle links against QtSvg. Drop
+    # the plugin rather than ship a broken one.
+    rm -f "$BUNDLE/PlugIns/iconengines/libqsvgicon.dylib"
+fi
 
 echo "Copying additional support files..."
 /usr/bin/sed -E -e "s/INSERT_VERSION_HERE/$GARVERSION/" garglk/launcher.plist > $BUNDLE/Info.plist
 
-cp garglk/launchmac.nib "$BUNDLE/Resources/MainMenu.nib"
+if [[ "${GARGOYLE_INTERFACE}" == "COCOA" ]]
+then
+    cp garglk/launchmac.nib "$BUNDLE/Resources/MainMenu.nib"
+fi
+
 cp garglk/garglk.ini "$BUNDLE/Resources"
 cp garglk/*.icns "$BUNDLE/Resources"
 cp licenses/* "$BUNDLE/Resources"
@@ -212,12 +281,25 @@ cp fonts/Gargoyle*.ttf $BUNDLE/Resources/Fonts
 cp fonts/unifont*.otf $BUNDLE/Resources
 cp themes/*.json $BUNDLE/Resources/themes
 
+# The Qt interface looks for the bundled fonts next to the executable.
+if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
+then
+    cp fonts/Gargoyle*.ttf fonts/unifont*.otf "$BUNDLE/MacOS"
+fi
+
 codesign -s - -f --deep Gargoyle.app
+
+if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
+then
+    DMG_NAME="gargoyle-qt-$GARVERSION-$TARGET_ARCH.dmg"
+else
+    DMG_NAME="gargoyle-$GARVERSION-$TARGET_ARCH.dmg"
+fi
 
 if [[ -z "${GARGOYLE_NO_DMG}" ]]
 then
     echo "Creating DMG..."
-    hdiutil create -fs "HFS+J" -ov -srcfolder Gargoyle.app/ "gargoyle-$GARVERSION-$TARGET_ARCH.dmg"
+    hdiutil create -fs "HFS+J" -ov -srcfolder Gargoyle.app/ "${DMG_NAME}"
 fi
 
 echo "Done."
