@@ -173,6 +173,13 @@ then
     prune_bundle Gargoyle-x86_64.app
     prune_bundle Gargoyle.app
 
+    # The lipo loop below walks only the ARM bundle, so a file present
+    # only in the x86_64 bundle would be silently dropped (and its
+    # x86_64 dependents broken at runtime on Intel) rather than failing
+    # the build. Require the two bundles to have identical file sets.
+    diff <(cd Gargoyle.app && find . -type f | sort) \
+         <(cd Gargoyle-x86_64.app && find . -type f | sort)
+
     # The set of Mach-O files (and their locations) differs between
     # the Cocoa and Qt layouts: Qt has framework directories and
     # plugin subdirectories, and its terps are in MacOS instead of
