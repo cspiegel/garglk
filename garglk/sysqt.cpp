@@ -26,6 +26,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFrame>
@@ -40,6 +41,7 @@
 #include <QPainter>
 #include <QPalette>
 #include <QPixmap>
+#include <QPoint>
 #include <QProcess>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -99,7 +101,6 @@
 
 #ifdef GARGLK_CONFIG_QT_BROKER
 #include <QLocalSocket>
-#include <QPoint>
 
 #include <cmath>
 #include <deque>
@@ -160,6 +161,12 @@ enum class TextStyle {
     Critical,
 };
 
+enum class CursorShape {
+    Arrow,
+    IBeam,
+    Hand,
+};
+
 static bool broker_mode();
 static void broker_init();
 static void broker_drain();
@@ -173,6 +180,13 @@ static QString broker_file_dialog(bool save, const QString &prompt, const QStrin
 
 static void handle_key_event(QKeyEvent *event);
 static void handle_wheel_change(QPoint pixels, QPoint degrees, bool page);
+static int count_click(const QPoint &pos);
+static void handle_mouse_press(int x, int y, Qt::MouseButton button, int clicks);
+static void handle_mouse_move(int x, int y);
+static void handle_mouse_release(Qt::MouseButton button);
+static void set_cursor(CursorShape shape);
+static void show_text(TextStyle style, const QString &title, const QString &text, bool rich);
+static QString file_dialog(bool save, const QString &prompt, const QString &filter, const QString &start);
 
 static void handle_input(const QString &input, bool from_paste)
 {
@@ -186,6 +200,81 @@ static void handle_input(const QString &input, bool from_paste)
             fn(c);
         }
     }
+}
+
+// Redraw any windows that need it, unless a selection is in progress
+// (in which case the screen is left alone). Shared by the windowed and
+// broker refresh paths.
+static void redraw()
+{
+    if (!gli_drawselect || gli_force_redraw) {
+        gli_windows_redraw();
+    } else {
+        gli_drawselect = false;
+    }
+
+    refresh_needed = false;
+}
+
+// Handle a change in the window's size (in device pixels), shared by
+// the windowed and broker paths. Returns false if the canvas size
+// didn't actually change.
+static bool handle_resize(int neww, int newh)
+{
+    static bool first_resize = true;
+
+    if (neww == gli_image_rgb.width() && newh == gli_image_rgb.height()) {
+        return false;
+    }
+
+    refresh_needed = true;
+
+    // The initial resize occurs before the Glk program even starts, so
+    // shouldn't create an arrange event.
+    gli_windows_size_change(neww, newh, !first_resize);
+    first_resize = false;
+
+    return true;
+}
+
+// The stored (or default) window geometry, used by both the windowed
+// and broker window-open paths. The default size differs between the
+// two (the broker works in logical, DPR-independent coordinates), so
+// it's passed in.
+struct StoredGeometry {
+    QSize size;
+    std::optional<QPoint> position;
+    bool fullscreen;
+};
+
+static StoredGeometry stored_geometry(const QSize &default_size)
+{
+    StoredGeometry geom;
+
+    geom.size = default_size;
+    if (gli_conf_save_window_size) {
+        auto stored_size = settings->value("window/size");
+        if (stored_size.canConvert<QSize>()) {
+            geom.size = stored_size.toSize();
+        }
+    }
+
+    if (gli_conf_save_window_location) {
+        auto stored_position = settings->value("window/position");
+        if (stored_position.canConvert<QPoint>()) {
+            geom.position = stored_position.toPoint();
+        }
+    }
+
+    geom.fullscreen = gli_conf_fullscreen;
+    if (gli_conf_save_window_location || gli_conf_save_window_size) {
+        auto fullscreen = settings->value("window/fullscreen");
+        if (fullscreen.canConvert<bool>()) {
+            geom.fullscreen = fullscreen.toBool();
+        }
+    }
+
+    return geom;
 }
 
 void glk_request_timer_events(glui32 ms)
@@ -213,22 +302,14 @@ void gli_notification_waiting()
 void garglk::winabort(const std::string &msg)
 {
     std::cerr << "fatal: " << msg << std::endl;
-    if (broker_mode()) {
-        broker_show_text(TextStyle::Critical, "Error", msg.c_str(), false);
-    } else {
-        QMessageBox::critical(nullptr, "Error", msg.c_str());
-    }
+    show_text(TextStyle::Critical, "Error", msg.c_str(), false);
     gli_exit(EXIT_FAILURE);
 }
 
 void garglk::winwarning(const std::string &title, const std::string &msg)
 {
     std::cerr << "warning: " << msg << std::endl;
-    if (broker_mode()) {
-        broker_show_text(TextStyle::Warning, title.c_str(), msg.c_str(), false);
-    } else {
-        QMessageBox::warning(nullptr, title.c_str(), msg.c_str());
-    }
+    show_text(TextStyle::Warning, title.c_str(), msg.c_str(), false);
 }
 
 void winexit()
@@ -240,11 +321,8 @@ enum class Action { Open, Save };
 
 static std::string winchoosefile(const QString &prompt, FileFilter filter, Action action)
 {
-    QFileDialog dialog(window, prompt);
-
-#ifdef GARGLK_CONFIG_NO_NATIVE_FILE_DIALOGS
-    dialog.setOption(QFileDialog::DontUseNativeDialog);
-#endif
+    QString filename;
+    QString dir;
 
     if (gli_conf_gamedata_location == GamedataLocation::Dedicated && gli_workfile.has_value()) {
         auto path = QFileInfo(QString::fromStdString(*gli_workfile));
@@ -252,39 +330,26 @@ static std::string winchoosefile(const QString &prompt, FileFilter filter, Actio
             QDir basedir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
             QDir savepath = QDir(basedir.filePath("gamedata")).filePath(path.fileName());
             if (savepath.mkpath(savepath.absolutePath())) {
-                dialog.setDirectory(savepath.absolutePath());
+                dir = savepath.absolutePath();
             }
         }
     } else if (gli_conf_gamedata_location == GamedataLocation::Gamedir) {
-        dialog.setDirectory(QString::fromStdString(gli_workdir));
+        dir = QString::fromStdString(gli_workdir);
     } else if (gli_conf_gamedata_location == GamedataLocation::Fixed) {
-        dialog.setDirectory(QString::fromStdString(gli_conf_gamedata_dir));
+        dir = QString::fromStdString(gli_conf_gamedata_dir);
     }
 
     if (action == Action::Open) {
-        dialog.setAcceptMode(QFileDialog::AcceptOpen);
-        dialog.setFileMode(QFileDialog::ExistingFile);
-        dialog.setNameFilters({filters.at(filter).first, "All files (*)"});
+        QString filterstring = QString("%1;;All files (*)").arg(filters.at(filter).first);
+        filename = file_dialog(false, prompt, filterstring, dir);
     } else {
-        dialog.setAcceptMode(QFileDialog::AcceptSave);
-        dialog.setNameFilter(filters.at(filter).first);
-        dialog.selectFile(QString("Untitled.%1").arg(filters.at(filter).second));
-    }
-
-    QString filename;
-    if (broker_mode()) {
-        // The launcher owns all dialogs in broker mode, so instead of
-        // running this one, ship its settings over and let the launcher
-        // put up a dialog of its own.
-        if (action == Action::Open) {
-            QString filterstring = QString("%1;;All files (*)").arg(filters.at(filter).first);
-            filename = broker_file_dialog(false, prompt, filterstring, dialog.directory().absolutePath());
-        } else {
-            QString start = dialog.directory().filePath(QString("Untitled.%1").arg(filters.at(filter).second));
-            filename = broker_file_dialog(true, prompt, filters.at(filter).first, start);
+        // A bare filename leaves the directory to the dialog itself,
+        // which remembers the last one visited.
+        QString start = QString("Untitled.%1").arg(filters.at(filter).second);
+        if (!dir.isEmpty()) {
+            start = QString("%1/%2").arg(dir, start);
         }
-    } else if (dialog.exec() == QDialog::Accepted) {
-        filename = dialog.selectedFiles().value(0);
+        filename = file_dialog(true, prompt, filters.at(filter).first, start);
     }
 
     // toStdString() converts to UTF-8, which is not used by Windows (at
@@ -338,6 +403,17 @@ static void winclipreceive(QClipboard::Mode mode)
 
 #ifdef GARGLK_CONFIG_QT_BROKER
 
+// The CursorShape and TextStyle enums above mirror the wire protocol's
+// (see brokerqt.h); they exist so the rest of this file can be built
+// on platforms without broker support. They're sent over the wire with
+// a simple cast, so ensure the values actually agree.
+static_assert(static_cast<qint32>(CursorShape::Arrow) == static_cast<qint32>(garglk::broker::Cursor::Arrow));
+static_assert(static_cast<qint32>(CursorShape::IBeam) == static_cast<qint32>(garglk::broker::Cursor::IBeam));
+static_assert(static_cast<qint32>(CursorShape::Hand) == static_cast<qint32>(garglk::broker::Cursor::Hand));
+static_assert(static_cast<qint32>(TextStyle::Info) == static_cast<qint32>(garglk::broker::TextStyle::Info));
+static_assert(static_cast<qint32>(TextStyle::Warning) == static_cast<qint32>(garglk::broker::TextStyle::Warning));
+static_assert(static_cast<qint32>(TextStyle::Critical) == static_cast<qint32>(garglk::broker::TextStyle::Critical));
+
 static QLocalSocket *broker_sock = nullptr;
 static QByteArray broker_inbuf;
 static std::deque<garglk::broker::Message> broker_pending;
@@ -369,11 +445,7 @@ static void broker_exit(int status)
 
 static void broker_refresh()
 {
-    if (!gli_drawselect) {
-        gli_windows_redraw();
-    } else {
-        gli_drawselect = false;
-    }
+    redraw();
 
     QByteArray payload;
     QDataStream out(&payload, QIODevice::WriteOnly);
@@ -382,8 +454,6 @@ static void broker_refresh()
         << static_cast<qint32>(gli_image_rgb.stride())
         << QByteArray::fromRawData(reinterpret_cast<const char *>(gli_image_rgb.data()), gli_image_rgb.size());
     broker_post(garglk::broker::MsgType::Frame, payload);
-
-    refresh_needed = false;
 }
 
 static void broker_set_cursor(garglk::broker::Cursor cursor)
@@ -404,26 +474,10 @@ static void broker_handle(const garglk::broker::Message &msg)
 
     switch (msg.type) {
     case MsgType::Resized: {
-        static bool first_resize = true;
-
         qint32 w, h;
         in >> w >> h;
 
-        int neww = std::lround(w * broker_dpr);
-        int newh = std::lround(h * broker_dpr);
-
-        if (neww == gli_image_rgb.width() && newh == gli_image_rgb.height()) {
-            break;
-        }
-
-        refresh_needed = true;
-
-        // As with the non-broker resize handler, the initial resize
-        // occurs before the Glk program even starts, so shouldn't
-        // create an arrange event.
-        gli_windows_size_change(neww, newh, !first_resize);
-
-        first_resize = false;
+        handle_resize(std::lround(w * broker_dpr), std::lround(h * broker_dpr));
         break;
     }
     case MsgType::KeyEvent: {
@@ -440,31 +494,19 @@ static void broker_handle(const garglk::broker::Message &msg)
         qint32 type, x, y, button;
         in >> type >> x >> y >> button;
 
+        QPoint logical(x, y);
         x = std::lround(x * broker_dpr);
         y = std::lround(y * broker_dpr);
 
         switch (static_cast<QEvent::Type>(type)) {
         case QEvent::MouseButtonPress:
-            if (button == Qt::LeftButton) {
-                gli_input_handle_click(x, y);
-            } else if (button == Qt::MiddleButton) {
-                winclipreceive(QClipboard::Selection);
-            }
+            handle_mouse_press(x, y, static_cast<Qt::MouseButton>(button), count_click(logical));
             break;
         case QEvent::MouseMove:
-            if (gli_copyselect) {
-                broker_set_cursor(garglk::broker::Cursor::IBeam);
-                gli_move_selection(x, y);
-            } else {
-                broker_set_cursor(gli_get_hyperlink(x, y) != 0 ? garglk::broker::Cursor::Hand : garglk::broker::Cursor::Arrow);
-            }
+            handle_mouse_move(x, y);
             break;
         case QEvent::MouseButtonRelease:
-            if (button == Qt::LeftButton) {
-                gli_copyselect = false;
-                broker_set_cursor(garglk::broker::Cursor::Arrow);
-                winclipsend(QClipboard::Selection);
-            }
+            handle_mouse_release(static_cast<Qt::MouseButton>(button));
             break;
         default:
             break;
@@ -539,42 +581,19 @@ static void broker_open_window()
 
     int defw = gli_wmarginx * 2 + gli_cellw * gli_cols;
     int defh = gli_wmarginy * 2 + gli_cellh * gli_rows;
-    QSize size(std::lround(defw / broker_dpr), std::lround(defh / broker_dpr));
+    auto geom = stored_geometry(QSize(std::lround(defw / broker_dpr), std::lround(defh / broker_dpr)));
 
-    if (gli_conf_save_window_size) {
-        auto stored_size = settings->value("window/size");
-        if (stored_size.canConvert<QSize>()) {
-            size = stored_size.toSize();
-        }
-    }
-
-    bool move = false;
-    QPoint position;
-    if (gli_conf_save_window_location) {
-        auto stored_position = settings->value("window/position");
-        if (stored_position.canConvert<QPoint>()) {
-            position = stored_position.toPoint();
-            move = true;
-        }
-    }
-
-    bool do_fullscreen = gli_conf_fullscreen;
-    if (gli_conf_save_window_location || gli_conf_save_window_size) {
-        auto fullscreen = settings->value("window/fullscreen");
-        if (fullscreen.canConvert<bool>()) {
-            do_fullscreen = fullscreen.toBool();
-        }
-    }
+    QPoint position = geom.position.value_or(QPoint());
 
     broker_post(MsgType::NewWindow, garglk::broker::pack(
-        move,
+        geom.position.has_value(),
         static_cast<qint32>(position.x()),
         static_cast<qint32>(position.y()),
-        static_cast<qint32>(size.width()),
-        static_cast<qint32>(size.height()),
+        static_cast<qint32>(geom.size.width()),
+        static_cast<qint32>(geom.size.height()),
         static_cast<qint32>(std::lround(gli_wmarginx * 2 / broker_dpr)),
         static_cast<qint32>(std::lround(gli_wmarginy * 2 / broker_dpr)),
-        do_fullscreen));
+        geom.fullscreen));
 
     // The canvas can't be set up until the actual window size is
     // known, so wait for the launcher to report it.
@@ -671,6 +690,135 @@ static QString broker_file_dialog(bool, const QString &, const QString &, const 
 
 #endif
 
+// Set the mouse cursor. In broker mode the shape is shipped to the
+// launcher (which owns the window); otherwise it's applied directly to
+// the view.
+static void set_cursor(CursorShape shape)
+{
+#ifdef GARGLK_CONFIG_QT_BROKER
+    if (broker_mode()) {
+        broker_set_cursor(static_cast<garglk::broker::Cursor>(shape));
+        return;
+    }
+#endif
+
+    switch (shape) {
+    case CursorShape::IBeam:
+        window->view()->setCursor(Qt::IBeamCursor);
+        break;
+    case CursorShape::Hand:
+        window->view()->setCursor(Qt::PointingHandCursor);
+        break;
+    case CursorShape::Arrow:
+        window->view()->unsetCursor();
+        break;
+    }
+}
+
+// Show a message box. In broker mode the launcher owns all UI, so the
+// text is shipped to it; otherwise a message box is shown directly.
+static void show_text(TextStyle style, const QString &title, const QString &text, bool rich)
+{
+    if (broker_mode()) {
+        broker_show_text(style, title, text, rich);
+        return;
+    }
+
+    auto icon = style == TextStyle::Critical ? QMessageBox::Icon::Critical :
+                style == TextStyle::Warning  ? QMessageBox::Icon::Warning :
+                                               QMessageBox::Icon::Information;
+
+    QMessageBox box(icon, title, text);
+    box.setTextFormat(rich ? Qt::TextFormat::RichText : Qt::TextFormat::PlainText);
+    box.exec();
+}
+
+// Prompt for a filename. As with show_text, in broker mode the
+// launcher owns all dialogs. The start parameter is a directory for
+// open dialogs, or a suggested path for save dialogs.
+static QString file_dialog(bool save, const QString &prompt, const QString &filter, const QString &start)
+{
+    if (broker_mode()) {
+        return broker_file_dialog(save, prompt, filter, start);
+    }
+
+    QFileDialog dialog(window, prompt);
+
+#ifdef GARGLK_CONFIG_NO_NATIVE_FILE_DIALOGS
+    dialog.setOption(QFileDialog::DontUseNativeDialog);
+#endif
+
+    dialog.setNameFilters(filter.split(";;"));
+
+    if (save) {
+        dialog.setAcceptMode(QFileDialog::AcceptSave);
+        dialog.selectFile(start);
+    } else {
+        dialog.setAcceptMode(QFileDialog::AcceptOpen);
+        dialog.setFileMode(QFileDialog::ExistingFile);
+        if (!start.isEmpty()) {
+            dialog.setDirectory(start);
+        }
+    }
+
+    if (dialog.exec() != QDialog::Accepted) {
+        return QString();
+    }
+
+    return dialog.selectedFiles().value(0);
+}
+
+// Qt reports the third click as an ordinary press, so count it here.
+// The position is in logical pixels, as are the thresholds.
+static int count_click(const QPoint &pos)
+{
+    static QElapsedTimer click_timer;
+    static QPoint click_pos;
+    static int clicks = 0;
+
+    if (click_timer.isValid()
+            && !click_timer.hasExpired(QApplication::doubleClickInterval())
+            && (pos - click_pos).manhattanLength() <= QApplication::startDragDistance()) {
+        clicks = std::min(clicks + 1, 3);
+    } else {
+        clicks = 1;
+    }
+
+    click_timer.restart();
+    click_pos = pos;
+
+    return clicks;
+}
+
+static void handle_mouse_press(int x, int y, Qt::MouseButton button, int clicks)
+{
+    if (button == Qt::LeftButton) {
+        gli_input_handle_click(x, y, clicks);
+    } else if (button == Qt::MiddleButton) {
+        winclipreceive(QClipboard::Selection);
+    }
+}
+
+static void handle_mouse_move(int x, int y)
+{
+    // hyperlinks and selection
+    if (gli_copyselect) {
+        set_cursor(CursorShape::IBeam);
+        gli_move_selection(x, y);
+    } else {
+        set_cursor(gli_get_hyperlink(x, y) != 0 ? CursorShape::Hand : CursorShape::Arrow);
+    }
+}
+
+static void handle_mouse_release(Qt::MouseButton button)
+{
+    if (button == Qt::LeftButton) {
+        gli_copyselect = false;
+        set_cursor(CursorShape::Arrow);
+        winclipsend(QClipboard::Selection);
+    }
+}
+
 static void do_refresh()
 {
     if (broker_mode()) {
@@ -731,8 +879,6 @@ void garglk::Window::closeEvent(QCloseEvent *)
 
 void garglk::Window::updateBufferSize(const QSize &logicalSize)
 {
-    static bool first_call = true;
-
     // Qt reports window sizes in **logical** pixels. The compositor then
     // upscales the window surface by the DPR. So we size the
     // internal buffer to **physical** pixels (`logical × dpr`), matching
@@ -742,16 +888,9 @@ void garglk::Window::updateBufferSize(const QSize &logicalSize)
     int physwid = std::round(logicalSize.width() * dpr);
     int physhgt = std::round(logicalSize.height() * dpr);
 
-    if (physwid == gli_image_rgb.width() && physhgt == gli_image_rgb.height()) {
+    if (!handle_resize(physwid, physhgt)) {
         return;
     }
-
-    refresh_needed = true;
-
-    // On startup, Qt posts a resize event as the window is created.
-    // This resize occurs before the Glk program even starts, so
-    // shouldn't create an arrange event.
-    gli_windows_size_change(physwid, physhgt, !first_call);
 
     if (gli_conf_save_window_size) {
         settings->setValue("window/size", logicalSize);
@@ -760,8 +899,6 @@ void garglk::Window::updateBufferSize(const QSize &logicalSize)
     if (gli_conf_save_window_location || gli_conf_save_window_size) {
         settings->setValue("window/fullscreen", ::window->isFullScreen());
     }
-
-    first_call = false;
 }
 
 void garglk::Window::resizeEvent(QResizeEvent *event)
@@ -807,14 +944,8 @@ void garglk::View::inputMethodEvent(QInputMethodEvent *event)
 
 void garglk::View::refresh()
 {
-    if (!gli_drawselect || gli_force_redraw) {
-        gli_windows_redraw();
-    } else {
-        gli_drawselect = false;
-    }
-
+    redraw();
     update();
-    refresh_needed = false;
 }
 
 void garglk::View::paintEvent(QPaintEvent *event)
@@ -901,14 +1032,7 @@ static void show_paths()
     }
     text += "</pre>";
 
-    if (broker_mode()) {
-        broker_show_text(TextStyle::Info, "Paths", text, true);
-        return;
-    }
-
-    QMessageBox box(QMessageBox::Icon::Information, "Paths", text);
-    box.setTextFormat(Qt::TextFormat::RichText);
-    box.exec();
+    show_text(TextStyle::Info, "Paths", text, true);
 }
 
 static void show_themes()
@@ -919,14 +1043,7 @@ static void show_themes()
         text += QString("• ") + QString::fromStdString(theme_name) + "\n";
     }
 
-    if (broker_mode()) {
-        broker_show_text(TextStyle::Info, "Themes", text, false);
-        return;
-    }
-
-    QMessageBox box(QMessageBox::Icon::Information, "Themes", text);
-    box.setTextFormat(Qt::TextFormat::PlainText);
-    box.exec();
+    show_text(TextStyle::Info, "Themes", text, false);
 }
 
 // On Mac, Qt::ControlModifier means the command key. But for Emacs
@@ -1038,12 +1155,7 @@ static void handle_key_event(QKeyEvent *event)
                 return;
             }
 
-            QString filename;
-            if (broker_mode()) {
-                filename = broker_file_dialog(true, "Save transcript", "Text files (*.txt)", "transcript.txt");
-            } else {
-                filename = QFileDialog::getSaveFileName(::window, "Save transcript", "transcript.txt", "Text files (*.txt)");
-            }
+            QString filename = file_dialog(true, "Save transcript", "Text files (*.txt)", "transcript.txt");
 
             if (!filename.isNull()) {
                 QFile file(filename);
@@ -1117,36 +1229,8 @@ void garglk::View::mouseMoveEvent(QMouseEvent *event)
     int x = std::round(event->pos().x() * dpr);
     int y = std::round(event->pos().y() * dpr);
 
-    // hyperlinks and selection
-    if (gli_copyselect) {
-        setCursor(Qt::IBeamCursor);
-        gli_move_selection(x, y);
-    } else {
-        if (gli_get_hyperlink(x, y) != 0) {
-            setCursor(Qt::PointingHandCursor);
-        } else {
-            unsetCursor();
-        }
-    }
-
+    handle_mouse_move(x, y);
     event->accept();
-}
-
-// Qt reports the third click as an ordinary press, so count it here.
-int garglk::View::count_click(const QPoint &pos)
-{
-    if (m_click_timer.isValid()
-            && !m_click_timer.hasExpired(QApplication::doubleClickInterval())
-            && (pos - m_click_pos).manhattanLength() <= QApplication::startDragDistance()) {
-        m_clicks = std::min(m_clicks + 1, 3);
-    } else {
-        m_clicks = 1;
-    }
-
-    m_click_timer.restart();
-    m_click_pos = pos;
-
-    return m_clicks;
 }
 
 void garglk::View::mousePressEvent(QMouseEvent *event)
@@ -1157,13 +1241,8 @@ void garglk::View::mousePressEvent(QMouseEvent *event)
     // needs to be scaled
     double dpr = devicePixelRatioF();
 
-    if (event->button() == Qt::LeftButton) {
-        gli_input_handle_click(std::round(event->pos().x() * dpr), std::round(event->pos().y() * dpr),
-                count_click(event->pos()));
-    } else if (event->button() == Qt::MiddleButton) {
-        winclipreceive(QClipboard::Selection);
-    }
-
+    handle_mouse_press(std::round(event->pos().x() * dpr), std::round(event->pos().y() * dpr),
+            event->button(), count_click(event->pos()));
     event->accept();
 }
 
@@ -1174,12 +1253,7 @@ void garglk::View::mouseDoubleClickEvent(QMouseEvent *event)
 
 void garglk::View::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::LeftButton) {
-        gli_copyselect = false;
-        unsetCursor();
-        winclipsend(QClipboard::Selection);
-    }
-
+    handle_mouse_release(event->button());
     event->accept();
 }
 
@@ -1318,34 +1392,17 @@ void winopen()
 
     int defw = std::round((gli_wmarginx * 2 + gli_cellw * gli_cols) / gli_backingscalefactor);
     int defh = std::round((gli_wmarginy * 2 + gli_cellh * gli_rows) / gli_backingscalefactor);
-    QSize size(defw, defh);
-    if (gli_conf_save_window_size) {
-        auto stored_size = settings->value("window/size");
-        if (stored_size.canConvert<QSize>()) {
-            size = stored_size.toSize();
-        }
-    }
-    window->resize(size);
+    auto geom = stored_geometry(QSize(defw, defh));
 
-    if (gli_conf_save_window_location) {
-        auto position = settings->value("window/position");
-        if (position.canConvert<QPoint>()) {
-            window->move(position.toPoint());
-        }
+    window->resize(geom.size);
+
+    if (geom.position.has_value()) {
+        window->move(*geom.position);
     }
 
     wintitle();
 
-    bool do_fullscreen = gli_conf_fullscreen;
-
-    if (gli_conf_save_window_location || gli_conf_save_window_size) {
-        auto fullscreen = settings->value("window/fullscreen");
-        if (fullscreen.canConvert<bool>()) {
-            do_fullscreen = fullscreen.toBool();
-        }
-    }
-
-    if (do_fullscreen) {
+    if (geom.fullscreen) {
         window->showFullScreen();
     } else {
         window->show();

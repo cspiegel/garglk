@@ -260,6 +260,13 @@ protected:
         send_mouse(QEvent::MouseButtonPress, event);
     }
 
+    void mouseDoubleClickEvent(QMouseEvent *event) override
+    {
+        // Qt sends this instead of the second press; the interpreter
+        // counts clicks itself, so pass it along as a normal press.
+        send_mouse(QEvent::MouseButtonPress, event);
+    }
+
     void mouseMoveEvent(QMouseEvent *event) override
     {
         send_mouse(QEvent::MouseMove, event);
