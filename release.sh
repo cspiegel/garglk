@@ -61,7 +61,20 @@ then
     mv Gargoyle.app Gargoyle-x86_64.app
     PATH=/opt/homebrew/bin:$PATH ./gargoyle_osx.sh -cn
 
-    binaries=(Gargoyle.app/Contents/Frameworks/*.dylib Gargoyle.app/Contents/PlugIns/* Gargoyle.app/Contents/MacOS/Gargoyle)
+    # The set of Mach-O files (and their locations) differs between
+    # the Cocoa and Qt layouts: Qt has framework directories and
+    # plugin subdirectories, and its terps are in MacOS instead of
+    # PlugIns. Instead of hardcoding paths, find all Mach-O files in
+    # the bundle. This skips non-binary files (fonts, qt.conf,
+    # Info.plist, framework symlinks/resources, the nib).
+    binaries=()
+    while IFS= read -r -d '' candidate
+    do
+        if file -b "${candidate}" | grep -q '^Mach-O'
+        then
+            binaries+=("${candidate}")
+        fi
+    done < <(find Gargoyle.app -type f -print0)
 
     for binary in "${binaries[@]}"
     do
