@@ -295,6 +295,19 @@ fi
 
 codesign -s - -f --deep Gargoyle.app
 
+# Register the freshly built bundle with LaunchServices so Finder shows
+# its icon right away. Without this, Finder can display a generic
+# placeholder for a rebuilt bundle even though its icon is set correctly
+# (the Dock, which reads the bundle directly at launch, shows it fine);
+# this is just a stale icon cache, made worse by leftover registrations
+# of previous builds (including mounted DMGs).
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "${LSREGISTER}" ]]
+then
+    touch Gargoyle.app
+    "${LSREGISTER}" -f Gargoyle.app
+fi
+
 if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
 then
     DMG_NAME="gargoyle-qt-$GARVERSION-$TARGET_ARCH.dmg"

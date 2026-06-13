@@ -640,6 +640,14 @@ static void broker_init()
         return;
     }
 
+#ifdef Q_OS_MAC
+    // This process renders into a buffer and ships frames to the
+    // launcher; it has no window of its own, so it must not appear in
+    // the Dock. The QApplication has already been created (in wininit),
+    // so NSApp exists and its activation policy can be set.
+    garglk::mac_hide_from_dock();
+#endif
+
     const char *dpr = std::getenv("GARGOYLE_DPR");
     if (dpr != nullptr) {
         broker_dpr = std::max(1.0, std::atof(dpr));

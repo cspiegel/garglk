@@ -269,6 +269,11 @@ else()
         find_package(Qt${QT_VERSION} COMPONENTS Network REQUIRED CONFIG)
         target_link_libraries(garglk-common PRIVATE Qt${QT_VERSION}::Network)
         target_compile_definitions(garglk-common PRIVATE GARGLK_CONFIG_QT_BROKER)
+        # The interpreter is windowless under the broker, so it must hide
+        # itself from the Dock (see dockmac.mm), which needs AppKit.
+        find_library(APPKIT_LIBRARY AppKit REQUIRED)
+        target_sources(garglk-common PRIVATE dockmac.mm)
+        target_link_libraries(garglk-common PRIVATE ${APPKIT_LIBRARY})
         if(WITH_LAUNCHER)
             target_link_libraries(gargoyle PRIVATE Qt${QT_VERSION}::Network)
             target_compile_definitions(gargoyle PRIVATE GARGLK_CONFIG_QT_BROKER)
