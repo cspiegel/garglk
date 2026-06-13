@@ -24,6 +24,16 @@
 namespace garglk {
 
 void mac_hide_from_dock();
+void mac_disable_window_tabbing();
+
+// Disable window tabbing application-wide. Gargoyle has no use for tabs,
+// and disabling them keeps AppKit from adding tab-related items ("Show
+// Tab Bar", "Move Tab to New Window", etc.) to the Window menu. Call this
+// before any window is created so no window ever adopts tabbing.
+void mac_disable_window_tabbing()
+{
+    [NSWindow setAllowsAutomaticWindowTabbing:NO];
+}
 
 // In broker mode the interpreter has no window of its own (game windows
 // are owned by the launcher), so it should never appear in the Dock or

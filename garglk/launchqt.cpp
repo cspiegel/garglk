@@ -170,6 +170,11 @@ static QString winbrowsefile()
 // receiving input events back (see brokerqt.h for the protocol). This
 // is the Qt equivalent of the Cocoa launcher in launchmac.mm.
 
+// Defined in dockmac.mm.
+namespace garglk {
+void mac_disable_window_tabbing();
+}
+
 namespace {
 
 namespace broker = garglk::broker;
@@ -644,8 +649,9 @@ void create_menubar()
 
     // The Window menu lists every open game and offers the standard Mac
     // window commands, mirroring AppKit's automatic Windows menu (which
-    // Qt doesn't provide here). It's rebuilt on each show, since the set
-    // of windows changes over time; it's also populated once now, because
+    // Qt doesn't provide here, and which can't be reliably driven through
+    // Qt's menu syncing). It's rebuilt on each show, since the set of
+    // windows changes over time; it's also populated once now, because
     // macOS omits an empty top-level menu from the menu bar entirely.
     auto *window_menu = menubar->addMenu("Window");
     auto populate_window_menu = [window_menu]() {
@@ -672,6 +678,22 @@ void create_menubar()
                     w->showNormal();
                 } else {
                     w->showMaximized();
+                }
+            }
+        });
+
+        auto *active_game = dynamic_cast<GameWindow *>(active);
+        auto *fullscreen = window_menu->addAction(
+            active_game != nullptr && active_game->isFullScreen() ? "Exit Full Screen" : "Enter Full Screen");
+        fullscreen->setShortcut(QKeySequence(Qt::CTRL | Qt::META | Qt::Key_F));
+        fullscreen->setEnabled(active_game != nullptr);
+        QObject::connect(fullscreen, &QAction::triggered, fullscreen, []() {
+            auto *w = QApplication::activeWindow();
+            if (w != nullptr) {
+                if (w->isFullScreen()) {
+                    w->showNormal();
+                } else {
+                    w->showFullScreen();
                 }
             }
         });
@@ -985,6 +1007,9 @@ int main(int argc, char **argv)
     // Stay running after the last game window closes, like a normal
     // Mac application; quitting is done explicitly (e.g. ⌘Q).
     QApplication::setQuitOnLastWindowClosed(false);
+
+    // Disable tabbing before any window exists (see the function).
+    garglk::mac_disable_window_tabbing();
 
     start_broker();
     create_menubar();
