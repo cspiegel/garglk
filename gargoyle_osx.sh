@@ -251,7 +251,13 @@ then
         MACDEPLOYQT_ARGS+=("-executable=${file}")
     done < <(find "$BUNDLE/MacOS" -type f -print0)
 
-    "${MACDEPLOYQT}" Gargoyle.app "${MACDEPLOYQT_ARGS[@]}"
+    # macdeployqt only understands absolute, @rpath, and @loader_path
+    # references; it logs an "Unexpected prefix" error for each
+    # @executable_path reference and skips it. Skipping is correct
+    # here: those are the dylibs this script already deployed and
+    # rewrote above, needing no further deployment. Filter the noise.
+    "${MACDEPLOYQT}" Gargoyle.app "${MACDEPLOYQT_ARGS[@]}" \
+        2> >(grep -v 'Unexpected prefix "@executable_path"' >&2)
 
     # Interpreters are plain executables rather than the bundle's main
     # binary, so they don't see the qt.conf that macdeployqt puts in
