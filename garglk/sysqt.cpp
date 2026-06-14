@@ -283,6 +283,11 @@ void glk_request_timer_events(glui32 ms)
         timer->stop();
     }
 
+    // Discard any timeout that fired but hasn't been delivered to the game
+    // yet: the timer is being reconfigured (or disabled, when ms == 0), so
+    // a previously queued tick must not surface later as a stale event.
+    timer_expired = false;
+
     // QTimer::setInterval() takes int, so limit to avoid wrapping.
     if (ms > std::numeric_limits<int>::max()) {
         ms = std::numeric_limits<int>::max();
