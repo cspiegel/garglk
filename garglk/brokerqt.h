@@ -43,6 +43,16 @@
 
 namespace garglk::broker {
 
+// Interpreters always render at this fixed backing scale, mirroring the
+// Cocoa interface's BACKING_SCALE_FACTOR. An interpreter has no idea
+// which display its window is on (the launcher owns the window), and a
+// window can move between displays of different scale, so rather than
+// freeze any one display's device pixel ratio, it renders at this
+// constant scale and the launcher lets Qt scale each window's frames to
+// whatever screen it is actually on. Every macOS display is 1x or 2x, so
+// a fixed 2x is crisp on Retina and cleanly downscaled elsewhere.
+inline constexpr double backing_scale = 2.0;
+
 enum class MsgType : quint32 {
     // interpreter → launcher
     NewWindow = 1,    // bool move; qint32 x, y, width, height, minwidth, minheight; bool fullscreen (sizes/positions in logical pixels)

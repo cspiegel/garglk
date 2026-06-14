@@ -418,7 +418,7 @@ static QLocalSocket *broker_sock = nullptr;
 static QByteArray broker_inbuf;
 static std::deque<garglk::broker::Message> broker_pending;
 static bool broker_disconnected = false;
-static double broker_dpr = 1.0;
+static const double broker_dpr = garglk::broker::backing_scale;
 static bool broker_is_fullscreen = false;
 
 static bool broker_mode()
@@ -647,11 +647,6 @@ static void broker_init()
     // so NSApp exists and its activation policy can be set.
     garglk::mac_hide_from_dock();
 #endif
-
-    const char *dpr = std::getenv("GARGOYLE_DPR");
-    if (dpr != nullptr) {
-        broker_dpr = std::max(1.0, std::atof(dpr));
-    }
 
     broker_sock = new QLocalSocket();
 

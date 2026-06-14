@@ -182,7 +182,8 @@ namespace broker = garglk::broker;
 
 QLocalServer *broker_server = nullptr;
 QString broker_name;
-double broker_dpr = 1.0;
+// Fixed render scale shared with the interpreters; see broker::backing_scale.
+const double broker_dpr = garglk::broker::backing_scale;
 bool game_launched = false;
 
 QSettings &broker_settings()
@@ -226,6 +227,10 @@ protected:
     {
         if (!m_frame.isNull()) {
             QPainter painter(this);
+            // Frames are rendered at a fixed scale (broker::backing_scale)
+            // and Qt scales them to this window's actual screen DPR, so
+            // smooth the result for displays where that isn't 1:1.
+            painter.setRenderHint(QPainter::SmoothPixmapTransform);
             painter.drawImage(QPoint(0, 0), m_frame);
         }
         event->accept();
@@ -512,7 +517,6 @@ private:
 void start_broker()
 {
     broker_name = QString("gargoyle-%1").arg(QCoreApplication::applicationPid());
-    broker_dpr = QGuiApplication::primaryScreen()->devicePixelRatio();
 
     QLocalServer::removeServer(broker_name);
     broker_server = new QLocalServer();
@@ -700,7 +704,6 @@ bool garglk::winterp(const std::string &exe, const std::vector<std::string> &fla
 
     auto env = QProcessEnvironment::systemEnvironment();
     env.insert("GARGOYLE_SOCKET", broker_name);
-    env.insert("GARGOYLE_DPR", QString::number(broker_dpr));
     // Game windows belong to the launcher, so don't let interpreter
     // processes show up in the Dock.
     env.insert("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1");
