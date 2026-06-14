@@ -156,7 +156,25 @@ static QString winbrowsefile()
 #ifdef GARGLK_CONFIG_NO_NATIVE_FILE_DIALOGS
     options |= QFileDialog::DontUseNativeDialog;
 #endif
+
+#ifdef GARGLK_CONFIG_QT_BROKER
+    // On macOS, reopen in the directory of the last game that was opened,
+    // matching the Cocoa interface. (Elsewhere the start directory is left
+    // empty so the native dialog or portal can remember it itself, which
+    // is the expected platform behavior, e.g. via XDG portals on Linux.)
+    QSettings settings("io.github.garglk", "Gargoyle");
+    QString start = settings.value("file/last_open_directory").toString();
+
+    QString filename = QFileDialog::getOpenFileName(nullptr, AppName, start, filter_string, nullptr, options);
+
+    if (!filename.isEmpty()) {
+        settings.setValue("file/last_open_directory", QFileInfo(filename).absolutePath());
+    }
+
+    return filename;
+#else
     return QFileDialog::getOpenFileName(nullptr, AppName, "", filter_string, nullptr, options);
+#endif
 }
 
 #ifdef GARGLK_CONFIG_QT_BROKER
