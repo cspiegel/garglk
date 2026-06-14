@@ -25,6 +25,7 @@ namespace garglk {
 
 void mac_hide_from_dock();
 void mac_disable_window_tabbing();
+void mac_configure_window_menu(void *menu);
 
 // Disable window tabbing application-wide. Gargoyle has no use for tabs,
 // and disabling them keeps AppKit from adding tab-related items ("Show
@@ -33,6 +34,36 @@ void mac_disable_window_tabbing();
 void mac_disable_window_tabbing()
 {
     [NSWindow setAllowsAutomaticWindowTabbing:NO];
+}
+
+void mac_configure_window_menu(void *menu)
+{
+    auto *window_menu = static_cast<NSMenu *>(menu);
+
+    [window_menu removeAllItems];
+
+    auto add_item = [window_menu](NSString *title, SEL action, NSString *key) {
+        auto *item = [[NSMenuItem alloc] initWithTitle:title
+                                                action:action
+                                         keyEquivalent:key];
+        [item setTarget:nil];
+        [window_menu addItem:item];
+        [item release];
+    };
+
+    add_item(@"Minimize", @selector(performMiniaturize:), @"m");
+    add_item(@"Zoom", @selector(performZoom:), @"");
+    auto *fullscreen = [[NSMenuItem alloc] initWithTitle:@"Enter Full Screen"
+                                                  action:@selector(toggleFullScreen:)
+                                           keyEquivalent:@"f"];
+    [fullscreen setTarget:nil];
+    [fullscreen setKeyEquivalentModifierMask:NSEventModifierFlagCommand | NSEventModifierFlagControl];
+    [window_menu addItem:fullscreen];
+    [fullscreen release];
+    [window_menu addItem:[NSMenuItem separatorItem]];
+    add_item(@"Bring All to Front", @selector(arrangeInFront:), @"");
+
+    [NSApp setWindowsMenu:window_menu];
 }
 
 // In broker mode the interpreter has no window of its own (game windows

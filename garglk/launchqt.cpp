@@ -173,6 +173,7 @@ static QString winbrowsefile()
 // Defined in dockmac.mm.
 namespace garglk {
 void mac_disable_window_tabbing();
+void mac_configure_window_menu(void *menu);
 }
 
 namespace {
@@ -309,12 +310,6 @@ private:
     QImage m_frame;
 };
 
-class GameWindow;
-
-// All open game windows, in creation order. The Window menu lists these,
-// the way AppKit's standard Windows menu does for native Mac apps.
-QList<GameWindow *> game_windows;
-
 class GameWindow : public QMainWindow {
 public:
     explicit GameWindow(QLocalSocket *sock) :
@@ -324,8 +319,6 @@ public:
         setCentralWidget(m_view);
         setAttribute(Qt::WA_DeleteOnClose);
         m_sock->setParent(this);
-
-        game_windows.append(this);
 
         QObject::connect(m_sock, &QLocalSocket::readyRead, this, [this]() {
             m_buffer.append(m_sock->readAll());
@@ -342,11 +335,6 @@ public:
         QObject::connect(m_sock, &QLocalSocket::disconnected, this, [this]() {
             close();
         });
-    }
-
-    ~GameWindow() override
-    {
-        game_windows.removeAll(this);
     }
 
     void send_key(Qt::KeyboardModifiers modifiers, int key, const QString &text)
@@ -647,93 +635,10 @@ void create_menubar()
         gli_edit_config();
     });
 
-    // The Window menu lists every open game and offers the standard Mac
-    // window commands, mirroring AppKit's automatic Windows menu (which
-    // Qt doesn't provide here, and which can't be reliably driven through
-    // Qt's menu syncing). It's rebuilt on each show, since the set of
-    // windows changes over time; it's also populated once now, because
-    // macOS omits an empty top-level menu from the menu bar entirely.
+    // Hand the native menu to AppKit so it can keep the window list in
+    // sync with the real NSWindows backing Qt's game windows.
     auto *window_menu = menubar->addMenu("Window");
-    auto populate_window_menu = [window_menu]() {
-        window_menu->clear();
-
-        auto *active = QApplication::activeWindow();
-
-        auto *minimize = window_menu->addAction("Minimize");
-        minimize->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_M));
-        minimize->setEnabled(active != nullptr);
-        QObject::connect(minimize, &QAction::triggered, minimize, []() {
-            auto *w = QApplication::activeWindow();
-            if (w != nullptr) {
-                w->showMinimized();
-            }
-        });
-
-        auto *zoom = window_menu->addAction("Zoom");
-        zoom->setEnabled(active != nullptr);
-        QObject::connect(zoom, &QAction::triggered, zoom, []() {
-            auto *w = QApplication::activeWindow();
-            if (w != nullptr) {
-                if (w->isMaximized()) {
-                    w->showNormal();
-                } else {
-                    w->showMaximized();
-                }
-            }
-        });
-
-        auto *active_game = dynamic_cast<GameWindow *>(active);
-        auto *fullscreen = window_menu->addAction(
-            active_game != nullptr && active_game->isFullScreen() ? "Exit Full Screen" : "Enter Full Screen");
-        fullscreen->setShortcut(QKeySequence(Qt::CTRL | Qt::META | Qt::Key_F));
-        fullscreen->setEnabled(active_game != nullptr);
-        QObject::connect(fullscreen, &QAction::triggered, fullscreen, []() {
-            auto *w = QApplication::activeWindow();
-            if (w != nullptr) {
-                if (w->isFullScreen()) {
-                    w->showNormal();
-                } else {
-                    w->showFullScreen();
-                }
-            }
-        });
-
-        window_menu->addSeparator();
-
-        auto *front = window_menu->addAction("Bring All to Front");
-        front->setEnabled(!game_windows.isEmpty());
-        QObject::connect(front, &QAction::triggered, front, []() {
-            for (auto *window : game_windows) {
-                window->raise();
-            }
-            auto *current = QApplication::activeWindow();
-            if (current == nullptr && !game_windows.isEmpty()) {
-                current = game_windows.last();
-            }
-            if (current != nullptr) {
-                current->activateWindow();
-            }
-        });
-
-        if (!game_windows.isEmpty()) {
-            window_menu->addSeparator();
-            for (auto *window : game_windows) {
-                auto *action = window_menu->addAction(window->windowTitle());
-                action->setCheckable(true);
-                action->setChecked(window == active);
-                QObject::connect(action, &QAction::triggered, action, [window]() {
-                    if (window->isMinimized()) {
-                        window->setWindowState(window->windowState() & ~Qt::WindowMinimized);
-                    }
-                    window->raise();
-                    window->activateWindow();
-                });
-            }
-        }
-    };
-
-    populate_window_menu();
-    QObject::connect(window_menu, &QMenu::aboutToShow, window_menu, populate_window_menu);
+    garglk::mac_configure_window_menu(window_menu->toNSMenu());
 }
 
 class GargoyleApplication : public QApplication {
