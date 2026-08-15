@@ -23,10 +23,9 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <tuple>
 #include <utility>
-
-#include "format.h"
 
 #include "garglk.h"
 
@@ -36,6 +35,33 @@ std::string gli_story_name;
 std::string gli_story_title;
 
 bool gli_exiting = false;
+
+// Paths are assembled from sources which don't agree on a separator: Qt
+// hands back forward slashes even on Windows, while the registry and the
+// environment use backslashes. That's immaterial when opening the file,
+// but a path shown to the user should look like a path on the platform
+// they're using, so normalize before displaying.
+std::string garglk::display_path(std::filesystem::path path)
+{
+    return path.make_preferred().string();
+}
+
+// As display_path(), but for reporting where a file lives rather than
+// what it was called: the path is made absolute, and any "." and ".."
+// in it are resolved, so that e.g. an AppImage's <binary>/../share is
+// displayed as the directory it actually refers to. A path which can't
+// be made absolute, which requires knowing the current directory, is
+// displayed unchanged.
+std::string garglk::display_path_absolute(const std::filesystem::path &path)
+{
+    std::error_code ec;
+    auto abspath = std::filesystem::absolute(path, ec);
+    if (ec) {
+        abspath = path;
+    }
+
+    return garglk::display_path(abspath.lexically_normal());
+}
 
 void garglk_set_program_name(const char *name)
 {
@@ -80,7 +106,7 @@ void gli_exit(int status)
     std::exit(status);
 }
 
-bool garglk::read_file(const std::string &filename, std::vector<unsigned char> &buf)
+bool garglk::read_file(const std::filesystem::path &filename, std::vector<unsigned char> &buf)
 {
     std::ifstream f(filename, std::ios::binary);
     if (!f.is_open()) {
@@ -157,7 +183,12 @@ glui32 garglk_add_resource_from_file(glui32 usage, const char *filename_, glui32
 {
     std::string filename(filename_);
 
-    if (std::filesystem::path(filename).has_parent_path()) {
+    // This must be a bare filename with no directory components at
+    // all; anything for which the filename isn't the whole path (a
+    // parent path, or a Windows drive prefix such as "C:file") is
+    // rejected.
+    std::filesystem::path filename_path(filename);
+    if (filename_path.filename() != filename_path) {
         return 0;
     }
 
@@ -183,9 +214,7 @@ glui32 garglk_add_resource_from_file(glui32 usage, const char *filename_, glui32
     } catch (const std::out_of_range &) {
     }
 
-    filename = Format("{}/{}", gli_workdir, filename_);
-
-    std::ifstream f(filename, std::ios::binary);
+    std::ifstream f(gli_workdir / filename_path, std::ios::binary);
     if (!f.is_open()) {
         return 0;
     }

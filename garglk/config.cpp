@@ -34,6 +34,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <unordered_map>
 #include <vector>
 
@@ -68,8 +69,8 @@ struct ConfigError : public std::exception {
 
 std::string garglk::ConfigFile::format_type() const {
     std::string status = "";
-    std::ifstream f(path);
-    if (!f.is_open()) {
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(path, ec)) {
         status = ", non-existent";
     }
 
@@ -243,9 +244,9 @@ bool gli_conf_speak_input = false;
 std::string gli_conf_speak_language;
 
 #ifdef GARGLK_DEFAULT_SOUNDFONT
-std::deque<std::string> gli_conf_soundfonts = {GARGLK_DEFAULT_SOUNDFONT};
+std::deque<std::filesystem::path> gli_conf_soundfonts = {GARGLK_DEFAULT_SOUNDFONT};
 #else
-std::deque<std::string> gli_conf_soundfonts;
+std::deque<std::filesystem::path> gli_conf_soundfonts;
 #endif
 
 bool gli_conf_fluidsynth_chorus = true;
@@ -307,32 +308,32 @@ static void parsecolor(const std::string &str, Color &rgb)
 // 6. <directory containing gargoyle/interpreter executable>/garglk.ini (Windows only)
 //
 // gamepath is the path to the game file being run
-std::vector<garglk::ConfigFile> garglk::configs(const std::optional<std::string> &gamepath = std::nullopt)
+std::vector<garglk::ConfigFile> garglk::configs(const std::optional<std::filesystem::path> &gamepath)
 {
     std::vector<ConfigFile> configs;
     if (gamepath.has_value()) {
         // game file .ini
-        std::filesystem::path config(*gamepath);
+        auto config = *gamepath;
         config.replace_extension(".ini");
-        configs.emplace_back(config.string(), ConfigFile::Type::PerGame);
+        configs.emplace_back(config, ConfigFile::Type::PerGame);
 
         // game directory .ini
         config = *gamepath;
         config = config.parent_path() / "garglk.ini";
-        configs.emplace_back(config.string(), ConfigFile::Type::PerGame);
+        configs.emplace_back(config, ConfigFile::Type::PerGame);
     }
 
 #if defined(__HAIKU__)
     char settings_dir[PATH_MAX + 1];
     if (find_directory(B_USER_SETTINGS_DIRECTORY, -1, false, settings_dir, sizeof settings_dir) == B_OK) {
-        configs.emplace_back(Format("{}/Gargoyle", settings_dir), ConfigFile::Type::User);
+        configs.emplace_back(std::filesystem::path(settings_dir) / "Gargoyle", ConfigFile::Type::User);
     }
 #elif defined(_WIN32)
     // $APPDATA/Gargoyle/garglk.ini (Windows only). This has a higher
     // priority than $PWD/garglk.ini since it's a more "proper" location.
     const char *appdata = std::getenv("APPDATA");
     if (appdata != nullptr) {
-        configs.emplace_back(Format("{}/Gargoyle/garglk.ini", appdata), ConfigFile::Type::User);
+        configs.emplace_back(std::filesystem::path(appdata) / "Gargoyle" / "garglk.ini", ConfigFile::Type::User);
     }
 
     // current directory .ini
@@ -348,26 +349,26 @@ std::vector<garglk::ConfigFile> garglk::configs(const std::optional<std::string>
     // $HOME/garglk.ini. At some point this probably should move to somewhere in
     // $HOME/Library, but for now, make sure this config file is used.
     if (home != nullptr) {
-        configs.emplace_back(Format("{}/garglk.ini", home), ConfigFile::Type::User);
+        configs.emplace_back(std::filesystem::path(home) / "garglk.ini", ConfigFile::Type::User);
     }
 #endif
 
     // XDG Base Directory Specification
-    std::string xdg_path;
+    std::filesystem::path xdg_path;
     const char *xdg = std::getenv("XDG_CONFIG_HOME");
     if (xdg != nullptr && xdg[0] == '/') {
         xdg_path = xdg;
     } else if (home != nullptr) {
-        xdg_path = Format("{}/.config", home);
+        xdg_path = std::filesystem::path(home) / ".config";
     }
 
     if (!xdg_path.empty()) {
-        configs.emplace_back(Format("{}/garglk.ini", xdg_path), ConfigFile::Type::User);
+        configs.emplace_back(xdg_path / "garglk.ini", ConfigFile::Type::User);
     }
 
     // $HOME/.garglkrc
     if (home != nullptr) {
-        configs.emplace_back(Format("{}/.garglkrc", home), ConfigFile::Type::User);
+        configs.emplace_back(std::filesystem::path(home) / ".garglkrc", ConfigFile::Type::User);
     }
 #endif
 
@@ -376,7 +377,7 @@ std::vector<garglk::ConfigFile> garglk::configs(const std::optional<std::string>
     // default garglk.ini.
     const char *garglkini = std::getenv("GARGLK_RESOURCES");
     if (garglkini != nullptr) {
-        configs.emplace_back(Format("{}/garglk.ini", garglkini), ConfigFile::Type::System);
+        configs.emplace_back(std::filesystem::path(garglkini) / "garglk.ini", ConfigFile::Type::System);
     }
 #endif
 
@@ -389,14 +390,14 @@ std::vector<garglk::ConfigFile> garglk::configs(const std::optional<std::string>
     // install directory
     auto exedir = garglk::winappdir();
     if (exedir.has_value()) {
-        configs.emplace_back(Format("{}/garglk.ini", *exedir), ConfigFile::Type::System);
+        configs.emplace_back(*exedir / "garglk.ini", ConfigFile::Type::System);
     }
 #endif
 
     return configs;
 }
 
-std::string garglk::user_config()
+std::filesystem::path garglk::user_config()
 {
     auto cfgs = configs();
 
@@ -414,7 +415,8 @@ std::string garglk::user_config()
 
     // Find first user config which already exists, if any.
     auto cfg = std::find_if(cfgs.begin(), cfgs.end(), [](const ConfigFile &config) {
-        return std::ifstream(config.path).good();
+        std::error_code ec;
+        return std::filesystem::is_regular_file(config.path, ec);
     });
 
     if (cfg != cfgs.end()) {
@@ -424,10 +426,9 @@ std::string garglk::user_config()
     // No config exists, so create the highest-priority config.
     auto path = cfgs.front().path;
 
-    std::filesystem::path fspath(path);
     try {
-        if (!fspath.parent_path().empty()) {
-            std::filesystem::create_directories(fspath.parent_path());
+        if (!path.parent_path().empty()) {
+            std::filesystem::create_directories(path.parent_path());
         }
     } catch (const std::runtime_error &e) {
         throw std::runtime_error(Format("Unable to create parent directory for configuration file {}: {}", path, e.what()));
@@ -441,14 +442,15 @@ std::string garglk::user_config()
     f << garglkini;
 
     if (f.bad()) {
-        std::remove(path.c_str());
+        std::error_code ec;
+        std::filesystem::remove(path, ec);
         throw std::runtime_error(Format("Error writing to configuration file {}.", path));
     }
 
     return path;
 }
 
-void garglk::config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg, int lineno)> &callback)
+void garglk::config_entries(const std::filesystem::path &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg, int lineno)> &callback)
 {
     std::string line;
     bool accept = accept_bare;
@@ -587,7 +589,7 @@ constexpr const T &config_atleast(const T &value, const T &min)
     return value;
 }
 
-static void readoneconfig(const std::string &fname, const std::string &argv0, const std::optional<std::string> &gamefile)
+static void readoneconfig(const std::filesystem::path &fname, const std::string &argv0, const std::optional<std::string> &gamefile)
 {
     std::vector<std::string> matches = {argv0};
     if (gamefile.has_value()) {
@@ -920,7 +922,7 @@ static void readoneconfig(const std::string &fname, const std::string &argv0, co
                     while (argstream >> std::quoted(file)) {
                         try {
                             for (const auto &fontface : facemap.at(style)) {
-                                gli_conf_glyph_substitution_files[fontface].push_back(file);
+                                gli_conf_glyph_substitution_files[fontface].emplace_back(file);
                             }
                         } catch (const std::out_of_range &) {
                             throw ConfigError(Format("unknown font style: {}", style));
@@ -950,16 +952,13 @@ void gli_read_config(int argc, char **argv)
         .string();
 
     // load gamefile with basename of last argument
+    // load gamepath with the path to the story file itself
     std::optional<std::string> gamefile;
+    std::optional<std::filesystem::path> gamepath;
     if (argc > 1) {
         gamefile = std::filesystem::path(argv[argc - 1])
             .filename()
             .string();
-    }
-
-    // load gamepath with the path to the story file itself
-    std::optional<std::string> gamepath;
-    if (argc > 1) {
         gamepath = argv[argc - 1];
     }
 

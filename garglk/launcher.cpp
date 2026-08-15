@@ -186,12 +186,12 @@ static const std::unordered_map<Format, Interpreter> interpreters = {
     {Format::ZCode, Interpreter(T_ZCODE)},
 };
 
-static bool call_winterp(const Interpreter &interpreter, const std::string &game)
+static bool call_winterp(const Interpreter &interpreter, const std::filesystem::path &game)
 {
     return garglk::winterp(GARGLKPRE + interpreter.terp, interpreter.flags, game);
 }
 
-static bool call_winterp(Format format, const std::string &game)
+static bool call_winterp(Format format, const std::filesystem::path &game)
 {
     try {
         const auto &interpreter = interpreters.at(format);
@@ -221,7 +221,7 @@ static bool call_winterp(Format format, const std::string &game)
     }
 }
 
-static bool runblorb(const std::string &game)
+static bool runblorb(const std::filesystem::path &game)
 {
     class BlorbError : public std::runtime_error {
     public:
@@ -233,7 +233,10 @@ static bool runblorb(const std::string &game)
         giblorb_result_t res;
         giblorb_map_t *basemap;
 
-        auto file = garglk::unique(glkunix_stream_open_pathname(const_cast<char *>(game.c_str()), 0, 0), [](strid_t file) {
+        // glkunix_stream_open_pathname() takes a char *, but doesn't
+        // modify it, so a writable copy of the path is enough.
+        auto gamefile = game.string();
+        auto file = garglk::unique(glkunix_stream_open_pathname(gamefile.data(), 0, 0), [](strid_t file) {
             glk_stream_close(file, nullptr);
         });
         if (!file) {
@@ -289,7 +292,7 @@ static bool runblorb(const std::string &game)
     }
 }
 
-static std::optional<Interpreter> findterp(const std::string &file, const std::string &target)
+static std::optional<Interpreter> findterp(const std::filesystem::path &file, const std::string &target)
 {
     std::vector<std::string> matches = {target};
 
@@ -315,14 +318,11 @@ static std::optional<Interpreter> findterp(const std::string &file, const std::s
 }
 
 // Find a possible interpreter specified in the config file.
-static std::optional<Interpreter> configterp(const std::string &gamepath)
+static std::optional<Interpreter> configterp(const std::filesystem::path &gamepath)
 {
-    std::string story = gamepath;
-
-    // set up story
-    story = std::filesystem::path(story)
-        .filename()
-        .string();
+    // Config file sections match against the game's filename, not its
+    // full path.
+    auto story = gamepath.filename().string();
 
     if (story.empty()) {
         return std::nullopt;
@@ -338,7 +338,7 @@ static std::optional<Interpreter> configterp(const std::string &gamepath)
     return std::nullopt;
 }
 
-bool garglk::rungame(const std::string &game)
+bool garglk::rungame(const std::filesystem::path &game)
 {
     std::array<char, 32> header;
 
@@ -365,10 +365,10 @@ bool garglk::rungame(const std::string &game)
         }
     }
 
-    std::string ext = "";
-    auto dot = game.rfind('.');
-    if (dot != std::string::npos) {
-        ext = garglk::downcase(game.substr(dot + 1));
+    // The extension map is keyed without the leading period.
+    std::string ext = game.extension().string();
+    if (!ext.empty()) {
+        ext = garglk::downcase(ext.substr(1));
     }
 
     try {

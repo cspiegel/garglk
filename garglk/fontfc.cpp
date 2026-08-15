@@ -16,6 +16,7 @@
 // along with Gargoyle; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -31,7 +32,7 @@
 
 static FcConfig *cfg;
 
-static std::optional<std::string> findfont(const std::string &fontname)
+static std::optional<std::filesystem::path> findfont(const std::string &fontname)
 {
     FcChar8 *strval = nullptr;
 
@@ -57,7 +58,7 @@ static std::optional<std::string> findfont(const std::string &fontname)
     return reinterpret_cast<char *>(strval);
 }
 
-static std::optional<std::string> find_font_by_styles(const std::string &basefont, const std::vector<std::string> &styles, const std::vector<int> &weights, const std::vector<std::string> &slants)
+static std::optional<std::filesystem::path> find_font_by_styles(const std::string &basefont, const std::vector<std::string> &styles, const std::vector<int> &weights, const std::vector<std::string> &slants)
 {
     // Prefer normal width fonts, but if there aren't any, allow whatever fontconfig finds.
     std::vector<std::string> widths = {":width=100", ""};

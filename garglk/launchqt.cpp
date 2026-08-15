@@ -22,9 +22,12 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <string>
+#include <system_error>
 
 #ifdef _WIN32
 #include <cstdio>
@@ -122,7 +125,7 @@ static QString winbrowsefile()
     return QFileDialog::getOpenFileName(nullptr, AppName, "", filter_string, nullptr, options);
 }
 
-bool garglk::winterp(const std::string &exe, const std::vector<std::string> &flags, const std::string &game)
+bool garglk::winterp(const std::string &exe, const std::vector<std::string> &flags, const std::filesystem::path &game)
 {
     // Find the directory that contains the interpreters. By default
     // this is GARGLK_CONFIG_INTERPRETER_DIR but if that is not set, it
@@ -150,7 +153,7 @@ bool garglk::winterp(const std::string &exe, const std::vector<std::string> &fla
     for (const auto &flag : flags) {
         args.push_back(QString::fromStdString(flag));
     }
-    args.push_back(QString::fromStdString(game));
+    args.push_back(QString::fromStdString(game.string()));
 
     QProcess proc;
     proc.setProcessChannelMode(QProcess::ForwardedChannels);
@@ -218,7 +221,7 @@ static QString parse_args(const QApplication &app)
         std::cout << parser.helpText().toStdString() << std::endl;
         std::exit(0);
     } else if (parser.isSet("m")) {
-        auto configs = garglk::configs("");
+        auto configs = garglk::configs();
         configs.erase(std::remove_if(configs.begin(), configs.end(), [](const auto &config) {
             return config.type != garglk::ConfigFile::Type::User;
         }), configs.end());
@@ -228,14 +231,14 @@ static QString parse_args(const QApplication &app)
             std::exit(1);
         }
 
-        auto preferred = QString::fromStdString(configs.front().path);
+        auto preferred = QString::fromStdString(configs.front().path.string());
         if (QFile::exists(preferred)) {
             std::cout << "Preferred configuration file " << preferred.toStdString() << " already exists.\n";
         } else {
             std::vector<garglk::ConfigFile> existing;
 
             std::copy_if(configs.begin(), configs.end(), std::back_inserter(existing), [&preferred](const auto &config) {
-                auto path = QString::fromStdString(config.path);
+                auto path = QString::fromStdString(config.path.string());
                 return path != preferred && QFile::exists(path);
             });
 
@@ -244,11 +247,23 @@ static QString parse_args(const QApplication &app)
             } else if (existing.size() != 1) {
                 std::cout << "Won't migrate, found multiple existing configuration files:\n\n";
                 for (const auto &config : existing) {
-                    std::cout << config.path << std::endl;
+                    std::cout << config.path.string() << std::endl;
                 }
             } else {
-                auto old = existing.front().path;
+                auto old = existing.front().path.string();
                 std::cout << "Renaming " << old << " to " << preferred.toStdString() << std::endl;
+
+                // QFile::rename() won't create the destination's parent
+                // directory, and the preferred location (under
+                // $XDG_CONFIG_HOME, say) may not exist yet. Errors here
+                // don't need reporting: the rename below fails in turn,
+                // and says so.
+                auto parent = configs.front().path.parent_path();
+                if (!parent.empty()) {
+                    std::error_code ec;
+                    std::filesystem::create_directories(parent, ec);
+                }
+
                 QFile file(QString::fromStdString(old));
                 if (!file.rename(preferred)) {
                     std::cerr << "Unable to rename file: " << file.errorString().toStdString() << std::endl;
@@ -259,16 +274,14 @@ static QString parse_args(const QApplication &app)
 
         std::exit(0);
     } else if (parser.isSet("p")) {
-        // Convert to native separators and return absolute path.
-        auto canonicalize = [](const std::string &path) {
-            auto qpath = QString::fromStdString(path);
-            qpath = QDir(qpath).absolutePath();
-            return QDir::toNativeSeparators(qpath).toStdString();
-        };
+        std::optional<std::filesystem::path> gamepath;
+        if (!gamefile.isEmpty()) {
+            gamepath = gamefile.toStdString();
+        }
 
         std::cout << "Configuration file paths:\n\n";
-        for (const auto &config : garglk::configs(gamefile.toStdString())) {
-            auto path = canonicalize(config.path);
+        for (const auto &config : garglk::configs(gamepath)) {
+            auto path = garglk::display_path_absolute(config.path);
             auto type = QString::fromStdString(config.format_type());
 
             std::cout << path << " " << type.toStdString() << std::endl;
@@ -278,7 +291,7 @@ static QString parse_args(const QApplication &app)
         auto theme_paths = garglk::theme::paths();
         std::reverse(theme_paths.begin(), theme_paths.end());
         for (const auto &path : theme_paths) {
-            std::cout << canonicalize(path) << std::endl;
+            std::cout << garglk::display_path_absolute(path) << std::endl;
         }
 
         std::exit(0);

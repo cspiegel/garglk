@@ -23,6 +23,7 @@
 #include "launcher.h"
 
 #include <cstdlib>
+#include <filesystem>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -31,7 +32,6 @@
 #import <Cocoa/Cocoa.h>
 #import <OpenGL/gl.h>
 #import <OpenGL/glu.h>
-#include <libproc.h>
 #include <unistd.h>
 #import "sysmac.h"
 
@@ -1079,7 +1079,7 @@ static void maybe_set_save_dir(NSSavePanel *panel, NSString *savedir)
 - (IBAction) toggle: (id) sender
 {
     try {
-        auto config = [NSString stringWithUTF8String: garglk::user_config().c_str()];
+        auto config = [NSString stringWithUTF8String: garglk::user_config().string().c_str()];
         NSTask *task = [[NSTask alloc] init];
         task.launchPath = @"/usr/bin/open";
         task.arguments = @[@"-t", config];
@@ -1098,31 +1098,13 @@ void garglk::winmsg(const std::string &msg)
     NSRunAlertPanel(@"Fatal error", @"%@", nil, nil, nil, nsMsg);
 }
 
-static std::string winpath()
-{
-    char exepath[PROC_PIDPATHINFO_MAXSIZE];
-
-    if (proc_pidpath(getpid(), exepath, sizeof exepath) == -1) {
-        garglk::winmsg("Unable to locate executable path");
-    }
-
-    std::string buffer = exepath;
-
-    auto slash = buffer.find_last_of('/');
-    if (slash != std::string::npos) {
-        buffer.erase(slash);
-    }
-
-    return buffer;
-}
-
-static int winexec(const std::string &cmd, const std::vector<std::string> &args)
+static int winexec(const std::string &terp, const std::vector<std::string> &args)
 {
     NSTask *proc = [[NSTask alloc] init];
 
-    // prepare interpreter path
-    NSArray *nsArray = [[NSString stringWithCString: cmd.c_str() encoding: NSUTF8StringEncoding] componentsSeparatedByString: @"/"];
-    NSString *nsTerp = [nsArray objectAtIndex: [nsArray count] - 1];
+    // prepare interpreter path: interpreters are bundled in the
+    // application's PlugIns directory.
+    NSString *nsTerp = [NSString stringWithCString: terp.c_str() encoding: NSUTF8StringEncoding];
     NSString *nsCmd = [NSString stringWithFormat: @"%@/%@", [[NSBundle mainBundle] builtInPlugInsPath], nsTerp];
 
     // prepare interpreter arguments
@@ -1146,18 +1128,13 @@ static int winexec(const std::string &cmd, const std::vector<std::string> &args)
     return [proc isRunning];
 }
 
-bool garglk::winterp(const std::string &exe, const std::vector<std::string> &flags, const std::string &game)
+bool garglk::winterp(const std::string &exe, const std::vector<std::string> &flags, const std::filesystem::path &game)
 {
-    // get dir of executable
-    auto interpreter_dir = winpath();
-
-    auto cmd = Format("{}/{}", interpreter_dir, exe);
-
     auto args = flags;
 
-    args.push_back(game);
+    args.push_back(game.string());
 
-    if (!winexec(cmd, args)) {
+    if (!winexec(exe, args)) {
         garglk::winmsg("Could not start 'terp.\nSorry.");
         return false;
     }

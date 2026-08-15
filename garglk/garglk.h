@@ -35,6 +35,7 @@
 #include <cstring>
 #include <deque>
 #include <exception>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -138,13 +139,13 @@ struct ConfigFile {
         PerGame,
     };
 
-    ConfigFile(std::string path_, Type type_) : path(std::move(path_)), type(type_) {
+    ConfigFile(std::filesystem::path path_, Type type_) : path(std::move(path_)), type(type_) {
     }
 
     std::string format_type() const;
 
     // The path to the file itself.
-    std::string path;
+    std::filesystem::path path;
 
     // There are three types of config file:
     //
@@ -172,24 +173,26 @@ std::string winsavefile(const char *prompt, FileFilter filter);
 void winabort(const std::string &msg);
 void winwarning(const std::string &title, const std::string &msg);
 void show_game_info(const GameInfo &info, bool show_once);
-std::optional<GameInfo> get_game_info(std::string filename);
+std::optional<GameInfo> get_game_info(const std::filesystem::path &filename);
 std::string downcase(const std::string &string);
+std::string display_path(std::filesystem::path path);
+std::string display_path_absolute(const std::filesystem::path &path);
 bool fontreplace(const std::string &font, FontType type);
-std::vector<ConfigFile> configs(const std::optional<std::string> &gamepath);
-void config_entries(const std::string &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg, int lineno)> &callback);
-std::string user_config();
+std::vector<ConfigFile> configs(const std::optional<std::filesystem::path> &gamepath = std::nullopt);
+void config_entries(const std::filesystem::path &fname, bool accept_bare, const std::vector<std::string> &matches, const std::function<void(const std::string &cmd, const std::string &arg, int lineno)> &callback);
+std::filesystem::path user_config();
 bool set_lcdfilter(const std::string &filter);
-std::optional<std::string> winfontpath(const std::string &filename);
-std::string windatadir();
-std::vector<std::string> winthemedirs();
-std::optional<std::string> winlegacythemedir();
-std::optional<std::string> winappdir();
+std::optional<std::filesystem::path> winfontpath(const std::filesystem::path &filename);
+std::filesystem::path windatadir();
+std::vector<std::filesystem::path> winthemedirs();
+std::optional<std::filesystem::path> winlegacythemedir();
+std::optional<std::filesystem::path> winappdir();
 bool winisfullscreen();
 
 namespace theme {
 void init();
 bool set(std::string name);
-std::vector<std::string> paths();
+std::vector<std::filesystem::path> paths();
 std::vector<std::string> names();
 }
 
@@ -199,7 +202,7 @@ std::unique_ptr<T, Deleter> unique(T *p, Deleter deleter)
     return std::unique_ptr<T, Deleter>(p, deleter);
 }
 
-bool read_file(const std::string &filename, std::vector<unsigned char> &buf);
+bool read_file(const std::filesystem::path &filename, std::vector<unsigned char> &buf);
 
 template <typename Iterable, typename DType>
 std::string join(const Iterable &values, const DType &delim)
@@ -438,7 +441,7 @@ public:
 
     Bleeps();
     void update(int number, double duration, int frequency);
-    void update(int number, const std::string &path);
+    void update(int number, const std::filesystem::path &path);
     std::vector<std::uint8_t> &at(int number);
 
 private:
@@ -561,8 +564,8 @@ extern Canvas<3> gli_image_rgb;
 // Config globals
 //
 
-extern std::string gli_workdir;
-extern std::optional<std::string> gli_workfile;
+extern std::filesystem::path gli_workdir;
+extern std::optional<std::filesystem::path> gli_workfile;
 
 extern Styles gli_tstyles;
 extern Styles gli_gstyles;
@@ -608,7 +611,7 @@ extern std::array<unsigned char, 5> gli_conf_lcd_weights;
 
 extern bool gli_conf_graphics;
 extern bool gli_conf_sound;
-extern std::deque<std::string> gli_conf_soundfonts;
+extern std::deque<std::filesystem::path> gli_conf_soundfonts;
 
 extern bool gli_conf_fluidsynth_reverb;
 extern bool gli_conf_fluidsynth_chorus;
@@ -649,10 +652,10 @@ extern int gli_leading;
 
 struct FontFiles {
     struct {
-        std::optional<std::string> base;
-        std::optional<std::string> override;
+        std::optional<std::filesystem::path> base;
+        std::optional<std::filesystem::path> override;
 
-        const std::optional<std::string> &fontpath() const {
+        [[nodiscard]] const std::optional<std::filesystem::path> &fontpath() const {
             return override.has_value() ? override : base;
         }
     } r, b, i, z;
@@ -706,7 +709,7 @@ enum class GameInfoShow {
 };
 extern GARGLK_API GameInfoShow gli_conf_game_info;
 
-extern std::unordered_map<FontFace, std::vector<std::string>> gli_conf_glyph_substitution_files;
+extern std::unordered_map<FontFace, std::vector<std::filesystem::path>> gli_conf_glyph_substitution_files;
 
 // XXX See issue #730.
 extern bool gli_conf_redraw_hack;
@@ -1093,7 +1096,7 @@ extern bool gcmd_accept_scroll(window_t *win, glui32 arg);
 
 extern void gli_initialize_misc();
 extern void gli_initialize_windows();
-extern void gli_initialize_babel(std::string filename);
+extern void gli_initialize_babel(const std::filesystem::path &filename);
 
 extern window_t *gli_window_iterate_treeorder(window_t *win);
 

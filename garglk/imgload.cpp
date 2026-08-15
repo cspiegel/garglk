@@ -116,7 +116,7 @@ std::shared_ptr<picture_t> gli_picture_load(unsigned long id)
                 return nullptr;
             }
         } else {
-            auto filename = Format("{}/PIC{}", gli_workdir, id);
+            auto filename = gli_workdir / Format("PIC{}", id);
 
             if (!garglk::read_file(filename, buf)) {
                 return nullptr;

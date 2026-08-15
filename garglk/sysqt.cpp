@@ -27,7 +27,6 @@
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QFileDialog>
-#include <QFileInfo>
 #include <QFrame>
 #include <QGraphicsView>
 #include <QHBoxLayout>
@@ -96,8 +95,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include "format.h"
 
 #include "sysqt.h"
 #include "moc_sysqt.cpp"
@@ -183,16 +180,16 @@ static std::string winchoosefile(const QString &prompt, FileFilter filter, Actio
     QString dir = "";
 
     if (gli_conf_gamedata_location == GamedataLocation::Dedicated && gli_workfile.has_value()) {
-        auto path = QFileInfo(QString::fromStdString(*gli_workfile));
-        if (!path.fileName().isEmpty()) {
+        auto basename = gli_workfile->filename();
+        if (!basename.empty()) {
             QDir basedir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-            QDir savepath = QDir(basedir.filePath("gamedata")).filePath(path.fileName());
+            QDir savepath = QDir(basedir.filePath("gamedata")).filePath(QString::fromStdString(basename.string()));
             if (savepath.mkpath(savepath.absolutePath())) {
                 dir = savepath.absolutePath();
             }
         }
     } else if (gli_conf_gamedata_location == GamedataLocation::Gamedir) {
-        dir = QString::fromStdString(gli_workdir);
+        dir = QString::fromStdString(gli_workdir.string());
     }
 
     if (action == Action::Open) {
@@ -447,7 +444,7 @@ void garglk::Window::start_timer(unsigned long ms)
 void gli_edit_config()
 {
     try {
-        auto config = garglk::user_config();
+        auto config = garglk::user_config().string();
 #ifdef __APPLE__
         // QDesktopServices::openUrl uses the default handler for the
         // specified file. One possible filename is garglk.ini, meaning
@@ -489,17 +486,10 @@ void gli_edit_config()
 
 static void show_paths()
 {
-    // Convert to native separators and return absolute path.
-    auto canonicalize = [](const std::string &path) {
-        auto qpath = QString::fromStdString(path);
-        qpath = QDir(qpath).absolutePath();
-        return QDir::toNativeSeparators(qpath);
-    };
-
     QString text("<p>Configuration file paths:</p><pre>");
 
     for (const auto &config : garglk::all_configs) {
-        auto path = canonicalize(config.path);
+        auto path = QString::fromStdString(garglk::display_path_absolute(config.path));
         auto type = QString::fromStdString(config.format_type());
 
         text += QString("%1 %2\n").arg(path).arg(type);
@@ -509,7 +499,7 @@ static void show_paths()
     auto theme_paths = garglk::theme::paths();
     std::reverse(theme_paths.begin(), theme_paths.end());
     for (const auto &path : theme_paths) {
-        text += canonicalize(path) + "\n";
+        text += QString::fromStdString(garglk::display_path_absolute(path)) + "\n";
     }
     text += "</pre>";
 
@@ -896,20 +886,21 @@ bool windark()
     return text_hsv_value > bg_hsv_value;
 }
 
-std::optional<std::string> garglk::winfontpath(const std::string &filename)
+std::optional<std::filesystem::path> garglk::winfontpath(const std::filesystem::path &filename)
 {
-    return Format("{}/{}", QCoreApplication::applicationDirPath().toStdString(), filename);
+    std::filesystem::path dir = QCoreApplication::applicationDirPath().toStdString();
+    return (dir / filename);
 }
 
-std::string garglk::windatadir()
+std::filesystem::path garglk::windatadir()
 {
 #if defined(_WIN32)
     return garglk::winappdir().value_or(".");
 #elif GARGLK_CONFIG_APPIMAGE
     // For AppImages, hard-code the "known" path to app data (in this
     // case that's <binary>/../share/gargoyle).
-    auto dir = QCoreApplication::applicationDirPath().toStdString();
-    return Format("{}/../share/gargoyle", dir);
+    std::filesystem::path dir = QCoreApplication::applicationDirPath().toStdString();
+    return dir / ".." / "share" / "gargoyle";
 #elif defined(GARGLK_CONFIG_DATADIR)
     return GARGLK_CONFIG_DATADIR;
 #else
@@ -917,21 +908,21 @@ std::string garglk::windatadir()
 #endif
 }
 
-std::vector<std::string> garglk::winthemedirs()
+std::vector<std::filesystem::path> garglk::winthemedirs()
 {
-    std::vector<std::string> paths;
+    std::vector<std::filesystem::path> paths;
 
     for (const auto &path : QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)) {
-        paths.push_back(path.toStdString() + "/themes");
+        paths.push_back(std::filesystem::path(path.toStdString()) / "themes");
     }
 
 #ifdef _WIN32
     // On Windows, also search the executable's directory.
-    paths.push_back(QCoreApplication::applicationDirPath().toStdString() + "/themes");
+    paths.push_back(std::filesystem::path(QCoreApplication::applicationDirPath().toStdString()) / "themes");
 #endif
 
 #if GARGLK_CONFIG_APPIMAGE
-    paths.push_back(Format("{}/themes", garglk::windatadir()));
+    paths.push_back(garglk::windatadir() / "themes");
 #endif
 
     // QStandardPaths returns higher priority directories first: reverse
@@ -942,14 +933,14 @@ std::vector<std::string> garglk::winthemedirs()
     return paths;
 }
 
-std::optional<std::string> garglk::winlegacythemedir() {
+std::optional<std::filesystem::path> garglk::winlegacythemedir() {
 #ifdef _WIN32
     const char *appdata = std::getenv("APPDATA");
     if (appdata == nullptr) {
         return std::nullopt;
     }
 
-    return std::string(appdata) + "\\io.github.garglk\\Gargoyle\\themes";
+    return std::filesystem::path(appdata) / "io.github.garglk" / "Gargoyle" / "themes";
 #else
     QString user_share = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
     QDir legacy_themes = QDir(user_share).filePath("io.github.garglk/Gargoyle/themes");
@@ -957,7 +948,7 @@ std::optional<std::string> garglk::winlegacythemedir() {
 #endif
 }
 
-std::optional<std::string> garglk::winappdir()
+std::optional<std::filesystem::path> garglk::winappdir()
 {
     return QCoreApplication::applicationDirPath().toStdString();
 }

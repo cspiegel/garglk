@@ -19,6 +19,7 @@
 #import <Cocoa/Cocoa.h>
 
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 
 #include "font.h"
@@ -58,7 +59,7 @@ bool garglk::fontreplace(const std::string &font, FontType type)
             NSString *fontPath = (__bridge NSString *)fontPathRef;
             NSLog(@"fontPath: %@", fontPath);
 
-            std::string file = [fontPath UTF8String];
+            std::filesystem::path file = [fontPath UTF8String];
             auto traits = [sysfont symbolicTraits];
 
             if ((traits & NSFontBoldTrait) && (traits & NSFontItalicTrait)) {

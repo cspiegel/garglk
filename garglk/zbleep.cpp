@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <map>
 #include <optional>
@@ -100,7 +101,7 @@ void Bleeps::update(int number, double duration, int frequency)
     m_bleeps[number] = std::move(data);
 }
 
-void Bleeps::update(int number, const std::string &path)
+void Bleeps::update(int number, const std::filesystem::path &path)
 {
     if (number != 1 && number != 2) {
         return;

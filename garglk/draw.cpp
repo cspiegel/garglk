@@ -21,6 +21,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -82,13 +83,13 @@ class Font {
 public:
     class LoadError : public std::exception {
     public:
-        LoadError(FT_Error err, std::string filename, const std::string &basemsg) :
+        LoadError(FT_Error err, std::filesystem::path filename, const std::string &basemsg) :
             m_filename(std::move(filename)),
             m_what(convert_ft_error(err, basemsg))
         {
         }
 
-        const std::string &filename() const {
+        [[nodiscard]] const std::filesystem::path &filename() const {
             return m_filename;
         }
 
@@ -97,11 +98,11 @@ public:
         }
 
     private:
-        std::string m_filename;
+        std::filesystem::path m_filename;
         std::string m_what;
     };
 
-    Font(FontFace fontface, UniqueFace face, const std::string &fontpath);
+    Font(FontFace fontface, UniqueFace face, const std::filesystem::path &fontpath);
 
     FontEntry getglyph(glui32 cid);
     int charkern(glui32 c0, glui32 c1);
@@ -123,7 +124,7 @@ private:
 // Globals
 //
 
-std::unordered_map<FontFace, std::vector<std::string>> gli_conf_glyph_substitution_files;
+std::unordered_map<FontFace, std::vector<std::filesystem::path>> gli_conf_glyph_substitution_files;
 
 static std::array<std::uint16_t, 256> gammamap;
 static std::array<unsigned char, 1 << GAMMA_BITS> gammainv;
@@ -257,7 +258,7 @@ FontEntry Font::getglyph(glui32 cid)
 // Unix this is generally somewhere like /usr/share/gargoyle (although
 // this can be changed at build time), and on Windows it's the install
 // directory (e.g. "C:\Program Files (x86)\Gargoyle").
-static std::optional<std::string> font_path_fallback_system(const std::string &fallback)
+static std::optional<std::filesystem::path> font_path_fallback_system(const std::filesystem::path &fallback)
 {
 #ifdef _WIN32
     char directory[256];
@@ -266,22 +267,22 @@ static std::optional<std::string> font_path_fallback_system(const std::string &f
         return std::nullopt;
     }
 
-    return Format("{}\\{}", directory, fallback);
+    return (std::filesystem::path(directory) / fallback);
 #else
-    return Format("{}/{}", garglk::windatadir(), fallback);
+    return (garglk::windatadir() / fallback);
 #endif
 }
 
 // Look in a platform-specific location for the fonts. This is typically
 // the same directory that the executable is in, but can be anything the
 // platform code deems appropriate.
-static std::optional<std::string> font_path_fallback_platform(const std::string &fallback)
+static std::optional<std::filesystem::path> font_path_fallback_platform(const std::filesystem::path &fallback)
 {
     return garglk::winfontpath(fallback);
 }
 
 // As a last-ditch effort, look in the current directory for the fonts.
-static std::optional<std::string> font_path_fallback_local(const std::string &fallback)
+static std::optional<std::filesystem::path> font_path_fallback_local(const std::filesystem::path &fallback)
 {
     return fallback;
 }
@@ -297,9 +298,9 @@ static std::string fontface_to_name(FontFace fontface)
     return Format("{} {}", type, style);
 }
 
-static Font make_font(FontFace fontface, const std::string &fallback, std::vector<std::string> &problem_fonts)
+static Font make_font(FontFace fontface, const std::filesystem::path &fallback, std::vector<std::string> &problem_fonts)
 {
-    std::vector<std::function<std::optional<std::string>(const std::string &fallback)>> font_paths = {
+    std::vector<std::function<std::optional<std::filesystem::path>(const std::filesystem::path &fallback)>> font_paths = {
         font_path_fallback_system,
         font_path_fallback_platform,
         font_path_fallback_local,
@@ -324,7 +325,7 @@ static Font make_font(FontFace fontface, const std::string &fallback, std::vecto
     // (e.g. propr, monor, etc).
     std::optional<Font::LoadError> error;
     FT_Face face;
-    if (path.has_value() && FT_New_Face(ftlib, path->c_str(), 0, &face) == 0) {
+    if (path.has_value() && FT_New_Face(ftlib, path->string().c_str(), 0, &face) == 0) {
         try {
             return {fontface, UniqueFace(face), *path};
         } catch (const Font::LoadError &e) {
@@ -335,18 +336,18 @@ static Font make_font(FontFace fontface, const std::string &fallback, std::vecto
     // If no user font can be loaded, try to find a fallback.
     for (const auto &get_font_path : font_paths) {
         auto fontpath = get_font_path(fallback);
-        if (fontpath.has_value() && FT_New_Face(ftlib, fontpath->c_str(), 0, &face) == 0) {
+        if (fontpath.has_value() && FT_New_Face(ftlib, fontpath->string().c_str(), 0, &face) == 0) {
             if (error.has_value()) {
-                problem_fonts.push_back(Format("Unable to load font file \"{}\" ({}): using fallback {}.", error->filename(), error->what(), *fontpath));
+                problem_fonts.push_back(Format("Unable to load font file \"{}\" ({}): using fallback {}.", garglk::display_path(error->filename()), error->what(), garglk::display_path(*fontpath)));
             }
             return {fontface, UniqueFace(face), *fontpath};
         }
     }
 
     garglk::winabort(Format("Unable to find font \"{}\" for {}, and fallback {} not found",
-                override.value_or(fontface.monospace ? gli_conf_monofont : gli_conf_propfont),
+                garglk::display_path(override.value_or(fontface.monospace ? gli_conf_monofont : gli_conf_propfont)),
                 fontface_to_name(fontface),
-                fallback));
+                garglk::display_path(fallback)));
 }
 
 static std::vector<Font> make_substitution_fonts(FontFace fontface)
@@ -356,14 +357,13 @@ static std::vector<Font> make_substitution_fonts(FontFace fontface)
 
     auto files = gli_conf_glyph_substitution_files[fontface];
 
-
-    for (const auto &path : {garglk::windatadir(), "."s}) {
-        files.push_back(Format("{}/unifont.otf", path));
-        files.push_back(Format("{}/unifont_upper.otf", path));
+    for (const auto &path : {garglk::windatadir(), std::filesystem::path(".")}) {
+        files.push_back((path / "unifont.otf"));
+        files.push_back((path / "unifont_upper.otf"));
     }
 
     for (const auto &file : files) {
-        if (FT_New_Face(ftlib, file.c_str(), 0, &face) == 0) {
+        if (FT_New_Face(ftlib, file.string().c_str(), 0, &face) == 0) {
             try {
                 fonts.emplace_back(fontface, UniqueFace(face), file);
             } catch (const Font::LoadError &) {
@@ -374,7 +374,7 @@ static std::vector<Font> make_substitution_fonts(FontFace fontface)
     return fonts;
 }
 
-Font::Font(FontFace fontface, UniqueFace face, const std::string &fontpath) :
+Font::Font(FontFace fontface, UniqueFace face, const std::filesystem::path &fontpath) :
     m_face(std::move(face))
 {
     int err = 0;
@@ -388,15 +388,14 @@ Font::Font(FontFace fontface, UniqueFace face, const std::string &fontpath) :
         size = gli_conf_propsize;
     }
 
-    auto dot = fontpath.rfind('.');
-    if (dot != std::string::npos) {
-        std::string afmbuf = fontpath;
-        auto ext = afmbuf.substr(dot);
-        if (ext == ".pfa" || ext == ".PFA" || ext == ".pfb" || ext == ".PFB") {
-            afmbuf.replace(dot, std::string::npos, ".afm");
-            FT_Attach_File(m_face.get(), afmbuf.c_str());
-            afmbuf.replace(dot, std::string::npos, ".AFM");
-            FT_Attach_File(m_face.get(), afmbuf.c_str());
+    // Type 1 fonts keep their metrics in a separate AFM file alongside
+    // the font itself.
+    std::filesystem::path afmpath(fontpath);
+    auto ext = afmpath.extension().string();
+    if (ext == ".pfa" || ext == ".PFA" || ext == ".pfb" || ext == ".PFB") {
+        for (const auto &afm_ext : {".afm", ".AFM"}) {
+            auto afm = afmpath.replace_extension(afm_ext).string();
+            FT_Attach_File(m_face.get(), afm.c_str());
         }
     }
 
@@ -483,7 +482,7 @@ void gli_initialize_fonts()
     ftmat.xy = 0x03000L;
     ftmat.yy = 0x10000L;
 
-    auto make_entry = [&problem_fonts](FontFace face, const std::string &fallback) {
+    auto make_entry = [&problem_fonts](FontFace face, const std::filesystem::path &fallback) {
         return std::pair(face, make_font(face, fallback, problem_fonts));
     };
 
@@ -502,7 +501,7 @@ void gli_initialize_fonts()
         gli_cellh = gli_leading;
         gli_cellw = (entry.adv + GLI_SUBPIX - 1) / GLI_SUBPIX;
     } catch (const Font::LoadError &e) {
-        garglk::winabort(Format("Unable to load font file \"{}\" ({}).", e.filename(), e.what()));
+        garglk::winabort(Format("Unable to load font file \"{}\" ({}).", garglk::display_path(e.filename()), e.what()));
     }
 
     if (!problem_fonts.empty()) {

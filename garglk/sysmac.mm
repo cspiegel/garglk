@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <map>
@@ -183,9 +184,9 @@ void winexit()
 static NSString *get_savedir(FileFilter filter)
 {
     if (gli_conf_gamedata_location == GamedataLocation::Dedicated && gli_workfile.has_value()) {
-        return [NSString stringWithUTF8String: gli_workfile->c_str()];
+        return [NSString stringWithUTF8String: gli_workfile->string().c_str()];
     } else if (gli_conf_gamedata_location == GamedataLocation::Gamedir) {
-        return [NSString stringWithUTF8String: gli_workdir.c_str()];
+        return [NSString stringWithUTF8String: gli_workdir.string().c_str()];
     }
 
     return nil;
@@ -425,7 +426,7 @@ NSString *get_qt_plist_path()
     if (home != nullptr) {
         // Optimistically use the path that Qt uses with the hope/plan
         // of moving macOS to Qt one of these days.
-        auto path = Format("{}/Library/Preferences/com.io-github-garglk.Gargoyle.plist", home);
+        auto path = (std::filesystem::path(home) / "Library" / "Preferences" / "com.io-github-garglk.Gargoyle.plist").string();
         return [NSString stringWithUTF8String: path.c_str()];
     }
 
@@ -984,18 +985,18 @@ void winpoll()
     } while (evt);
 }
 
-std::optional<std::string> garglk::winfontpath(const std::string &filename)
+std::optional<std::filesystem::path> garglk::winfontpath(const std::filesystem::path &filename)
 {
     char *resources = std::getenv("GARGLK_RESOURCES");
 
     if (resources != nullptr) {
-        return Format("{}/Fonts/{}", resources, filename);
+        return (std::filesystem::path(resources) / "Fonts" / filename);
     }
 
     return std::nullopt;
 }
 
-std::string garglk::windatadir()
+std::filesystem::path garglk::windatadir()
 {
     char *resources = std::getenv("GARGLK_RESOURCES");
 
@@ -1006,30 +1007,30 @@ std::string garglk::windatadir()
     return ".";
 }
 
-std::vector<std::string> garglk::winthemedirs()
+std::vector<std::filesystem::path> garglk::winthemedirs()
 {
     NSArray *appdir_paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
     char *resources = std::getenv("GARGLK_RESOURCES");
-    std::vector<std::string> paths;
+    std::vector<std::filesystem::path> paths;
 
     if (resources != nullptr) {
-        paths.push_back(Format("{}/themes", resources));
+        paths.push_back(std::filesystem::path(resources) / "themes");
     }
 
     // This is what Qt returns for AppDataLocation (though Qt adds a
     // few more directories that aren't particularly relevant).
     for (NSString *appdir_path in appdir_paths) {
-        paths.push_back(Format("{}/Gargoyle/themes", [appdir_path UTF8String]));
+        paths.push_back(std::filesystem::path([appdir_path UTF8String]) / "Gargoyle" / "themes");
     }
 
     return paths;
 }
 
-std::optional<std::string> garglk::winlegacythemedir() {
+std::optional<std::filesystem::path> garglk::winlegacythemedir() {
     return [[NSHomeDirectory() stringByAppendingPathComponent: @"Library/Application Support/io.github.garglk/Gargoyle/themes"] UTF8String];
 }
 
-std::optional<std::string> garglk::winappdir()
+std::optional<std::filesystem::path> garglk::winappdir()
 {
     // This is only used on Windows.
     return std::nullopt;

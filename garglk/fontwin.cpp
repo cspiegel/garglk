@@ -22,6 +22,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 
 #include "format.h"
@@ -33,7 +34,7 @@
 #define FONT_SUBKEY ("Software\\Microsoft\\Windows NT\\CurrentVersion\\Fonts")
 
 // forward declaration
-static bool find_font_file(const std::string &facename, std::string &filepath);
+static bool find_font_file(const std::string &facename, std::filesystem::path &filepath);
 
 static HDC hdc;
 
@@ -47,7 +48,7 @@ static HDC hdc;
 static int CALLBACK font_cb(ENUMLOGFONTEXA *lpelfe, NEWTEXTMETRICEXA *, int, LPARAM filler_)
 {
     FontFiller *filler = reinterpret_cast<FontFiller *>(filler_);
-    std::string filepath;
+    std::filesystem::path filepath;
     std::string style = reinterpret_cast<char *>(lpelfe->elfStyle);
 
     if (!find_font_file(reinterpret_cast<char *>(lpelfe->elfFullName), filepath)) {
@@ -67,17 +68,22 @@ static int CALLBACK font_cb(ENUMLOGFONTEXA *lpelfe, NEWTEXTMETRICEXA *, int, LPA
     return 0;
 }
 
-static std::string make_font_filepath(const std::string &filename)
+static std::filesystem::path make_font_filepath(const std::filesystem::path &filename)
 {
     // create the absolute path to the font file
-    if (filename.find(':') == std::string::npos && std::getenv("SYSTEMROOT") != nullptr) {
-        return Format("{}\\Fonts\\{}", std::getenv("SYSTEMROOT"), filename);
+    //
+    // The registry stores either a bare filename, meaning the system
+    // font directory, or a fully-qualified path; a drive prefix (the
+    // root name) is what tells the two apart.
+    const char *systemroot = std::getenv("SYSTEMROOT");
+    if (!filename.has_root_name() && systemroot != nullptr) {
+        return std::filesystem::path(systemroot) / "Fonts" / filename;
     } else {
         return filename;
     }
 }
 
-static bool find_font_file_with_key(HKEY key, const char *subkey, const std::string &facename, std::string &filepath)
+static bool find_font_file_with_key(HKEY key, const char *subkey, const std::string &facename, std::filesystem::path &filepath)
 {
     HKEY hkey;
     DWORD size;
@@ -118,7 +124,7 @@ static bool find_font_file_with_key(HKEY key, const char *subkey, const std::str
     return false;
 }
 
-static bool find_font_file(const std::string &facename, std::string &filepath)
+static bool find_font_file(const std::string &facename, std::filesystem::path &filepath)
 {
     // First, try the per-user key
     if (find_font_file_with_key(HKEY_CURRENT_USER, FONT_SUBKEY, facename, filepath)) {

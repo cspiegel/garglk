@@ -371,7 +371,7 @@ public:
         }
 
         for (const auto &soundfont : gli_conf_soundfonts) {
-            fluid_synth_sfload(m_synth.get(), soundfont.c_str(), 1);
+            fluid_synth_sfload(m_synth.get(), soundfont.string().c_str(), 1);
         }
 
         if (fluid_synth_get_sfont(m_synth.get(), 0) == nullptr) {
@@ -579,7 +579,7 @@ Expected<std::pair<int, std::vector<unsigned char>>> load_sound_resource(glui32 
                 return "invalid resource"s;
             }
         } else {
-            auto filename = Format("{}/SND{}", gli_workdir, snd);
+            auto filename = gli_workdir / Format("SND{}", snd);
 
             if (!garglk::read_file(filename, data)) {
                 return "can't open SND file"s;

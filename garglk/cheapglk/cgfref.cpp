@@ -32,6 +32,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <system_error>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,8 +62,8 @@
 #include "format.h"
 
 #ifdef GARGLK
-std::string gli_workdir = ".";
-std::optional<std::string> gli_workfile;
+std::filesystem::path gli_workdir = ".";
+std::optional<std::filesystem::path> gli_workfile;
 
 const char *garglk_fileref_get_name(fileref_t *fref)
 {
@@ -179,32 +180,32 @@ static std::string gli_suffix_for_usage(glui32 usage)
 
 frefid_t glk_fileref_create_temp(glui32 usage, glui32 rock)
 {
+#define bail() { \
+    gli_strict_warning("fileref_create_temp: unable to create temporary file"); \
+    return NULL; \
+}
+
 #ifdef GARGLK
     fileref_t *fref;
 #ifdef _WIN32
     char tempdir[MAX_PATH];
     char filename[MAX_PATH];
-    GetTempPathA(MAX_PATH, tempdir);
-    if(GetTempPathA(MAX_PATH, tempdir) == 0 ||
-       GetTempFileNameA(tempdir, "glk", 0, filename) == 0)
-    {
-        gli_strict_warning("fileref_create_temp: unable to create temporary file");
-        return NULL;
+    if (GetTempPathA(MAX_PATH, tempdir) == 0 || GetTempFileNameA(tempdir, "glk", 0, filename) == 0) {
+        bail();
     }
 #else
-    char filename[4096];
-    const char *tempdir = getenv("TMPDIR");
-    int fd;
-    if (tempdir == NULL)
-        tempdir = "/tmp";
-    snprintf(filename, sizeof filename, "%s/garglkXXXXXX", tempdir);
-    fd = mkstemp(filename);
-    if (fd == -1)
-    {
-        gli_strict_warning("fileref_create_temp: unable to create temporary file");
-        return NULL;
+    std::error_code ec;
+    const auto tempdir = std::filesystem::temp_directory_path(ec);
+    if (tempdir.empty()) {
+        bail();
+    }
+    auto tempfile = (tempdir / "garglkXXXXXX").string();
+    int fd = mkstemp(tempfile.data());
+    if (fd == -1) {
+        bail();
     }
     close(fd);
+    const char *filename = tempfile.c_str();
 #endif
 #else
     char filename[BUFLEN];
@@ -214,6 +215,8 @@ frefid_t glk_fileref_create_temp(glui32 usage, glui32 rock)
     close(mkstemp(filename));
     
 #endif
+
+#undef bail
 
     fref = gli_new_fileref(filename, usage, rock);
     if (!fref) {
@@ -268,7 +271,7 @@ frefid_t glk_fileref_create_by_name(glui32 usage, char *name,
         buf = "null";
     }
 
-    buf = Format("{}/{}{}", gli_workdir, buf, gli_suffix_for_usage(usage));
+    buf = (gli_workdir / (buf + gli_suffix_for_usage(usage))).string();
 
     fref = gli_new_fileref(buf.c_str(), usage, rock);
 #else
@@ -534,7 +537,7 @@ void glkunix_set_base_file(char *filename)
     if (parent.empty()) {
         parent = ".";
     }
-    gli_workdir = parent.string();
+    gli_workdir = parent;
 
     gli_workfile = filename;
 #else

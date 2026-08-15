@@ -21,6 +21,7 @@
 #ifndef GARGLK_LAUNCHER_H
 #define GARGLK_LAUNCHER_H
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,8 +29,8 @@
 namespace garglk {
 
 void winmsg(const std::string &msg);
-bool winterp(const std::string &exe, const std::vector<std::string> &flags, const std::string &game);
-bool rungame(const std::string &game);
+bool winterp(const std::string &exe, const std::vector<std::string> &flags, const std::filesystem::path &game);
+bool rungame(const std::filesystem::path &game);
 
 }
 

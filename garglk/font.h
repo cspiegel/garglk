@@ -1,7 +1,7 @@
 #ifndef GARGLK_FONT_H
 #define GARGLK_FONT_H
 
-#include <string>
+#include <filesystem>
 #include <optional>
 #include <unordered_map>
 
@@ -21,7 +21,7 @@ public:
     {
     }
 
-    void add(Style style, std::optional<std::string> path) {
+    void add(Style style, std::optional<std::filesystem::path> path) {
         m_fonts.insert({style, std::move(path)});
     }
 
@@ -61,7 +61,7 @@ public:
 
 private:
     FontType m_type;
-    std::unordered_map<Style, std::optional<std::string>> m_fonts;
+    std::unordered_map<Style, std::optional<std::filesystem::path>> m_fonts;
 };
 
 #endif

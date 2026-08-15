@@ -26,6 +26,7 @@
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -166,7 +167,7 @@ struct Theme {
         return from_json(json::parse(string));
     }
 
-    static Theme from_file(const std::string &filename) {
+    static Theme from_file(const std::filesystem::path &filename) {
         std::ifstream f(filename);
         if (!f.is_open()) {
             throw std::runtime_error("unable to open file");
@@ -238,26 +239,18 @@ private:
 
 static std::unordered_map<std::string, Theme> themes;
 
-std::vector<std::string> garglk::theme::paths()
+std::vector<std::filesystem::path> garglk::theme::paths()
 {
-    std::vector<std::string> theme_paths;
-
-    for (const auto &path : garglk::winthemedirs()) {
-        theme_paths.push_back(path);
-    }
-
-    return theme_paths;
+    return garglk::winthemedirs();
 }
 
-static std::vector<std::string> directory_entries(const std::string &dir)
+static std::vector<std::filesystem::path> directory_entries(const std::filesystem::path &dir)
 {
-    std::vector<std::string> entries;
+    std::vector<std::filesystem::path> entries;
+    std::error_code ec;
 
-    try {
-        for (const auto &entry : std::filesystem::directory_iterator(dir)) {
-            entries.push_back(entry.path().string());
-        }
-    } catch (const std::filesystem::filesystem_error &) {
+    for (const auto &entry : std::filesystem::directory_iterator(dir, ec)) {
+        entries.push_back(entry.path());
     }
 
     return entries;
@@ -303,13 +296,12 @@ void garglk::theme::init()
 
     for (const auto &themedir : paths) {
         for (const auto &filename : directory_entries(themedir)) {
-            auto dot = filename.find_last_of('.');
-            if (dot != std::string::npos && filename.substr(dot) == ".json") {
+            if (filename.extension() == ".json") {
                 try {
                     auto theme = Theme::from_file(filename);
                     themes.insert_or_assign(theme.name, theme);
                 } catch (const std::exception &e) {
-                    std::cerr << "garglk: error parsing theme " << filename << ": " << e.what() << std::endl;
+                    std::cerr << "garglk: error parsing theme " << filename.string() << ": " << e.what() << std::endl;
                 }
             }
         }

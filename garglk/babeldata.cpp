@@ -24,6 +24,7 @@
 #ifdef BABEL_HANDLER
 
 #include <cstdlib>
+#include <filesystem>
 #include <memory>
 #include <new>
 #include <optional>
@@ -153,10 +154,10 @@ static std::optional<garglk::GameInfo> parse_ifiction(const std::string &metadat
     return info;
 }
 
-std::optional<garglk::GameInfo> garglk::get_game_info(std::string filename)
+std::optional<garglk::GameInfo> garglk::get_game_info(const std::filesystem::path &filename)
 {
     auto ctx = garglk::unique(get_babel_ctx(), release_babel_ctx);
-    if (babel_init_ctx(filename.data(), ctx.get()) == nullptr) {
+    if (babel_init_ctx(filename.string().data(), ctx.get()) == nullptr) {
         babel_release_ctx(ctx.get());
         return std::nullopt;
     }
@@ -202,10 +203,10 @@ std::optional<garglk::GameInfo> garglk::get_game_info(std::string filename)
     return info;
 }
 
-void gli_initialize_babel(std::string filename)
+void gli_initialize_babel(const std::filesystem::path &filename)
 {
     auto ctx = garglk::unique(get_babel_ctx(), release_babel_ctx);
-    if (babel_init_ctx(filename.data(), ctx.get()) != nullptr) {
+    if (babel_init_ctx(filename.string().data(), ctx.get()) != nullptr) {
         int meta_size = babel_treaty_ctx(GET_STORY_FILE_METADATA_EXTENT_SEL, nullptr, 0, ctx.get());
         if (meta_size > 0) {
             try {
@@ -226,12 +227,12 @@ void gli_initialize_babel(std::string filename)
 
 #else
 
-std::optional<garglk::GameInfo> garglk::get_game_info(std::string)
+std::optional<garglk::GameInfo> garglk::get_game_info(const std::filesystem::path &)
 {
     return std::nullopt;
 }
 
-void gli_initialize_babel(std::string)
+void gli_initialize_babel(const std::filesystem::path &)
 {
 }
 

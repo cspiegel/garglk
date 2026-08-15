@@ -134,10 +134,13 @@ void gli_initialize_sound()
             return;
         }
 
+        // SDL_mixer takes a semicolon-separated list, so any soundfont
+        // whose path contains a semicolon can't be represented.
         std::string soundfonts;
         for (const auto &soundfont : gli_conf_soundfonts) {
-            if (soundfont.find(';') == std::string::npos) {
-                soundfonts += soundfont + ';';
+            auto path = soundfont.string();
+            if (path.find(';') == std::string::npos) {
+                soundfonts += path + ';';
             }
         }
 
@@ -468,7 +471,7 @@ static glui32 load_sound_resource(glui32 snd, std::vector<unsigned char> &buf)
                 return 0;
             }
         } else {
-            auto filename = Format("{}/SND{}", gli_workdir, snd);
+            auto filename = gli_workdir / Format("SND{}", snd);
 
             if (!garglk::read_file(filename, buf)) {
                 return 0;
