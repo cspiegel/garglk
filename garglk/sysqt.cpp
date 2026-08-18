@@ -1042,11 +1042,11 @@ void gli_edit_config()
 #endif
 #else
         if (!QDesktopServices::openUrl(QUrl::fromLocalFile(config.c_str()))) {
-            QMessageBox::warning(nullptr, "Warning", "Unable to find a text editor");
+            show_text(TextStyle::Warning, "Warning", "Unable to find a text editor", false);
         }
 #endif
     } catch (std::runtime_error &e) {
-        QMessageBox::warning(nullptr, "Warning", e.what());
+        show_text(TextStyle::Warning, "Warning", e.what(), false);
     }
 }
 
