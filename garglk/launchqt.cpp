@@ -48,6 +48,8 @@
 #include <QVector>
 
 #ifdef GARGLK_CONFIG_QT_BROKER
+#include <cstddef>
+
 #include <QAction>
 #include <QCloseEvent>
 #include <QColor>
@@ -202,6 +204,26 @@ QString broker_name;
 const double broker_dpr = garglk::broker::backing_scale;
 bool game_launched = false;
 
+// How big a frame slot needs to be. A window's canvas is its logical
+// size times the fixed backing scale in each direction, and a window is
+// at most as large as the screen it's on, so the largest attached screen
+// bounds it. The headroom covers a display being attached later; if a
+// frame ever outgrows a slot anyway, the interpreter simply sends that
+// one over the socket instead.
+std::size_t frame_slot_size()
+{
+    qint64 pixels = 0;
+    for (const auto *screen : QGuiApplication::screens()) {
+        auto size = screen->geometry().size();
+        pixels = std::max(pixels, static_cast<qint64>(size.width()) * size.height());
+    }
+
+    auto scale = broker::backing_scale * broker::backing_scale;
+    auto bytes = static_cast<qint64>(pixels * scale * 3) * 5 / 4;
+
+    return static_cast<std::size_t>(std::clamp<qint64>(bytes, 16 * 1024 * 1024, 256 * 1024 * 1024));
+}
+
 class GameView : public QWidget {
 public:
     explicit GameView(QLocalSocket *sock, QWidget *parent) :
@@ -237,9 +259,24 @@ public:
     void set_frame(qint32 width, qint32 height, qint32 stride, const QByteArray &data)
     {
         m_data = data;
-        m_frame = QImage(reinterpret_cast<const uchar *>(m_data.constData()), width, height, stride, QImage::Format_RGB888);
-        m_frame.setDevicePixelRatio(broker_dpr);
-        update();
+        set_image(reinterpret_cast<const uchar *>(m_data.constData()), width, height, stride);
+    }
+
+    // No copy: the image is drawn straight out of the shared slot, which
+    // the interpreter has given this process exclusive use of until the
+    // matching FrameDone.
+    void set_shared_frame(const unsigned char *pixels, qint32 width, qint32 height, qint32 stride)
+    {
+        m_data.clear();
+        set_image(pixels, width, height, stride);
+    }
+
+    // The image points into either m_data or a shared slot, so it must
+    // go before whichever of those is torn down.
+    void clear_frame()
+    {
+        m_frame = QImage();
+        m_data.clear();
     }
 
     QVariant inputMethodQuery(Qt::InputMethodQuery query) const override
@@ -335,6 +372,13 @@ protected:
     }
 
 private:
+    void set_image(const uchar *pixels, qint32 width, qint32 height, qint32 stride)
+    {
+        m_frame = QImage(pixels, width, height, stride, QImage::Format_RGB888);
+        m_frame.setDevicePixelRatio(broker_dpr);
+        update();
+    }
+
     void send_mouse(QEvent::Type type, QMouseEvent *event)
     {
         broker::send(m_sock, broker::MsgType::MouseEvent, broker::pack(
@@ -361,6 +405,20 @@ public:
         setAttribute(Qt::WA_DeleteOnClose);
         m_sock->setParent(this);
 
+        // Offer the interpreter a segment to render frames into. If this
+        // fails it just doesn't get one, and sends frames on the socket.
+        static int next_segment = 0;
+        auto name = QString("/garglk.%1.%2")
+            .arg(QCoreApplication::applicationPid())
+            .arg(next_segment++);
+
+        if (m_frames.create(name, frame_slot_size(), broker::frame_slot_count)) {
+            broker::send(m_sock, broker::MsgType::FrameBuffer, broker::pack(
+                name,
+                static_cast<quint64>(m_frames.slot_size()),
+                static_cast<qint32>(m_frames.slot_count())));
+        }
+
         QObject::connect(m_sock, &QLocalSocket::readyRead, this, [this]() {
             m_buffer.append(m_sock->readAll());
 
@@ -376,6 +434,14 @@ public:
         QObject::connect(m_sock, &QLocalSocket::disconnected, this, [this]() {
             close();
         });
+    }
+
+    ~GameWindow() override
+    {
+        // The view draws straight out of the shared segment, so its image
+        // has to go before the mapping does.
+        m_view->clear_frame();
+        m_frames.detach();
     }
 
     void send_key(Qt::KeyboardModifiers modifiers, int key, const QString &text)
@@ -476,8 +542,42 @@ private:
             QByteArray data;
             in >> width >> height >> stride >> data;
             m_view->set_frame(width, height, stride, data);
+            release_slot();
             break;
         }
+        case broker::MsgType::FrameShared: {
+            qint32 slot, width, height, stride;
+            in >> slot >> width >> height >> stride;
+
+            // The frame is described by another process, but this window
+            // is about to read through it, so make sure it stays inside
+            // the slot it claims to be in.
+            if (!m_frames.valid() || slot < 0 || slot >= m_frames.slot_count() ||
+                width <= 0 || height <= 0 ||
+                static_cast<qint64>(stride) < static_cast<qint64>(width) * 3 ||
+                static_cast<qint64>(stride) * height > static_cast<qint64>(m_frames.slot_size())) {
+                break;
+            }
+
+            int previous = m_shown_slot;
+            m_view->set_shared_frame(m_frames.slot(slot), width, height, stride);
+            m_shown_slot = slot;
+
+            // The newest frame is bound first, so there is no moment at
+            // which the view points into a slot the interpreter may be
+            // writing. The one it replaced is no longer wanted, whether
+            // or not it was ever painted.
+            if (previous >= 0 && previous != slot) {
+                broker::send(m_sock, broker::MsgType::FrameDone,
+                        broker::pack(static_cast<qint32>(previous)));
+            }
+            break;
+        }
+        case broker::MsgType::FrameBufferReady:
+            // Both processes have the segment mapped, so its name has
+            // done its job.
+            m_frames.unlink();
+            break;
         case broker::MsgType::SetBackground: {
             quint32 background;
             in >> background;
@@ -607,9 +707,22 @@ private:
         }
     }
 
+    // Hand back the slot on display, if any: it is about to stop being
+    // what the view draws from.
+    void release_slot()
+    {
+        if (m_shown_slot >= 0) {
+            broker::send(m_sock, broker::MsgType::FrameDone,
+                    broker::pack(static_cast<qint32>(m_shown_slot)));
+            m_shown_slot = -1;
+        }
+    }
+
     QLocalSocket *m_sock;
     GameView *m_view;
     QByteArray m_buffer;
+    broker::SharedFrames m_frames;
+    int m_shown_slot = -1;
     bool m_fullscreen_from_maximized = false;
     bool m_save_size = false;
     bool m_save_position = false;
