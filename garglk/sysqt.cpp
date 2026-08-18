@@ -103,6 +103,7 @@
 #include <QLocalSocket>
 
 #include <cmath>
+#include <cstring>
 #include <deque>
 
 #include "brokerqt.h"
@@ -438,6 +439,10 @@ static QLocalSocket *broker_sock = nullptr;
 static QByteArray broker_inbuf;
 static std::deque<garglk::broker::Message> broker_pending;
 static bool broker_disconnected = false;
+static garglk::broker::SharedFrames broker_frames;
+// Which slots the launcher currently has; the interpreter may only draw
+// into one it owns. See the protocol notes in brokerqt.h.
+static std::vector<bool> broker_slot_lent;
 static const double broker_dpr = garglk::broker::backing_scale;
 static bool broker_is_fullscreen = false;
 
@@ -476,10 +481,21 @@ static void broker_exit(int status)
     gli_exit(status);
 }
 
+// The first slot the launcher isn't currently using, or -1 if it has
+// them all.
+static int broker_free_slot()
+{
+    for (std::size_t i = 0; i < broker_slot_lent.size(); i++) {
+        if (!broker_slot_lent[i]) {
+            return static_cast<int>(i);
+        }
+    }
+
+    return -1;
+}
+
 static void broker_refresh()
 {
-    redraw();
-
     // The background can change during a game (a style or theme
     // change), so keep the launcher's copy current.
     static std::optional<quint32> last_background;
@@ -489,12 +505,46 @@ static void broker_refresh()
         broker_post(garglk::broker::MsgType::SetBackground, garglk::broker::pack(background));
     }
 
+    // A frame can only be drawn into a slot the launcher has handed
+    // back. While it has them all, do nothing at all - not even the
+    // redraw, which would only have to be repeated: refresh_needed stays
+    // set, and the FrameDone which frees a slot also wakes the event
+    // loop, so the frame goes out on the next pass through gli_select().
+    // This is what keeps the interpreter from running ahead of the
+    // launcher.
+    int slot = -1;
+    if (broker_frames.valid()) {
+        slot = broker_free_slot();
+        if (slot < 0) {
+            return;
+        }
+    }
+
+    redraw();
+
+    auto size = static_cast<std::size_t>(gli_image_rgb.size());
+
+    if (slot >= 0 && size <= broker_frames.slot_size()) {
+        std::memcpy(broker_frames.slot(slot), gli_image_rgb.data(), size);
+        broker_slot_lent[slot] = true;
+
+        broker_post(garglk::broker::MsgType::FrameShared, garglk::broker::pack(
+            static_cast<qint32>(slot),
+            static_cast<qint32>(gli_image_rgb.width()),
+            static_cast<qint32>(gli_image_rgb.height()),
+            static_cast<qint32>(gli_image_rgb.stride())));
+        return;
+    }
+
+    // Either the launcher offered no segment, or the canvas has outgrown
+    // a slot (a display larger than any the launcher sized them against
+    // has since been attached). Send the pixels themselves.
     QByteArray payload;
     QDataStream out(&payload, QIODevice::WriteOnly);
     out << static_cast<qint32>(gli_image_rgb.width())
         << static_cast<qint32>(gli_image_rgb.height())
         << static_cast<qint32>(gli_image_rgb.stride())
-        << QByteArray::fromRawData(reinterpret_cast<const char *>(gli_image_rgb.data()), gli_image_rgb.size());
+        << QByteArray::fromRawData(reinterpret_cast<const char *>(gli_image_rgb.data()), size);
     broker_post(garglk::broker::MsgType::Frame, payload);
 }
 
@@ -568,6 +618,32 @@ static void broker_handle(const garglk::broker::Message &msg)
         bool fullscreen;
         in >> fullscreen;
         broker_is_fullscreen = fullscreen;
+        break;
+    }
+    case MsgType::FrameBuffer: {
+        QString name;
+        quint64 slot_size;
+        qint32 slot_count;
+        in >> name >> slot_size >> slot_count;
+
+        if (slot_count > 0 && slot_count <= 8 &&
+            broker_frames.attach(name, slot_size, slot_count)) {
+            broker_slot_lent.assign(slot_count, false);
+        }
+
+        // Answer either way: the launcher is waiting to unlink the
+        // segment's name, and if attaching failed frames simply keep
+        // going over the socket.
+        broker_post(MsgType::FrameBufferReady);
+        break;
+    }
+    case MsgType::FrameDone: {
+        qint32 slot;
+        in >> slot;
+
+        if (slot >= 0 && slot < static_cast<qint32>(broker_slot_lent.size())) {
+            broker_slot_lent[slot] = false;
+        }
         break;
     }
     default:
