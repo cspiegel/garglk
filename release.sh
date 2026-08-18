@@ -70,7 +70,8 @@ then
     # this hold despite the two Homebrew prefixes having different Qt
     # packages installed.
     diff <(cd Gargoyle.app && find . -type f | sort) \
-         <(cd Gargoyle-x86_64.app && find . -type f | sort)
+         <(cd Gargoyle-x86_64.app && find . -type f | sort) ||
+        fatal "x86_64 and arm64 bundles contain different files (see above); the universal merge would silently drop the difference"
 
     # The set of Mach-O files (and their locations) differs between
     # the Cocoa and Qt layouts: Qt has framework directories and
