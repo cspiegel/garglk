@@ -75,6 +75,7 @@
 #include <QScreen>
 #include <QSettings>
 #include <QTimer>
+#include <QUrl>
 #include <QVariant>
 #include <QWheelEvent>
 #include <QWidget>
@@ -754,7 +755,23 @@ protected:
     {
         // Sent when a game is opened via Finder, the Dock, etc.
         if (event->type() == QEvent::FileOpen) {
-            launch_game(static_cast<QFileOpenEvent *>(event)->file());
+            auto *open_event = static_cast<QFileOpenEvent *>(event);
+            auto file = open_event->file();
+
+            // Qt also turns a garglk:// URL (a scheme registered by
+            // launcher.plist) into a QFileOpenEvent, but file() is empty
+            // for those, since it's not a file: URL. Recover the path the
+            // same way the Cocoa launcher does: strip the scheme and
+            // decode.
+            if (file.isEmpty()) {
+                static const QString scheme = "garglk://";
+                auto url = open_event->url().toString();
+                if (url.startsWith(scheme)) {
+                    file = QUrl::fromPercentEncoding(url.mid(scheme.size()).toUtf8());
+                }
+            }
+
+            launch_game(file);
             return true;
         }
 
