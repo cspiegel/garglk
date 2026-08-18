@@ -81,6 +81,7 @@
 
 #include "brokerqt.h"
 #include "dockmac.h"
+#include "sysqt.h"
 #endif
 
 #include "garglk.h"
@@ -163,13 +164,12 @@ static QString winbrowsefile()
     // matching the Cocoa interface. (Elsewhere the start directory is left
     // empty so the native dialog or portal can remember it itself, which
     // is the expected platform behavior, e.g. via XDG portals on Linux.)
-    QSettings settings("io.github.garglk", "Gargoyle");
-    QString start = settings.value("file/last_open_directory").toString();
+    QString start = garglk::settings().value("file/last_open_directory").toString();
 
     QString filename = QFileDialog::getOpenFileName(nullptr, AppName, start, filter_string, nullptr, options);
 
     if (!filename.isEmpty()) {
-        settings.setValue("file/last_open_directory", QFileInfo(filename).absolutePath());
+        garglk::settings().setValue("file/last_open_directory", QFileInfo(filename).absolutePath());
     }
 
     return filename;
@@ -198,13 +198,6 @@ QString broker_name;
 // Fixed render scale shared with the interpreters; see broker::backing_scale.
 const double broker_dpr = garglk::broker::backing_scale;
 bool game_launched = false;
-
-QSettings &broker_settings()
-{
-    // These names match the QSettings used in sysqt.cpp.
-    static QSettings settings("io.github.garglk", "Gargoyle");
-    return settings;
-}
 
 class GameView : public QWidget {
 public:
@@ -376,18 +369,18 @@ protected:
         QMainWindow::resizeEvent(event);
 
         if (gli_conf_save_window_size) {
-            broker_settings().setValue("window/size", event->size());
+            garglk::settings().setValue(garglk::settings_window_size, event->size());
         }
 
         if (gli_conf_save_window_location || gli_conf_save_window_size) {
-            broker_settings().setValue("window/fullscreen", isFullScreen());
+            garglk::settings().setValue(garglk::settings_window_fullscreen, isFullScreen());
         }
     }
 
     void moveEvent(QMoveEvent *event) override
     {
         if (gli_conf_save_window_location) {
-            broker_settings().setValue("window/position", event->pos());
+            garglk::settings().setValue(garglk::settings_window_position, event->pos());
         }
 
         event->accept();
@@ -548,7 +541,7 @@ void start_broker()
 
 void add_recent(const QString &game)
 {
-    auto &settings = broker_settings();
+    auto &settings = garglk::settings();
     auto games = settings.value("recent/games").toStringList();
     auto path = QFileInfo(game).absoluteFilePath();
 
@@ -596,7 +589,7 @@ void create_menubar()
     QObject::connect(recent_menu, &QMenu::aboutToShow, recent_menu, [recent_menu]() {
         recent_menu->clear();
 
-        const auto games = broker_settings().value("recent/games").toStringList();
+        const auto games = garglk::settings().value("recent/games").toStringList();
         for (const auto &game : games) {
             auto *action = recent_menu->addAction(QFileInfo(game).fileName());
             QObject::connect(action, &QAction::triggered, action, [game]() {
@@ -610,7 +603,7 @@ void create_menubar()
             recent_menu->addSeparator();
             auto *clear = recent_menu->addAction("Clear Menu");
             QObject::connect(clear, &QAction::triggered, clear, []() {
-                broker_settings().remove("recent/games");
+                garglk::settings().remove("recent/games");
             });
         }
     });

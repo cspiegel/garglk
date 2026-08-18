@@ -136,11 +136,9 @@ static QApplication *app;
 static garglk::Window *window;
 
 // These live outside of Window because in broker mode (see below)
-// there is no Window instance, but timers and settings are still
-// needed.
+// there is no Window instance, but a timer is still needed.
 static QTimer *timer;
 static bool timer_expired = false;
-static QSettings *settings;
 
 static bool fullscreen_from_maximized = false;
 
@@ -188,6 +186,14 @@ static void handle_mouse_release(Qt::MouseButton button);
 static void set_cursor(CursorShape shape);
 static void show_text(TextStyle style, const QString &title, const QString &text, bool rich);
 static QString file_dialog(bool save, const QString &prompt, const QString &filter, const QString &start);
+
+QSettings &garglk::settings()
+{
+    // See the comment on the declaration in sysqt.h for why these names
+    // are what they are.
+    static QSettings settings("io.github.garglk", "Gargoyle");
+    return settings;
+}
 
 static void handle_input(const QString &input, bool from_paste)
 {
@@ -254,14 +260,14 @@ static StoredGeometry stored_geometry(const QSize &default_size)
 
     geom.size = default_size;
     if (gli_conf_save_window_size) {
-        auto stored_size = settings->value("window/size");
+        auto stored_size = garglk::settings().value(garglk::settings_window_size);
         if (stored_size.canConvert<QSize>()) {
             geom.size = stored_size.toSize();
         }
     }
 
     if (gli_conf_save_window_location) {
-        auto stored_position = settings->value("window/position");
+        auto stored_position = garglk::settings().value(garglk::settings_window_position);
         if (stored_position.canConvert<QPoint>()) {
             geom.position = stored_position.toPoint();
         }
@@ -269,7 +275,7 @@ static StoredGeometry stored_geometry(const QSize &default_size)
 
     geom.fullscreen = gli_conf_fullscreen;
     if (gli_conf_save_window_location || gli_conf_save_window_size) {
-        auto fullscreen = settings->value("window/fullscreen");
+        auto fullscreen = garglk::settings().value(garglk::settings_window_fullscreen);
         if (fullscreen.canConvert<bool>()) {
             geom.fullscreen = fullscreen.toBool();
         }
@@ -902,11 +908,11 @@ void garglk::Window::updateBufferSize(const QSize &logicalSize)
     }
 
     if (gli_conf_save_window_size) {
-        settings->setValue("window/size", logicalSize);
+        garglk::settings().setValue(garglk::settings_window_size, logicalSize);
     }
 
     if (gli_conf_save_window_location || gli_conf_save_window_size) {
-        settings->setValue("window/fullscreen", ::window->isFullScreen());
+        garglk::settings().setValue(garglk::settings_window_fullscreen, ::window->isFullScreen());
     }
 }
 
@@ -924,7 +930,7 @@ void garglk::Window::resizeEvent(QResizeEvent *event)
 void garglk::Window::moveEvent(QMoveEvent *event)
 {
     if (gli_conf_save_window_location) {
-        settings->setValue("window/position", event->pos());
+        garglk::settings().setValue(garglk::settings_window_position, event->pos());
     }
 
     event->accept();
@@ -1356,22 +1362,6 @@ void wininit()
         timer_expired = true;
     });
 
-    // Qt programs have an organization and name that can be set, and
-    // Gargoyle used to set these to "io.github.garglk" and "Gargoyle".
-    // The QSettings here followed that. However, Gargoyle now uses an
-    // empty organization and the name "gargoyle" (on Unix) so that
-    // directories are more conventionally-named, e.g. /usr/share/gargoyle
-    // instead of /usr/share/io.github.garglk/Gargoyle. But QSettings
-    // _requires_ an organization name. Given that this is a setting
-    // users aren't ever supposed to see anyhow, and that these exact
-    // names were used in the past, keep them the same so that older
-    // configurations can be loaded. Ideally this would probably just be
-    // "gargoyle" and "gargoyle" but aesthetics are nowhere near as
-    // important as not losing settings; and since nobody is going to
-    // see these names in the normal course of using Gargoyle, it
-    // doesn't really matter anyway.
-    settings = new QSettings("io.github.garglk", "Gargoyle");
-
     broker_init();
 
     std::thread([]() {
@@ -1598,14 +1588,13 @@ void gli_select(event_t *event, bool polled)
 void garglk::show_game_info(const garglk::GameInfo &info, bool show_once)
 {
     if (show_once && info.ifid.has_value()) {
-        QSettings settings("io.github.garglk", "Gargoyle");
-        auto seen = settings.value("games/info_shown").toStringList();
+        auto seen = garglk::settings().value("games/info_shown").toStringList();
         auto qifid = QString::fromStdString(*info.ifid);
         if (seen.contains(qifid)) {
             return;
         }
         seen.append(qifid);
-        settings.setValue("games/info_shown", seen);
+        garglk::settings().setValue("games/info_shown", seen);
     }
 
     auto title = QString::fromStdString(info.title);

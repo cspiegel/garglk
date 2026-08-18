@@ -8,6 +8,7 @@
 #include <QMoveEvent>
 #include <QPaintEvent>
 #include <QResizeEvent>
+#include <QSettings>
 #include <QShowEvent>
 #include <QWheelEvent>
 #include <QWidget>
@@ -65,6 +66,30 @@ private:
 
     View *const m_view;
 };
+
+// The settings store, shared by the launcher and the interpreters.
+//
+// Qt programs have an organization and name that can be set, and
+// Gargoyle used to set these to "io.github.garglk" and "Gargoyle". The
+// QSettings here follows that. However, Gargoyle now uses an empty
+// organization and the name "gargoyle" (on Unix) so that directories
+// are more conventionally-named, e.g. /usr/share/gargoyle instead of
+// /usr/share/io.github.garglk/Gargoyle. But QSettings _requires_ an
+// organization name. Given that this is a setting users aren't ever
+// supposed to see anyhow, and that these exact names were used in the
+// past, keep them the same so that older configurations can be loaded.
+// Ideally this would probably just be "gargoyle" and "gargoyle" but
+// aesthetics are nowhere near as important as not losing settings; and
+// since nobody is going to see these names in the normal course of
+// using Gargoyle, it doesn't really matter anyway.
+QSettings &settings();
+
+// Keys under "window/" are written by whichever process owns the window
+// (the launcher in broker mode, the interpreter otherwise) and read back
+// when a window is opened, so both processes must agree on them.
+inline constexpr auto settings_window_size = "window/size";
+inline constexpr auto settings_window_position = "window/position";
+inline constexpr auto settings_window_fullscreen = "window/fullscreen";
 
 }
 #endif
