@@ -443,6 +443,19 @@ static void broker_post(garglk::broker::MsgType type, const QByteArray &payload 
     garglk::broker::send(broker_sock, type, payload);
 }
 
+// The launcher clears each window to this before drawing the frame it
+// has, so that the gap between a resize and the frame which answers it
+// (and the window's whole area before the first frame arrives) shows
+// the game's background rather than the default widget color. This
+// mirrors the background color the Cocoa interface passes to its own
+// launcher.
+static quint32 broker_background()
+{
+    return (static_cast<quint32>(gli_window_color[0]) << 16) |
+           (static_cast<quint32>(gli_window_color[1]) << 8) |
+           static_cast<quint32>(gli_window_color[2]);
+}
+
 // The window is gone, or the launcher died. Stop all sound channels
 // before exiting so the interpreter doesn't keep playing while it
 // shuts down.
@@ -458,6 +471,15 @@ static void broker_exit(int status)
 static void broker_refresh()
 {
     redraw();
+
+    // The background can change during a game (a style or theme
+    // change), so keep the launcher's copy current.
+    static std::optional<quint32> last_background;
+    auto background = broker_background();
+    if (last_background != background) {
+        last_background = background;
+        broker_post(garglk::broker::MsgType::SetBackground, garglk::broker::pack(background));
+    }
 
     QByteArray payload;
     QDataStream out(&payload, QIODevice::WriteOnly);
@@ -611,7 +633,8 @@ static void broker_open_window()
         // whether saving is wanted rather than letting it guess from the
         // launcher's own (game-less) configuration.
         gli_conf_save_window_size,
-        gli_conf_save_window_location));
+        gli_conf_save_window_location,
+        broker_background()));
 
     // The canvas can't be set up until the actual window size is
     // known, so wait for the launcher to report it.

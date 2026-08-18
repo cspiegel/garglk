@@ -55,13 +55,14 @@ inline constexpr double backing_scale = 2.0;
 
 enum class MsgType : quint32 {
     // interpreter → launcher
-    NewWindow = 1,    // bool move; qint32 x, y, width, height, minwidth, minheight; bool fullscreen; bool save_size, save_position (sizes/positions in logical pixels)
+    NewWindow = 1,    // bool move; qint32 x, y, width, height, minwidth, minheight; bool fullscreen; bool save_size, save_position; quint32 background (sizes/positions in logical pixels; background is 0x00RRGGBB)
     SetTitle,         // QString title
     Frame,            // qint32 width, height, stride (device pixels); QByteArray packed RGB888 data
     SetCursor,        // qint32 cursor (a Cursor value)
     FileDialog,       // bool save; QString prompt, filter, start (start is a directory for open, a suggested path for save)
     ToggleFullscreen, // (empty)
     ShowText,         // qint32 style (a TextStyle value); QString title, text; bool rich
+    SetBackground,    // quint32 background (0x00RRGGBB)
 
     // launcher → interpreter
     Resized,          // qint32 width, height (logical pixels)

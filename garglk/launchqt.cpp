@@ -50,6 +50,7 @@
 #ifdef GARGLK_CONFIG_QT_BROKER
 #include <QAction>
 #include <QCloseEvent>
+#include <QColor>
 #include <QEvent>
 #include <QFileInfo>
 #include <QFileOpenEvent>
@@ -67,6 +68,7 @@
 #include <QMoveEvent>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QPalette>
 #include <QPoint>
 #include <QProcessEnvironment>
 #include <QResizeEvent>
@@ -208,6 +210,19 @@ public:
         setFocusPolicy(Qt::StrongFocus);
         setMouseTracking(true);
         setAttribute(Qt::WA_InputMethodEnabled, true);
+        setAutoFillBackground(true);
+    }
+
+    // The frame always lags the window by a round trip, so the area a
+    // resize has just exposed (and the whole window, until the first
+    // frame arrives) is painted by Qt rather than by the game. Fill it
+    // with the game's own background instead of the default widget
+    // color.
+    void set_background(QRgb background)
+    {
+        auto pal = palette();
+        pal.setColor(QPalette::Window, QColor(background));
+        setPalette(pal);
     }
 
     void set_frame(qint32 width, qint32 height, qint32 stride, const QByteArray &data)
@@ -404,8 +419,11 @@ private:
         case broker::MsgType::NewWindow: {
             bool move, fullscreen;
             qint32 x, y, width, height, minwidth, minheight;
+            quint32 background;
             in >> move >> x >> y >> width >> height >> minwidth >> minheight >> fullscreen
-               >> m_save_size >> m_save_position;
+               >> m_save_size >> m_save_position >> background;
+
+            m_view->set_background(background);
 
             setMinimumSize(minwidth, minheight);
             resize(width, height);
@@ -438,6 +456,13 @@ private:
             QByteArray data;
             in >> width >> height >> stride >> data;
             m_view->set_frame(width, height, stride, data);
+            break;
+        }
+        case broker::MsgType::SetBackground: {
+            quint32 background;
+            in >> background;
+            m_view->set_background(background);
+            m_view->update();
             break;
         }
         case broker::MsgType::SetCursor: {
