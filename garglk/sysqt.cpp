@@ -356,8 +356,15 @@ static std::string winchoosefile(const QString &prompt, FileFilter filter, Actio
         filename = file_dialog(false, prompt, filterstring, dir);
     } else {
         // A bare filename leaves the directory to the dialog itself,
-        // which remembers the last one visited.
+        // which remembers the last one visited. That's no good under
+        // the broker, where the name crosses into the launcher process
+        // and is resolved against that process's working directory
+        // instead of the interpreter's; make it absolute here while the
+        // answer is known.
         QString start = QString("Untitled.%1").arg(filters.at(filter).second);
+        if (dir.isEmpty() && broker_mode()) {
+            dir = QDir::currentPath();
+        }
         if (!dir.isEmpty()) {
             start = QString("%1/%2").arg(dir, start);
         }
