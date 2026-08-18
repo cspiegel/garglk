@@ -705,6 +705,9 @@ void create_menubar()
 
     auto *close = file_menu->addAction("Close");
     close->setShortcut(QKeySequence::Close);
+    QObject::connect(file_menu, &QMenu::aboutToShow, close, [close]() {
+        close->setEnabled(dynamic_cast<GameWindow *>(QApplication::activeWindow()) != nullptr);
+    });
     QObject::connect(close, &QAction::triggered, close, []() {
         auto *window = dynamic_cast<GameWindow *>(QApplication::activeWindow());
         if (window != nullptr) {
@@ -741,7 +744,9 @@ void create_menubar()
     });
 
     // Hand the native menu to AppKit so it can keep the window list in
-    // sync with the real NSWindows backing Qt's game windows.
+    // sync with the real NSWindows backing Qt's game windows. From here
+    // on the items in this menu belong to AppKit: this QMenu must never
+    // gain a QAction, since Qt resyncing it would wipe them out.
     auto *window_menu = menubar->addMenu("Window");
     garglk::mac_configure_window_menu(window_menu->toNSMenu());
 }
