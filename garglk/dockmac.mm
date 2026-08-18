@@ -18,14 +18,9 @@
 
 #import <AppKit/AppKit.h>
 
-// Declared in sysqt.h (guarded by GARGLK_CONFIG_QT_BROKER); kept in sync
-// here rather than including that header, which would drag in Qt headers
-// that clash awkwardly with AppKit.
-namespace garglk {
+#include "dockmac.h"
 
-void mac_hide_from_dock();
-void mac_disable_window_tabbing();
-void mac_configure_window_menu(void *menu);
+namespace garglk {
 
 // Disable window tabbing application-wide. Gargoyle has no use for tabs,
 // and disabling them keeps AppKit from adding tab-related items ("Show

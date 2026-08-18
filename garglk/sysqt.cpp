@@ -106,6 +106,7 @@
 #include <deque>
 
 #include "brokerqt.h"
+#include "dockmac.h"
 #endif
 
 #include "format.h"

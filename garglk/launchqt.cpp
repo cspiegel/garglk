@@ -80,6 +80,7 @@
 #include <vector>
 
 #include "brokerqt.h"
+#include "dockmac.h"
 #endif
 
 #include "garglk.h"
@@ -187,12 +188,6 @@ static QString winbrowsefile()
 // window of their own, instead shipping rendered frames here and
 // receiving input events back (see brokerqt.h for the protocol). This
 // is the Qt equivalent of the Cocoa launcher in launchmac.mm.
-
-// Defined in dockmac.mm.
-namespace garglk {
-void mac_disable_window_tabbing();
-void mac_configure_window_menu(void *menu);
-}
 
 namespace {
 

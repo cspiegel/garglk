@@ -66,11 +66,5 @@ private:
     View *const m_view;
 };
 
-#ifdef GARGLK_CONFIG_QT_BROKER
-// Keep the (windowless) interpreter process out of the Dock and app
-// switcher when running under the broker; defined in dockmac.mm.
-void mac_hide_from_dock();
-#endif
-
 }
 #endif
