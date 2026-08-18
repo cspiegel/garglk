@@ -368,18 +368,18 @@ protected:
     {
         QMainWindow::resizeEvent(event);
 
-        if (gli_conf_save_window_size) {
+        if (m_save_size) {
             garglk::settings().setValue(garglk::settings_window_size, event->size());
         }
 
-        if (gli_conf_save_window_location || gli_conf_save_window_size) {
+        if (m_save_position || m_save_size) {
             garglk::settings().setValue(garglk::settings_window_fullscreen, isFullScreen());
         }
     }
 
     void moveEvent(QMoveEvent *event) override
     {
-        if (gli_conf_save_window_location) {
+        if (m_save_position) {
             garglk::settings().setValue(garglk::settings_window_position, event->pos());
         }
 
@@ -404,7 +404,8 @@ private:
         case broker::MsgType::NewWindow: {
             bool move, fullscreen;
             qint32 x, y, width, height, minwidth, minheight;
-            in >> move >> x >> y >> width >> height >> minwidth >> minheight >> fullscreen;
+            in >> move >> x >> y >> width >> height >> minwidth >> minheight >> fullscreen
+               >> m_save_size >> m_save_position;
 
             setMinimumSize(minwidth, minheight);
             resize(width, height);
@@ -518,6 +519,8 @@ private:
     GameView *m_view;
     QByteArray m_buffer;
     bool m_fullscreen_from_maximized = false;
+    bool m_save_size = false;
+    bool m_save_position = false;
 };
 
 void start_broker()

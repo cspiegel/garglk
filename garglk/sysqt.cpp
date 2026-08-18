@@ -605,7 +605,13 @@ static void broker_open_window()
         static_cast<qint32>(geom.size.height()),
         static_cast<qint32>(std::lround(gli_wmarginx * 2 / broker_dpr)),
         static_cast<qint32>(std::lround(gli_wmarginy * 2 / broker_dpr)),
-        geom.fullscreen));
+        geom.fullscreen,
+        // The launcher owns the window, so it does the saving; but only
+        // the interpreter has read this game's configuration, so tell it
+        // whether saving is wanted rather than letting it guess from the
+        // launcher's own (game-less) configuration.
+        gli_conf_save_window_size,
+        gli_conf_save_window_location));
 
     // The canvas can't be set up until the actual window size is
     // known, so wait for the launcher to report it.

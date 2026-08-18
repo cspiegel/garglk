@@ -55,7 +55,7 @@ inline constexpr double backing_scale = 2.0;
 
 enum class MsgType : quint32 {
     // interpreter → launcher
-    NewWindow = 1,    // bool move; qint32 x, y, width, height, minwidth, minheight; bool fullscreen (sizes/positions in logical pixels)
+    NewWindow = 1,    // bool move; qint32 x, y, width, height, minwidth, minheight; bool fullscreen; bool save_size, save_position (sizes/positions in logical pixels)
     SetTitle,         // QString title
     Frame,            // qint32 width, height, stride (device pixels); QByteArray packed RGB888 data
     SetCursor,        // qint32 cursor (a Cursor value)
