@@ -225,6 +225,14 @@ public:
         setPalette(pal);
     }
 
+    // Frames rendered before the window has been opened would be sized
+    // for a layout the game never sees, so suppress the resize
+    // notifications Qt sends while the window is still being set up.
+    void start()
+    {
+        m_started = true;
+    }
+
     void set_frame(qint32 width, qint32 height, qint32 stride, const QByteArray &data)
     {
         m_data = data;
@@ -260,6 +268,11 @@ protected:
     void resizeEvent(QResizeEvent *event) override
     {
         QWidget::resizeEvent(event);
+
+        if (!m_started) {
+            return;
+        }
+
         broker::send(m_sock, broker::MsgType::Resized, broker::pack(
             static_cast<qint32>(event->size().width()),
             static_cast<qint32>(event->size().height())));
@@ -334,6 +347,7 @@ private:
     QLocalSocket *m_sock;
     QByteArray m_data;
     QImage m_frame;
+    bool m_started = false;
 };
 
 class GameWindow : public QMainWindow {
@@ -438,7 +452,12 @@ private:
             }
 
             // The interpreter is waiting on the actual window size to
-            // set up its canvas.
+            // set up its canvas. This is the first size it is told
+            // about: the view suppresses the resizes Qt delivers while
+            // the window is being laid out and shown, since acting on
+            // those would produce an arrange event before the game has
+            // even started.
+            m_view->start();
             broker::send(m_sock, broker::MsgType::Resized, broker::pack(
                 static_cast<qint32>(m_view->width()),
                 static_cast<qint32>(m_view->height())));
