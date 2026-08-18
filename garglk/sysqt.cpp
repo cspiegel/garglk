@@ -174,6 +174,7 @@ static void broker_open_window();
 static void broker_settitle(const QString &title);
 static void broker_toggle_fullscreen();
 static bool broker_fullscreen();
+static void broker_set_cursor(CursorShape shape);
 static void broker_show_text(TextStyle style, const QString &title, const QString &text, bool rich);
 static QString broker_file_dialog(bool save, const QString &prompt, const QString &filter, const QString &start);
 
@@ -497,13 +498,13 @@ static void broker_refresh()
     broker_post(garglk::broker::MsgType::Frame, payload);
 }
 
-static void broker_set_cursor(garglk::broker::Cursor cursor)
+static void broker_set_cursor(CursorShape shape)
 {
-    static auto last = garglk::broker::Cursor::Arrow;
+    static auto last = CursorShape::Arrow;
 
-    if (cursor != last) {
-        last = cursor;
-        broker_post(garglk::broker::MsgType::SetCursor, garglk::broker::pack(static_cast<qint32>(cursor)));
+    if (shape != last) {
+        last = shape;
+        broker_post(garglk::broker::MsgType::SetCursor, garglk::broker::pack(static_cast<qint32>(shape)));
     }
 }
 
@@ -736,6 +737,7 @@ static void broker_open_window() { }
 static void broker_settitle(const QString &) { }
 static void broker_toggle_fullscreen() { }
 static bool broker_fullscreen() { return false; }
+static void broker_set_cursor(CursorShape) { }
 static void broker_show_text(TextStyle, const QString &, const QString &, bool) { }
 static QString broker_file_dialog(bool, const QString &, const QString &, const QString &) { return QString(); }
 
@@ -746,12 +748,10 @@ static QString broker_file_dialog(bool, const QString &, const QString &, const 
 // the view.
 static void set_cursor(CursorShape shape)
 {
-#ifdef GARGLK_CONFIG_QT_BROKER
     if (broker_mode()) {
-        broker_set_cursor(static_cast<garglk::broker::Cursor>(shape));
+        broker_set_cursor(shape);
         return;
     }
-#endif
 
     switch (shape) {
     case CursorShape::IBeam:
