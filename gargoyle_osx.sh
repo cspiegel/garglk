@@ -234,14 +234,15 @@ done
 find "$TERP_DIR" -type f -not -name 'Gargoyle' -exec install_name_tool -add_rpath '@executable_path/../Frameworks' {} \;
 install_name_tool -add_rpath '@executable_path/../Frameworks' "$BUNDLE/MacOS/Gargoyle"
 
+# Written before deploying Qt, since macdeployqt reads it to locate the
+# bundle's main executable.
+/usr/bin/sed -E -e "s/INSERT_VERSION_HERE/$GARVERSION/" garglk/launcher.plist > $BUNDLE/Info.plist
+
 if [[ "${GARGOYLE_INTERFACE}" == "QT" ]]
 then
     echo "Deploying Qt..."
     MACDEPLOYQT="$(command -v macdeployqt || command -v macdeployqt6 || echo "${HOMEBREW_OR_MACPORTS_LOCATION}/libexec/qt6/bin/macdeployqt")"
     [[ -x "${MACDEPLOYQT}" ]] || fatal "macdeployqt not found"
-
-    # macdeployqt needs Info.plist to locate the main executable.
-    /usr/bin/sed -E -e "s/INSERT_VERSION_HERE/$GARVERSION/" garglk/launcher.plist > $BUNDLE/Info.plist
 
     # All executables (the launcher and the terps) need their Qt
     # references fixed up.
@@ -272,7 +273,6 @@ then
 fi
 
 echo "Copying additional support files..."
-/usr/bin/sed -E -e "s/INSERT_VERSION_HERE/$GARVERSION/" garglk/launcher.plist > $BUNDLE/Info.plist
 
 if [[ "${GARGOYLE_INTERFACE}" == "COCOA" ]]
 then
