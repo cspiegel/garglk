@@ -519,8 +519,10 @@ private:
             bool rich;
             in >> style >> title >> text >> rich;
 
+            auto text_style = static_cast<broker::TextStyle>(style);
+
             auto icon = QMessageBox::Icon::Information;
-            switch (static_cast<broker::TextStyle>(style)) {
+            switch (text_style) {
             case broker::TextStyle::Info:
                 icon = QMessageBox::Icon::Information;
                 break;
@@ -532,9 +534,26 @@ private:
                 break;
             }
 
-            QMessageBox box(icon, title, text, QMessageBox::Ok, this);
-            box.setTextFormat(rich ? Qt::TextFormat::RichText : Qt::TextFormat::PlainText);
-            box.exec();
+            // A fatal error is immediately followed by the interpreter
+            // exiting, which closes this window; so give that box no
+            // parent, or the last thing a dying game says would be
+            // destroyed along with the window. Anything else is shown as
+            // a sheet on this game's window, which leaves the other
+            // games running (an application-modal box would freeze them).
+            bool fatal = text_style == broker::TextStyle::Critical;
+
+            auto *box = new QMessageBox(icon, title, text, QMessageBox::Ok, fatal ? nullptr : this);
+            box->setTextFormat(rich ? Qt::TextFormat::RichText : Qt::TextFormat::PlainText);
+            box->setAttribute(Qt::WA_DeleteOnClose);
+
+            if (fatal) {
+                box->show();
+                box->raise();
+                box->activateWindow();
+            } else {
+                box->setWindowModality(Qt::WindowModal);
+                box->open();
+            }
             break;
         }
         case broker::MsgType::FileDialog: {
@@ -542,16 +561,44 @@ private:
             QString prompt, filter, start;
             in >> save >> prompt >> filter >> start;
 
-            QFileDialog::Options options;
+            // Shown asynchronously and window-modally, i.e. as a sheet
+            // on this game's window. The interpreter is already blocked
+            // waiting for the answer, so there is nothing to gain by
+            // blocking the launcher as well - and doing so would freeze
+            // every other game that happens to be running.
+            auto *dialog = new QFileDialog(this, prompt);
+            dialog->setAttribute(Qt::WA_DeleteOnClose);
+            dialog->setWindowModality(Qt::WindowModal);
+            dialog->setNameFilters(filter.split(";;"));
 #ifdef GARGLK_CONFIG_NO_NATIVE_FILE_DIALOGS
-            options |= QFileDialog::DontUseNativeDialog;
+            dialog->setOption(QFileDialog::DontUseNativeDialog);
 #endif
 
-            QString filename = save
-                ? QFileDialog::getSaveFileName(this, prompt, start, filter, nullptr, options)
-                : QFileDialog::getOpenFileName(this, prompt, start, filter, nullptr, options);
+            if (save) {
+                // For a save, start is a suggested path rather than a
+                // directory.
+                QFileInfo suggestion(start);
+                dialog->setAcceptMode(QFileDialog::AcceptSave);
+                dialog->setFileMode(QFileDialog::AnyFile);
+                dialog->setDirectory(suggestion.absolutePath());
+                dialog->selectFile(suggestion.fileName());
+            } else {
+                dialog->setAcceptMode(QFileDialog::AcceptOpen);
+                dialog->setFileMode(QFileDialog::ExistingFile);
+                dialog->setDirectory(start);
+            }
 
-            broker::send(m_sock, broker::MsgType::FileDialogResult, broker::pack(filename));
+            QObject::connect(dialog, &QDialog::finished, this, [this, dialog](int result) {
+                QString filename;
+                const auto selected = dialog->selectedFiles();
+                if (result == QDialog::Accepted && !selected.isEmpty()) {
+                    filename = selected.first();
+                }
+
+                broker::send(m_sock, broker::MsgType::FileDialogResult, broker::pack(filename));
+            });
+
+            dialog->open();
             break;
         }
         default:
