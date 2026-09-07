@@ -14,7 +14,9 @@
 
 #include "patches.h"
 #include "memory.h"
+#include "options.h"
 #include "process.h"
+#include "screen.h"
 #include "types.h"
 #include "util.h"
 #include "zterp.h"
@@ -47,17 +49,52 @@ struct Patch {
 // user hits a key. This is worse behavior than the default, which is to
 // effectively not sleep at all. Timed input is only available with Glk,
 // and then only if the Glk implementation supports timers.
+static bool has_timed_input()
+{
 #ifdef ZTERP_GLK
-static bool has_timed_input()
-{
     return glk_gestalt(gestalt_Timer, 0);
-}
 #else
-static bool has_timed_input()
-{
     return false;
-}
 #endif
+}
+
+// Some V6 patches are fallbacks for builds without overlays.
+static bool no_overlapping_windows()
+{
+    return !screen_has_overlays();
+}
+
+static bool needs_menu_replacement()
+{
+    return no_overlapping_windows();
+}
+
+static bool needs_encyclopedia_redirect()
+{
+    return no_overlapping_windows();
+}
+
+static bool have_encyclopedia_overlay()
+{
+    return !needs_encyclopedia_redirect();
+}
+
+static bool needs_fanucci_label_skip()
+{
+    return no_overlapping_windows();
+}
+
+// Journey’s FONT3-FLAG says whether font 3 is available; that maps
+// directly to options.disable_graphics_font.
+static bool have_graphics_font()
+{
+    return !options.disable_graphics_font;
+}
+
+static bool no_graphics_font()
+{
+    return options.disable_graphics_font;
+}
 
 static std::vector<Patch> base_patches = {
     // In Arthur, there is a routine called INIT-STATUS-LINE which does this:
@@ -452,7 +489,6 @@ static std::vector<Patch> base_patches = {
     // to the <FONT 1> call at the end of the routine.
     //
     // This fix was created by Petter Sjölund.
-
     {
         "Journey", "890522", 51, 0x4f59,
         {{ 0x471f, 1, {0x40}, {0x4b} }},
@@ -609,7 +645,7 @@ static std::vector<Patch> base_patches = {
 
 // These patches help with the V6 hacks.
 static std::vector<Patch> v6_patches = {
-    // There are two V6 hack patches for Arthur:
+    // There are three V6 hack patches for Arthur:
     //
     // 1. In the intro, two images are shown in immediate succession:
     //
@@ -648,6 +684,9 @@ static std::vector<Patch> v6_patches = {
     // @set_colour puts things back). This might look OK with the parser
     // messages in a separate window, but it’s jarring interleaved with
     // user input, so this removes the calls to @set_colour entirely.
+    //
+    // 3. As with Zork Zero, Arthur limits mouse support to certain
+    // machines. Allow it everywhere.
     {
         "Arthur", "890606", 54, 0x8e4a,
         {
@@ -662,6 +701,9 @@ static std::vector<Patch> v6_patches = {
             // Reverse video.
             { 0x117bf, 3, {0x7b, 0x0d, 0x0c}, {0xb4, 0xb4, 0xb4} },
             { 0x117cb, 3, {0x7b, 0x0c, 0x0d}, {0xb4, 0xb4, 0xb4} },
+
+            // Compass rose.
+            { 0xa3ee, 4, {0x41, 0x19, 0x01, 0xc9}, {0x61, 0x19, 0x19, 0xc9} },
         }
     },
 
@@ -679,6 +721,9 @@ static std::vector<Patch> v6_patches = {
             // Reverse video.
             { 0x11853, 3, {0x7b, 0x0d, 0x0c}, {0xb4, 0xb4, 0xb4} },
             { 0x1185f, 3, {0x7b, 0x0c, 0x0d}, {0xb4, 0xb4, 0xb4} },
+
+            // Compass rose.
+            { 0xa3d6, 4, {0x41, 0x19, 0x01, 0xc9}, {0x61, 0x19, 0x19, 0xc9} },
         }
     },
 
@@ -696,6 +741,9 @@ static std::vector<Patch> v6_patches = {
             // Reverse video.
             { 0x1124b, 3, {0x7b, 0x0d, 0x0c}, {0xb4, 0xb4, 0xb4} },
             { 0x11257, 3, {0x7b, 0x0c, 0x0d}, {0xb4, 0xb4, 0xb4} },
+
+            // Compass rose.
+            { 0xa38e, 4, {0x41, 0x19, 0x01, 0xc9}, {0x61, 0x19, 0x19, 0xc9} },
         },
     },
 
@@ -726,11 +774,46 @@ static std::vector<Patch> v6_patches = {
     // window to draw the maze; but with Glk windows, the maze should
     // always be offset by 0 (which is then adjusted by the block width
     // of 7). Overwrite the assignment to these offsets with @nop.
+    //
+    // 7. Like Zork Zero, Shogun does lots of work in MARGINAL-PIC. Like
+    // Zork Zero, here we just replace the entire function with a call
+    // to @draw_picture. However, Shogun has to do a bit more work than
+    // Zork Zero. Because Shogun’s images are so large, they can overlap
+    // each other in the margins if drawn one right after the other.
+    // This doesn’t look good, since the images will be staggered (or,
+    // in Gargoyle, overlapping, since it doesn’t quite handle the
+    // margins properly).
+    //
+    // Shogun deals with this via the FLUSH-OLD-PICTURE method. If a
+    // picture is still up on screen, it draws enough newlines to move
+    // the cursor to the line following the image, which is precisely
+    // what the glk_window_flow_break() function does. We can’t rewrite
+    // Shogun’s FLUSH-OLD-PICTURE because it’s written assuming that the
+    // newline counter and interrupt are being used, which are not: the
+    // things that Infocom does in these simply isn’t compatible with
+    // Glk. However, glk_window_flow_break() does know how many newlines
+    // are needed, and is exactly what we need when drawing a new
+    // picture. We can call it unconditionally, safely. So MARGINAL-PIC
+    // here calls a custom opcode which just calls
+    // glk_window_flow_break(), and then it draws the picture.
+    //
+    // 8. CENTER-PIC-X calls MAKE-ROOM-FOR before drawing the interlude
+    // clock. Pictures in a Glk buffer do not need this extra room, and
+    // @scroll_window cannot distinguish this call from the one made by
+    // GET-FROM-MENU. Remove the call, leaving the menu as the only user
+    // of @scroll_window.
     {
         "Shogun", "890314", 292, 0x69b8,
         {
             // Newlines.
             { 0x11ef1, 1, {0xda}, {0xb0} },
+
+            // Make room.
+            {
+                0x11eb9, 5,
+                {0xda, 0x2f, 0x17, 0x66, 0x03},
+                {0xb4, 0xb4, 0xb4, 0xb4, 0xb4},
+            },
 
             // Reverse video.
             { 0x11be5, 3, {0x7b, 0xde, 0x2c}, {0xf1, 0x7f, 0x01} },
@@ -743,6 +826,7 @@ static std::vector<Patch> v6_patches = {
                 0x10bd5, 5,
                 {0xec, 0x00, 0x7f, 0x15, 0x1c},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x01},
+                needs_menu_replacement,
             },
 
             // Game over menu.
@@ -750,6 +834,7 @@ static std::vector<Patch> v6_patches = {
                 0x12914, 4,
                 {0xe0, 0x08, 0x15, 0x1c},
                 {0xb4, 0xbe, SHOGUN_MENU_EXT, 0x23},
+                needs_menu_replacement,
             },
 
             // End of scene menu.
@@ -757,6 +842,7 @@ static std::vector<Patch> v6_patches = {
                 0x13caf, 4,
                 {0xe0, 0x08, 0x15, 0x1c},
                 {0xb4, 0xbe, SHOGUN_MENU_EXT, 0x23},
+                needs_menu_replacement,
             },
 
             // Color menu.
@@ -764,6 +850,7 @@ static std::vector<Patch> v6_patches = {
                 0x1750d, 5,
                 {0xec, 0x00, 0xbf, 0x15, 0x1c},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x02},
+                needs_menu_replacement,
             },
 
             // Title split.
@@ -772,6 +859,13 @@ static std::vector<Patch> v6_patches = {
             // Maze offset.
             { 0x3d7b1, 4, {0x57, 0x00, 0x02, 0xb6}, {0xb4, 0xb4, 0xb4, 0xb4 } },
             { 0x3d7c3, 4, {0x57, 0x00, 0x02, 0x6d}, {0xb4, 0xb4, 0xb4, 0xb4 } },
+
+            // Marginal pictures.
+            {
+                0x11f69, 10,
+                {0xff, 0x7f, 0x02, 0xc5, 0x0d, 0x02, 0x01, 0xbe, 0x06, 0x8f},
+                {0xbe, SHOGUN_FLUSH_EXT, 0xff, 0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
+            },
         }
     },
 
@@ -780,6 +874,13 @@ static std::vector<Patch> v6_patches = {
         {
             // Newlines.
             { 0x120a9, 1, {0xda}, {0xb0} },
+
+            // Make room.
+            {
+                0x12071, 5,
+                {0xda, 0x2f, 0x17, 0xc2, 0x03},
+                {0xb4, 0xb4, 0xb4, 0xb4, 0xb4},
+            },
 
             // Reverse video.
             { 0x10a85, 4, {0x41, 0x40, 0x04, 0x46}, {0xf1, 0x7f, 0x01, 0xb0} },
@@ -792,6 +893,7 @@ static std::vector<Patch> v6_patches = {
                 0x10d1a, 5,
                 {0xec, 0x00, 0x7f, 0x15, 0x66},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x01},
+                needs_menu_replacement,
             },
 
             // Game over menu.
@@ -799,6 +901,7 @@ static std::vector<Patch> v6_patches = {
                 0x12acc, 4,
                 {0xe0, 0x08, 0x15, 0x66},
                 {0xb4, 0xbe, SHOGUN_MENU_EXT, 0x23},
+                needs_menu_replacement,
             },
 
             // End of scene menu.
@@ -806,6 +909,7 @@ static std::vector<Patch> v6_patches = {
                 0x13e6f, 4,
                 {0xe0, 0x08, 0x15, 0x66},
                 {0xb4, 0xbe, SHOGUN_MENU_EXT, 0x23},
+                needs_menu_replacement,
             },
 
             // Color menu.
@@ -813,6 +917,7 @@ static std::vector<Patch> v6_patches = {
                 0x176e5, 5,
                 {0xec, 0x00, 0xbf, 0x15, 0x66},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x02},
+                needs_menu_replacement,
             },
 
             // Title split.
@@ -821,6 +926,13 @@ static std::vector<Patch> v6_patches = {
             // Maze offset.
             { 0x3d999, 4, {0x57, 0x00, 0x02, 0xb8}, {0xb4, 0xb4, 0xb4, 0xb4 } },
             { 0x3d9ab, 4, {0x57, 0x00, 0x02, 0x6e}, {0xb4, 0xb4, 0xb4, 0xb4 } },
+
+            // Marginal pictures.
+            {
+                0x12121, 10,
+                {0xff, 0x7f, 0x02, 0xc5, 0x0d, 0x02, 0x01, 0xbe, 0x06, 0x8f},
+                {0xbe, SHOGUN_FLUSH_EXT, 0xff, 0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
+            },
         }
     },
 
@@ -829,6 +941,13 @@ static std::vector<Patch> v6_patches = {
         {
             // Newlines.
             { 0x12625, 1, {0xda}, {0xb0} },
+
+            // Make room.
+            {
+                0x125f7, 5,
+                {0xda, 0x2f, 0x19, 0x50, 0x03},
+                {0xb4, 0xb4, 0xb4, 0xb4, 0xb4},
+            },
 
             // Reverse video.
             { 0x117d1, 4, {0x41, 0x43, 0x04, 0x46}, {0xf1, 0x7f, 0x01, 0xb0} },
@@ -841,6 +960,7 @@ static std::vector<Patch> v6_patches = {
                 0x10cb6, 5,
                 {0xec, 0x00, 0x7f, 0x16, 0x95},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x01},
+                needs_menu_replacement,
             },
 
             // Game over menu.
@@ -848,6 +968,7 @@ static std::vector<Patch> v6_patches = {
                 0x130ab, 4,
                 {0xe0, 0x00, 0x16, 0x95},
                 {0xb4, 0xbe, SHOGUN_MENU_EXT, 0x03},
+                needs_menu_replacement,
             },
 
             // End of scene menu.
@@ -855,6 +976,7 @@ static std::vector<Patch> v6_patches = {
                 0x14499, 9,
                 {0xf9, 0x08, 0x16, 0x95, 0x00, 0xc2, 0x00, 0x20, 0x53},
                 {0xbe, SHOGUN_MENU_EXT, 0x23, 0x00, 0xc2, 0x00, 0x20, 0x53, 0x02},
+                needs_menu_replacement,
             },
 
             // Color menu.
@@ -862,6 +984,14 @@ static std::vector<Patch> v6_patches = {
                 0x17d69, 5,
                 {0xec, 0x00, 0xbf, 0x16, 0x95},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x02},
+                needs_menu_replacement,
+            },
+
+            // Marginal pictures.
+            {
+                0x126a9, 10,
+                {0xff, 0x7f, 0x02, 0xc5, 0x0d, 0x02, 0x01, 0xbe, 0x06, 0x8f},
+                {0xbe, SHOGUN_FLUSH_EXT, 0xff, 0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
             },
         }
     },
@@ -871,6 +1001,13 @@ static std::vector<Patch> v6_patches = {
         {
             // Newlines.
             { 0x12771, 1, {0xda}, {0xb0} },
+
+            // Make room.
+            {
+                0x12743, 5,
+                {0xda, 0x2f, 0x19, 0xa7, 0x03},
+                {0xb4, 0xb4, 0xb4, 0xb4, 0xb4},
+            },
 
             // Reverse video.
             { 0x11865, 4, {0x41, 0x43, 0x04, 0x46}, {0xf1, 0x7f, 0x01, 0xb0} },
@@ -883,6 +1020,7 @@ static std::vector<Patch> v6_patches = {
                 0x10d4a, 5,
                 {0xec, 0x00, 0x7f, 0x16, 0xba},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x01},
+                needs_menu_replacement,
             },
 
             // Game over menu.
@@ -890,6 +1028,7 @@ static std::vector<Patch> v6_patches = {
                 0x131e7, 4,
                 {0xe0, 0x00, 0x16, 0xba},
                 {0xb4, 0xbe, SHOGUN_MENU_EXT, 0x03},
+                needs_menu_replacement,
             },
 
             // End of scene menu.
@@ -897,6 +1036,7 @@ static std::vector<Patch> v6_patches = {
                 0x145e1, 9,
                 {0xf9, 0x08, 0x16, 0xba, 0x00, 0xc2, 0x00, 0x20, 0xa5},
                 {0xbe, SHOGUN_MENU_EXT, 0x23, 0x00, 0xc2, 0x00, 0x20, 0xa5, 0x02},
+                needs_menu_replacement,
             },
 
             // Color menu.
@@ -904,6 +1044,14 @@ static std::vector<Patch> v6_patches = {
                 0x17edd, 5,
                 {0xec, 0x00, 0xbf, 0x16, 0xba},
                 {0xb4, 0xb4, 0xbe, SHOGUN_MENU_EXT, 0x02},
+                needs_menu_replacement,
+            },
+
+            // Marginal pictures.
+            {
+                0x127f5, 10,
+                {0xff, 0x7f, 0x02, 0xc5, 0x0d, 0x02, 0x01, 0xbe, 0x06, 0x8f},
+                {0xbe, SHOGUN_FLUSH_EXT, 0xff, 0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
             },
         }
     },
@@ -917,22 +1065,76 @@ static std::vector<Patch> v6_patches = {
     // zjourney_dial(), passing 0 for the left arrow, and 1 for the
     // right.
     //
-    // 2. When the interpreter number is set to Amiga, Journey draws a
-    // box around the entire screen. This is not possible with Glk (at
-    // least not in a way that wouldn’t require loads of special-
-    // casing); and even worse, Bocfel hacks around some Journey/Glk
-    // issues by pretending the screen height is 6, so that Journey
-    // won’t expand the upper window to extend across the whole screen,
-    // with the side effect that the calculation of the border is
-    // broken, causing an apparent hang that is effectively this, but
-    // slow, since it’s interpreted:
+    // 2. “Capability” flags.
+    //
+    // Journey sets various capability flags based on the interpreter
+    // number. These deal with differences in various interpreters based
+    // on hardware constraints. But Bocfel basically provides a single
+    // type of “hardware” that we need to inform the game about.
+    //
+    // There are 4 flags that matter that get set:
+    //
+    // BORDER-FLAG: Draw a border around the screen.
+    // FONT3-FLAG: Font 3 is available.
+    // FWC-FLAG: The command window uses a fixed-width font.
+    // BLACK-PICTURE-BORDER: Draw a black border around the picture
+    //                       (which really means to set the window
+    //                       background to black).
+    //
+    // BORDER-FLAG is only set by Amiga, and causes a real problem.
+    // Drawing a border is not possible with Glk (at least not in a way
+    // that wouldn’t require loads of special-casing); and even worse,
+    // Bocfel hacks around some Journey/Glk issues by pretending the
+    // screen height is 6, so that Journey won’t expand the upper window
+    // to extend across the whole screen, with the side effect that the
+    // calculation of the border is broken, causing an apparent hang
+    // that is effectively this, but slow, since it’s interpreted:
     //
     // uint16_t val = 1;
     // while (val++ != 0) { }
     //
-    // Border drawing is controlled by the global variable BORDER-FLAG,
-    // which is only set for Amiga. This patch ensures that BORDER-FLAG
-    // is never set, so the game never tries to draw the border.
+    // Whether we support FONT3-FLAG depends on the character graphics
+    // option.
+    //
+    // The command window in Bocfel is always a text grid, so FWC-FLAG
+    // should always be on.
+    //
+    // BLACK-PICTURE-BORDER is properly handled by Bocfel, so it’s the
+    // one flag which should keep tracking the interpreter number the
+    // user actually selected.
+    //
+    // The original code looks something like this:
+    //
+    // <COND (<EQUAL? ,INTERPRETER ,INT-PC>
+    //        <SETG BORDER-FLAG <>>
+    //        <SETG FONT3-FLAG <>>
+    //        <SETG FWC-FLAG <>>
+    //        <SETG BLACK-PICTURE-BORDER <>>)
+    //       (<EQUAL? ,INTERPRETER ,INT-MAC>
+    //        <SETG BORDER-FLAG <>>
+    //        <SETG FONT3-FLAG T>
+    //        <SETG FWC-FLAG T>
+    //        <SETG BLACK-PICTURE-BORDER T>)
+    //       (<EQUAL? ,INTERPRETER ,INT-AMIGA>
+    //        <SETG BORDER-FLAG T>
+    //        <SETG FONT3-FLAG T>
+    //        <SETG FWC-FLAG T>
+    //        <SETG BLACK-PICTURE-BORDER T>)
+    //       (<APPLE2?>
+    //        <SETG BORDER-FLAG <>>
+    //        <SETG FONT3-FLAG <>>
+    //        <SETG FWC-FLAG <>>
+    //        <SETG BLACK-PICTURE-BORDER T>)>
+    //
+    // The flags all have defaults. The defaults for BORDER-FLAG (false)
+    // and FWC-FLAG (true) are what we want, so nothing needs to be
+    // done. FONT3-FLAG depends on options.disable_graphics_fonts so we
+    // can add unconditional instructions for this, conditionally. That
+    // leaves BLACK-PICTURE-BORDER which defaults to true, and only
+    // needs to be turned off for DOS. That allows great simplification
+    // of the above conditionals as we patch. Releases 26-890316 and
+    // 30-890322 are even simpler, because they only have FONT3-FLAG and
+    // BORDER-FLAG, with BORDER-FLAG defaulting to a good value.
     {
         "Journey", "890316", 26, 0x27cc,
         {
@@ -940,16 +1142,23 @@ static std::vector<Patch> v6_patches = {
             {
                 0x30095, 6,
                 {0xf9, 0x59, 0xcc, 0x00, 0x00, 0x00},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x00, 0xb4}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x00, 0xb4}
             },
             {
                 0x300a3, 6,
                 {0xe0, 0x58, 0xcc, 0x00, 0x00, 0xff},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x01, 0xb0}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x01, 0xb0}
             },
 
-            // Amiga hang
-            { 0x4b3e, 3, {0x0d, 0xab, 0x01}, {0x0d, 0xab, 0x00} },
+            // Capability flags.
+
+            // <SETG FONT3-FLAG T>      ; "if graphics font enabled"
+            { 0x4b2d, 3, {0x41, 0x8b, 0x03}, {0x0d, 0x3f, 0x01}, have_graphics_font },
+            // <SETG FONT3-FLAG <>>     ; "if graphics font disabled"
+            { 0x4b2d, 3, {0x41, 0x8b, 0x03}, {0x0d, 0x3f, 0x00}, no_graphics_font },
+
+            // Jump past the now-obsolete instructions.
+            { 0x4b30, 3, {0x4b, 0x0d, 0xab}, {0x8c, 0x00, 0x13} },
         }
     },
 
@@ -960,16 +1169,18 @@ static std::vector<Patch> v6_patches = {
             {
                 0x30189, 6,
                 {0xf9, 0x59, 0xcc, 0x00, 0x00, 0x00},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x00, 0xb4}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x00, 0xb4}
             },
             {
                 0x30197, 6,
                 {0xe0, 0x58, 0xcc, 0x00, 0x00, 0xff},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x01, 0xb0}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x01, 0xb0}
             },
 
-            // Amiga hang
-            { 0x4bea, 3, {0x0d, 0xaa, 0x01}, {0x0d, 0xaa, 0x00} },
+            // Capability flags; see 26-890316.
+            { 0x4bd9, 3, {0x41, 0x8a, 0x03}, {0x0d, 0x3f, 0x01}, have_graphics_font },
+            { 0x4bd9, 3, {0x41, 0x8a, 0x03}, {0x0d, 0x3f, 0x00}, no_graphics_font },
+            { 0x4bdc, 3, {0x4b, 0x0d, 0xaa}, {0x8c, 0x00, 0x13} },
         }
     },
 
@@ -980,16 +1191,30 @@ static std::vector<Patch> v6_patches = {
             {
                 0x30771, 6,
                 {0xf9, 0x59, 0xf1, 0x00, 0x00, 0x00},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x00, 0xb4}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x00, 0xb4}
             },
             {
                 0x3077f, 6,
                 {0xe0, 0x58, 0xf1, 0x00, 0x00, 0xff},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x01, 0xb0}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x01, 0xb0}
             },
 
-            // Amiga hang
-            { 0x4dcf, 3, {0x0d, 0xad, 0x01}, {0x0d, 0xad, 0x00} },
+            // Capability flags.
+
+            // <SETG FONT3-FLAG T>      ; "if graphics font enabled"
+            { 0x4da5, 3, {0x41, 0x8d, 0x06}, {0x0d, 0x3f, 0x01}, have_graphics_font },
+            // <SETG FONT3-FLAG <>>     ; "if graphics font disabled"
+            { 0x4da5, 3, {0x41, 0x8d, 0x06}, {0x0d, 0x3f, 0x00}, no_graphics_font },
+
+            // <COND (<EQUAL? ,INTERPRETER ,INT-PC>
+            //        <SETG BLACK-PICTURE-BORDER <>>)>
+            //
+            // Then jump past the now-obsolete instructions.
+            {
+                0x4da8, 10,
+                {0x51, 0x0d, 0xad, 0x00, 0x0d, 0x3f, 0x00, 0x0d, 0xc7, 0x00},
+                {0x41, 0x8d, 0x06, 0x45, 0x0d, 0x80, 0x00, 0x8c, 0x00, 0x41}
+            },
         }
     },
 
@@ -1000,45 +1225,92 @@ static std::vector<Patch> v6_patches = {
             {
                 0x307b9, 6,
                 {0xf9, 0x59, 0xef, 0x00, 0x00, 0x00},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x00, 0xb4}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x00, 0xb4}
             },
             {
                 0x307c7, 6,
                 {0xe0, 0x58, 0xef, 0x00, 0x00, 0xff},
-                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x97, 0x01, 0xb0}
+                {0xbe, JOURNEY_DIAL_EXT, 0x9f, 0x00, 0x01, 0xb0}
             },
 
-            // Amiga hang
-            { 0x4dcf, 3, {0x0d, 0xaf, 0x01}, {0x0d, 0xaf, 0x00} },
+            // Capability flags; see 77-890616.
+            { 0x4da5, 3, {0x41, 0x8f, 0x06}, {0x0d, 0x41, 0x01}, have_graphics_font },
+            { 0x4da5, 3, {0x41, 0x8f, 0x06}, {0x0d, 0x41, 0x00}, no_graphics_font },
+            {
+                0x4da8, 10,
+                {0x51, 0x0d, 0xaf, 0x00, 0x0d, 0x41, 0x00, 0x0d, 0xc9, 0x00},
+                {0x41, 0x8f, 0x06, 0x45, 0x0d, 0x82, 0x00, 0x8c, 0x00, 0x41}
+            },
         }
     },
 
-    // There are two V6 hack patches for Zork Zero:
+    // There are five V6 hacks for Zork Zero; the encyclopedia needs two
+    // alternative patches.
     //
     // 1. In Fanucci, Zork Zero displays labels under each card
-    // (DISCARD, 1, 2, 3, 4). This is done in a graphics window, though,
-    // and Glk doesn’t support text in graphics windows. It would
-    // probably be possible to create a new text window just below the
-    // graphics window and put this text in there, but since it’s not
-    // crucial to the game, as you can either use the mouse to click, or
-    // just infer/look up which cards are which, jump over the entire
-    // sequence of moving the cursor and writing text. This is necessary
-    // because, without it, output such as the jester’s commentary is
-    // not visible.
+    // (DISCARD, 1, 2, 3, 4). Without overlays, window 1 sits below the
+    // picture; positioning its cursor inside the artwork instead grows
+    // it over the screen. Skip the labels in that case. The cards
+    // remain clickable and their positions can be inferred.
     //
     // 2. Zork Zero only allows the compass to be clicked for certain
     // machine types (interpreter numbers). But the mouse works under
     // Glk regardless (if the Glk implementation supports mouse clicks).
     // This bypasses the mouse check, allowing the compass rose to be
     // clicked no matter which interpreter number is selected.
+    //
+    // 3. PICTURED-ENTRY writes an encyclopedia article to window 3 over
+    // the blank half of the page. With overlays, preserve window 3;
+    // otherwise redirect it to window 0 so the text remains readable.
+    // Both variants skip @set_cursor and @set_colour: the former is
+    // useless in a text buffer, while the latter would override the
+    // COLOR verb.
+    //
+    // 4. Zork Zero has a function called MARGINAL-PIC that is used to
+    // draw pictures in the margins. It does all sorts of intricate
+    // things to wrap text, etc. We have absolutely no need for any of
+    // that since Glk provides marginal image support. As such, this
+    // patch rewrites MARGINAL-PIC so all it does is draw the image. Our
+    // @draw_picture handler knows which images are marginal and how to
+    // draw them, so all that’s needed is the picture number.
+    //
+    // 5. The DEFINE command in Zork Zero uses cursor positioning in the
+    // main window, which doesn't work with Glk. Replace the entire
+    // DEFINE command with a custom opcode.
     {
         "Zork Zero", "881019", 296, 0x8c61,
         {
             // Fanucci.
-            { 0x2aa6d, 3, {0xef, 0xaf, 0x02}, {0x8c, 0x00, 0x3e} },
+            { 0x2aa6d, 3, {0xef, 0xaf, 0x02}, {0x8c, 0x00, 0x3e}, needs_fanucci_label_skip },
 
             // Compass rose.
             { 0x1d3cc, 4, {0x41, 0x00, 0x03, 0x62}, {0xb4, 0xb4, 0xb4, 0xb4} },
+
+            // Encyclopedia.
+            {
+                0x2549c, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x00, 0x8c, 0x00, 0x08},
+                needs_encyclopedia_redirect,
+            },
+
+            // Encyclopedia.
+            {
+                0x2549c, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x03, 0x8c, 0x00, 0x08},
+                have_encyclopedia_overlay,
+            },
+
+            // Marginal pictures.
+            {
+                0x1dc55, 7,
+                {0xbe, 0x06, 0x8f, 0x01, 0x78, 0x01, 0xc2},
+                {0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
+            },
+
+            // DEFINE.
+            { 0x13ea5, 4, {0xa0, 0xcc, 0x00, 0xe5}, {0xbe, ZORK0_DEFINE_EXT, 0xff, 0xb0} },
         },
     },
 
@@ -1046,10 +1318,36 @@ static std::vector<Patch> v6_patches = {
         "Zork Zero", "890323", 366, 0xc5cd,
         {
             // Fanucci.
-            { 0x2964c, 3, {0xef, 0xaf, 0x02}, {0x8c, 0x00, 0x3e} },
+            { 0x2964c, 3, {0xef, 0xaf, 0x02}, {0x8c, 0x00, 0x3e}, needs_fanucci_label_skip },
 
             // Compass rose.
             { 0x1baee, 3, {0xa0, 0x00, 0xce}, {0xb4, 0xb4, 0xb4} },
+
+            // Encyclopedia.
+            {
+                0x23b8a, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x00, 0x8c, 0x00, 0x16},
+                needs_encyclopedia_redirect,
+            },
+
+            // Encyclopedia.
+            {
+                0x23b8a, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x03, 0x8c, 0x00, 0x16},
+                have_encyclopedia_overlay,
+            },
+
+            // Marginal pictures.
+            {
+                0x1c229, 7,
+                {0xbe, 0x06, 0x8f, 0x01, 0x70, 0xe7, 0xc2},
+                {0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
+            },
+
+            // DEFINE.
+            { 0x12b61, 4, {0xa0, 0x5e, 0x00, 0xe5}, {0xbe, ZORK0_DEFINE_EXT, 0xff, 0xb0} },
         },
     },
 
@@ -1057,10 +1355,36 @@ static std::vector<Patch> v6_patches = {
         "Zork Zero", "890602", 383, 0x6f7f,
         {
             // Fanucci.
-            { 0x29e87, 3, {0xef, 0xaf, 0x03}, {0x8c, 0x00, 0x3e} },
+            { 0x29e87, 3, {0xef, 0xaf, 0x03}, {0x8c, 0x00, 0x3e}, needs_fanucci_label_skip },
 
             // Compass rose.
             { 0x1bfa1, 3, {0xa0, 0x00, 0xce}, {0xb4, 0xb4, 0xb4} },
+
+            // Encyclopedia.
+            {
+                0x24282, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x00, 0x8c, 0x00, 0x08},
+                needs_encyclopedia_redirect,
+            },
+
+            // Encyclopedia.
+            {
+                0x24282, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x03, 0x8c, 0x00, 0x08},
+                have_encyclopedia_overlay,
+            },
+
+            // Marginal pictures.
+            {
+                0x1c6d9, 7,
+                {0xbe, 0x06, 0x8f, 0x01, 0x71, 0x0d, 0xc2},
+                {0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
+            },
+
+            // DEFINE.
+            { 0x12bb1, 4, {0xa0, 0x61, 0x01, 0x0d}, {0xbe, ZORK0_DEFINE_EXT, 0xff, 0xb0} },
         },
     },
 
@@ -1068,10 +1392,36 @@ static std::vector<Patch> v6_patches = {
         "Zork Zero", "890714", 393, 0x791c,
         {
             // Fanucci.
-            { 0x2a127, 3, {0xef, 0xaf, 0x03}, {0x8c, 0x00, 0x3e} },
+            { 0x2a127, 3, {0xef, 0xaf, 0x03}, {0x8c, 0x00, 0x3e}, needs_fanucci_label_skip },
 
             // Compass rose.
             { 0x1c20d, 3, {0xa0, 0x00, 0xce}, {0xb4, 0xb4, 0xb4} },
+
+            // Encyclopedia.
+            {
+                0x24501, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x00, 0x8c, 0x00, 0x1e},
+                needs_encyclopedia_redirect,
+            },
+
+            // Encyclopedia.
+            {
+                0x24501, 4,
+                {0x03, 0xef, 0x5f, 0x01},
+                {0x03, 0x8c, 0x00, 0x1e},
+                have_encyclopedia_overlay,
+            },
+
+            // Marginal pictures.
+            {
+                0x1c941, 7,
+                {0xbe, 0x06, 0x8f, 0x01, 0x71, 0x0f, 0xc2},
+                {0xbe, 0x05, 0x97, 0x01, 0x00, 0x00, 0xb1}
+            },
+
+            // DEFINE.
+            { 0x12cc1, 4, {0xa0, 0x61, 0x01, 0x0d}, {0xbe, ZORK0_DEFINE_EXT, 0xff, 0xb0} },
         },
     },
 };
@@ -1079,7 +1429,8 @@ static std::vector<Patch> v6_patches = {
 static bool apply_patch(const Replacement &r)
 {
     if (r.addr >= header.static_start &&
-        r.addr + r.n < memory_size &&
+        r.n <= memory_size &&
+        r.addr <= memory_size - r.n &&
         std::memcmp(&memory[r.addr], r.in.data(), r.n) == 0) {
 
         std::memcpy(&memory[r.addr], r.out.data(), r.n);

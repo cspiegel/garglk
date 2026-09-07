@@ -171,7 +171,7 @@ endif()
 
 # ------------------------------------------------------------------------------
 #
-# Bocfel 2.5
+# Bocfel 2.6
 #
 if(WITH_BOCFEL)
     set(BOCFEL_MACROS ZTERP_GLK ZTERP_GLK_BLORB ZTERP_GLK_UNIX "ZTERP_STATIC_PATCH_FILE=\"static-patches.h\"")
@@ -192,7 +192,7 @@ if(WITH_BOCFEL)
         bocfel/random.cpp bocfel/screen.cpp bocfel/sound.cpp bocfel/stack.cpp
         bocfel/stash.cpp bocfel/unicode.cpp bocfel/util.cpp bocfel/zterp.cpp
         bocfel/glkstart.cpp bocfel/glkautosave.cpp
-        CXXSTD 14
+        CXXSTD 17
         MACROS ${BOCFEL_MACROS}
         LTO WARNINGS)
 

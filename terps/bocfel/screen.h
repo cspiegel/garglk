@@ -5,6 +5,7 @@
 
 #include <bitset>
 #include <string>
+#include <utility>
 
 #ifdef ZTERP_GLK
 extern "C" {
@@ -14,6 +15,7 @@ extern "C" {
 
 #include "iff.h"
 #include "io.h"
+#include "stack.h"
 #include "types.h"
 #include "util.h"
 
@@ -28,7 +30,7 @@ struct Color {
     enum class Mode { ANSI, True } mode;
     uint16_t value;
 
-    explicit Color() : mode(Mode::ANSI), value(1) {
+    Color() : mode(Mode::ANSI), value(1) {
     }
 
     Color(Mode mode_, uint16_t value_) : mode(mode_), value(value_) {
@@ -48,9 +50,11 @@ void init_screen(bool first_run);
 
 bool create_mainwin();
 void create_graphicswin();
-bool create_statuswin();
-bool create_upperwin();
-void get_screen_size(unsigned int &width, unsigned int &height);
+void create_statuswin();
+bool have_statuswin();
+void create_upperwin();
+bool have_upperwin();
+std::pair<unsigned int, unsigned int> get_screen_size();
 void close_upper_window();
 
 uint32_t screen_convert_color(uint16_t color);
@@ -75,6 +79,9 @@ void screen_puts(const std::string &s);
 void screen_message_prompt(const std::string &message);
 void screen_flush();
 
+// Whether text windows can float over pictures; see the V6 patches.
+bool screen_has_overlays();
+
 #ifdef ZTERP_GLK
 
 void screen_clean_up_glk_streams();
@@ -86,7 +93,7 @@ void update_color(int which, unsigned long color);
 #endif
 
 #ifdef ZTERP_GLK_BLORB
-void screen_load_scale_info(const std::string &blorb_file);
+void screen_load_scale_info();
 #endif
 
 #endif
@@ -116,7 +123,7 @@ void put_char(uint8_t c);
 std::string screen_format_time(long hours, long minutes);
 void screen_read_scrn(IO &io, uint32_t size);
 IFF::TypeID screen_write_scrn(IO &io);
-void screen_read_bfhs(IO &io, bool autosave);
+void screen_read_bfhs(IO &io, SaveType savetype);
 IFF::TypeID screen_write_bfhs(IO &io);
 void screen_read_bfts(IO &io, uint32_t size);
 IFF::TypeID screen_write_bfts(IO &io);
@@ -152,12 +159,18 @@ void zprint_unicode();
 void zcheck_unicode();
 void zdraw_picture();
 void zpicture_data();
+void zmove_window();
+void zwindow_size();
+void zwindow_style();
 void zget_wind_prop();
+void zscroll_window();
 void zprint_form();
 void zmake_menu();
 void zbuffer_screen();
 
 void zjourney_dial();
 void zshogun_menu();
+void zshogun_flush_old_picture();
+void zzork0_define();
 
 #endif
