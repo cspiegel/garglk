@@ -11,11 +11,13 @@
 
 static constexpr uint8_t JOURNEY_DIAL_EXT = 0xf0;
 static constexpr uint8_t SHOGUN_MENU_EXT = 0xf1;
+static constexpr uint8_t SHOGUN_FLUSH_EXT = 0xf2;
+static constexpr uint8_t ZORK0_DEFINE_EXT = 0xf3;
 
 namespace Operation {
 // Jump back to the previous round of interpreting. This is used
-// when an interrupt routine returns.
-class Return : public std::exception {
+// when an internall call returns.
+class ReturnFromInternal : public std::exception {
 };
 
 // Jump back to the first round of processing and continue; this is
@@ -44,6 +46,7 @@ extern unsigned long current_instruction;
 
 extern std::array<uint16_t, 8> zargs;
 extern int znargs;
+uint16_t zarg_or(int n, uint16_t def);
 
 extern bool interrupt_override;
 

@@ -36,6 +36,15 @@ unsigned long current_instruction;
 std::array<uint16_t, 8> zargs;
 int znargs;
 
+uint16_t zarg_or(int n, uint16_t def)
+{
+    if (n < znargs) {
+        return zargs[n];
+    } else {
+        return def;
+    }
+}
+
 // Track the current processing level: 1 for the “main” loop, 2 if
 // inside of an internal call, 3 if inside of an internal call inside of
 // an internal call, and so on.
@@ -267,11 +276,11 @@ void setup_opcodes()
     setup_single_opcode(5, 6, Opcount::Ext, 0x0c, zcheck_unicode);
     setup_single_opcode(5, 6, Opcount::Ext, 0x0d, zset_true_colour);
 #ifndef ZTERP_NO_V6
-    setup_single_opcode(6, 6, Opcount::Ext, 0x10, znop); // XXX move_window
-    setup_single_opcode(6, 6, Opcount::Ext, 0x11, znop); // XXX window_size
-    setup_single_opcode(6, 6, Opcount::Ext, 0x12, znop); // XXX window_style
+    setup_single_opcode(6, 6, Opcount::Ext, 0x10, zmove_window);
+    setup_single_opcode(6, 6, Opcount::Ext, 0x11, zwindow_size);
+    setup_single_opcode(6, 6, Opcount::Ext, 0x12, zwindow_style);
     setup_single_opcode(6, 6, Opcount::Ext, 0x13, zget_wind_prop);
-    setup_single_opcode(6, 6, Opcount::Ext, 0x14, znop); // XXX scroll_window
+    setup_single_opcode(6, 6, Opcount::Ext, 0x14, zscroll_window);
     setup_single_opcode(6, 6, Opcount::Ext, 0x15, zpop_stack);
     setup_single_opcode(6, 6, Opcount::Ext, 0x16, znop); // XXX read_mouse
     setup_single_opcode(6, 6, Opcount::Ext, 0x17, znop); // XXX mouse_window
@@ -293,8 +302,14 @@ void setup_opcodes()
 
 #ifndef ZTERP_NO_V6
     // V6 hacks.
-    setup_single_opcode(6, 6, Opcount::Ext, JOURNEY_DIAL_EXT, zjourney_dial);
-    setup_single_opcode(6, 6, Opcount::Ext, SHOGUN_MENU_EXT, zshogun_menu);
+    if (is_game(Game::Journey)) {
+        setup_single_opcode(6, 6, Opcount::Ext, JOURNEY_DIAL_EXT, zjourney_dial);
+    } else if (is_game(Game::Shogun)) {
+        setup_single_opcode(6, 6, Opcount::Ext, SHOGUN_MENU_EXT, zshogun_menu);
+        setup_single_opcode(6, 6, Opcount::Ext, SHOGUN_FLUSH_EXT, zshogun_flush_old_picture);
+    } else if (is_game(Game::ZorkZero)) {
+        setup_single_opcode(6, 6, Opcount::Ext, ZORK0_DEFINE_EXT, zzork0_define);
+    }
 #endif
 }
 
@@ -370,7 +385,7 @@ void process_instructions()
 
         try {
             opcodes[opcode]();
-        } catch (const Operation::Return &) {
+        } catch (const Operation::ReturnFromInternal &) {
             processing_level--;
             return;
         }
