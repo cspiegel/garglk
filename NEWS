@@ -1,3 +1,28 @@
+2026.2:
+• Scarier (Spatterlight) is now the default interpreter for all Adrift games.
+• Improved display of Infocom’s graphical games.
+• Support for GIF images.
+• A game’s cover art and/or description can be shown when it’s opened.
+• Various line-input improvements.
+• Text-to-speech can be toggled (Ctrl-Alt-T / ⌘-Option-T).
+• An optional marker shows where new text begins after paging through a [more]
+  prompt.
+• Text anti-aliasing can be disabled.
+• On Unix, X11 bitmap fonts can be loaded by XLFD.
+• gamedata_location can name a fixed directory.
+• Support for Glk’s stylehint_Justification (thanks to Dan Fabulich).
+• Fixed blurry text with fractional scaling on Wayland (thanks to Richard
+  Smith and Senjin).
+• Added an SDL3 sound backend.
+• Qt builds now default to Qt sound.
+• Interpreter updates: Bocfel 2.7, JACL 7418e6a, Plus/ScottFree/TaylorMade
+  1.5.6 (from Spatterlight).
+• Many fixes to sound, graphics, Blorb, font handling, and the macOS and
+  Windows ports.
+
+2026.1.1:
+• Fix loading of per-game config options.
+
 2026.1:
 • Gargoyle now implements Glk version 0.7.6.
 • Infocom’s graphical games are now playable, with some visual quirks.

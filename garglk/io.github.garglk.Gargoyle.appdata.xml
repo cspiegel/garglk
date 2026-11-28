@@ -50,6 +50,35 @@
     <url type="bugtracker">https://github.com/garglk/garglk/issues</url>
     <launchable type="desktop-id">io.github.garglk.Gargoyle.desktop</launchable>
     <releases>
+        <release version="2026.2" date="2026-11-28">
+            <description>
+                <ul>
+                    <li>Scarier (Spatterlight) is now the default interpreter for all Adrift games.</li>
+                    <li>Improved display of Infocom’s graphical games.</li>
+                    <li>Support for GIF images.</li>
+                    <li>A game’s cover art and/or description can be shown when it’s opened.</li>
+                    <li>Various line-input improvements.</li>
+                    <li>Text-to-speech can be toggled (Ctrl-Alt-T / ⌘-Option-T).</li>
+                    <li>An optional marker shows where new text begins after paging through a [more] prompt.</li>
+                    <li>Text anti-aliasing can be disabled.</li>
+                    <li>On Unix, X11 bitmap fonts can be loaded by XLFD.</li>
+                    <li>gamedata_location can name a fixed directory.</li>
+                    <li>Support for Glk’s stylehint_Justification (thanks to Dan Fabulich).</li>
+                    <li>Fixed blurry text with fractional scaling on Wayland (thanks to Richard Smith and Senjin).</li>
+                    <li>Added an SDL3 sound backend.</li>
+                    <li>Qt builds now default to Qt sound.</li>
+                    <li>Interpreter updates: Bocfel 2.7, JACL 7418e6a, Plus/ScottFree/TaylorMade 1.5.6 (from Spatterlight).</li>
+                    <li>Many fixes to sound, graphics, Blorb, font handling, and the macOS and Windows ports.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="2026.1.1" date="2026-02-07">
+            <description>
+                <ul>
+                    <li>Fix loading of per-game config options.</li>
+                </ul>
+            </description>
+        </release>
         <release version="2026.1" date="2026-02-07">
             <description>
                 <ul>
