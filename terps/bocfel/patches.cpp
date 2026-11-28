@@ -592,6 +592,40 @@ static std::vector<Patch> base_patches = {
         {{ 0x1f910, 1, {0xbc}, {0xb4} }},
     },
 
+    // In the earliest release of Zork I (2-AS000C), the routine that
+    // takes objects implicitly (e.g. READ LEAFLET when the leaflet is in
+    // the mailbox) is miscompiled:
+    //
+    //  5847:  TEST_ATTR  L03,#0c [TRUE] 5858
+    //  584b:  CALL       6992 (#00) -> -(SP)
+    //  5851:  JE         (SP)+,#01 [FALSE] RFALSE
+    //  5855:  JUMP       585b
+    //  5858:  PUSH       #01
+    //  585b:  PULL       L04
+    //
+    // When the object is taken, the result of the call has already been
+    // popped by JE, so PULL underflows the stack. Release 5 does what
+    // was meant: L04 is 0 if the object was taken, and 1 if it can’t be.
+    // Rewrite to:
+    //
+    //  5847:  TEST_ATTR  L03,#0c [TRUE] 585b
+    //  584b:  CALL       6992 (#00) -> -(SP)
+    //  5851:  JE         (SP)+,#01 [FALSE] RFALSE
+    //  5855:  STORE      L04,#00
+    //  5858:  JUMP       585e
+    //  585b:  STORE      L04,#01
+    {
+        "Zork I", "AS000C", 2, 0x0000,
+        {
+            { 0x584a, 1, {0xcf}, {0xd2} },
+            {
+                0x5855, 9,
+                {0x8c, 0x00, 0x05, 0xe8, 0x7f, 0x01, 0xe9, 0x7f, 0x05},
+                {0x0d, 0x05, 0x00, 0x8c, 0x00, 0x05, 0x0d, 0x05, 0x01},
+            },
+        },
+    },
+
     // Two Zork Zero beta releases, 242-880830 and 242-880901, target an
     // earlier, unreleased version 6 Z-machine whose @get_wind_prop
     // (WINGET) opcode takes three operands instead of two, one of which

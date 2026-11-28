@@ -44,6 +44,12 @@
 #include <glk.h>
 #endif
 
+#ifdef ZTERP_GLK_BLORB
+extern "C" {
+#include <gi_blorb.h>
+}
+#endif
+
 using namespace std::literals;
 
 static constexpr uint32_t MAX_STORY_SIZE = 0xffff * 8;
@@ -105,6 +111,7 @@ void store(uint16_t v)
 }
 
 static std::set<Game> games;
+static bool game_wants_arc_image = false;
 
 static void initialize_games()
 {
@@ -151,6 +158,15 @@ static void initialize_games()
 
 bool is_game(Game game)
 {
+    // Originally the is_game() system cared only about IDs; but we now
+    // need to also know if a game uses Arcturus’ @arc_image opcode.
+    // Since a framework for “what is this game” already exists,
+    // piggy-back on it so the feel is the same, even if the mechanism
+    // differs.
+    if (game == Game::ArcturusImage) {
+        return game_wants_arc_image;
+    }
+
     return games.find(game) != games.end();
 }
 
@@ -187,6 +203,23 @@ static void find_id()
 
     initialize_games();
 }
+
+#ifdef ZTERP_GLK_BLORB
+void zterp_check_arc_image()
+{
+    auto *map = giblorb_get_resource_map();
+    if (map == nullptr) {
+        return;
+    }
+
+    giblorb_result_t res;
+    if (giblorb_load_chunk_by_type(map, giblorb_method_DontLoad, &res, giblorb_make_id('A', 'R', 'C', 'I'), 0) != giblorb_err_None) {
+        return;
+    }
+
+    game_wants_arc_image = true;
+}
+#endif
 
 static void write_flags1()
 {
@@ -227,6 +260,13 @@ static void write_flags1()
 #endif
             if (sound_loaded()) {
                 flags1 |= FLAGS1_SOUND;
+            }
+        }
+
+        if (zversion == 5 && is_game(Game::ArcturusImage)) {
+            flags1 &= ~FLAGS1_PICTURES;
+            if (have_arc_graphicswin()) {
+                flags1 |= FLAGS1_PICTURES;
             }
         }
 
@@ -508,10 +548,12 @@ static void process_story(IO &io, long offset)
     header.globals = word(0x0c);
     header.abbr = word(0x18);
 
-    // There is no explicit “end of static” tag; but it must end by 0xffff
-    // or the end of the story file, whichever is smaller.
+    // There is no explicit “end of static” tag; but it must end by
+    // 0xffff or the end of the story file, whichever is smaller.
+    // static_end is one byte past the end, so 0x10000 is correct as the
+    // maximum possible value.
     header.static_start = word(0x0e);
-    header.static_end = memory_size < 0xffff ? memory_size : 0xffff;
+    header.static_end = std::min<uint32_t>(memory_size, 0x10000);
 
     if (zversion >= 5) {
         header.extension_table = word(0x36);
@@ -616,8 +658,10 @@ static void process_story(IO &io, long offset)
 #endif
     }
 
+    create_v6_graphicswin();
+    create_arc_graphicswin();
+
     if (!options.disable_v6_hacks) {
-        create_graphicswin();
         apply_v6_patches();
     }
 

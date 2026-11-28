@@ -287,6 +287,10 @@ static void call(StoreWhere store_where, std::optional<uint8_t> internal_var = s
     uint16_t where;
     bool internal = false;
 
+    // All valid calls have znargs > 0, but it’s possible to assemble an
+    // instruction that passes nothing.
+    ZASSERT(znargs > 0, "call with no routine address");
+
     if (zargs[0] == 0) {
         // call(StoreWhere::Push) should never happen if zargs[0] is 0.
         if (store_where == StoreWhere::Variable) {
@@ -1286,8 +1290,11 @@ static bool restore_quetzal(const std::shared_ptr<IO> &savefile, SaveType savety
     pc = newpc;
 
     // §8.6.1.3
-    // Except that for AutosaveLib, we’ll restore the upper window.
-    if (close_window && zversion == 3 && savetype != SaveType::AutosaveLib) {
+    // Non-game saves will have resized the upper window already (as
+    // they track state), so don’t throw that information away. Since
+    // the game has no idea that a non-game restore occurred, it won’t
+    // be able to reset the screen the way it can with a game save.
+    if (close_window && zversion == 3 && savetype == SaveType::Normal) {
         close_upper_window();
     }
 

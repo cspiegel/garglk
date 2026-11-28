@@ -216,7 +216,7 @@ Options::Options()
     BOOL  ('y', "Overwrite transcripts rather than appending to them", true, overwrite_transcript);
     BOOL  ('Y', "Use internal UNDO handling code only", true, override_undo);
     OPTNUM('z', "Provide a seed for the PRNG", true, random_seed, Range(0, UINT32_MAX));
-    STRING('Z', "Provide a file/device from which 32 bits will be read as a seed", true, random_device);
+    STRING('Z', "Provide a file/device from which random numbers will be read", true, random_device);
 
     CONFIG_BOOL  (autosave);
     CONFIG_BOOL  (skip_autorestore);
@@ -227,7 +227,7 @@ Options::Options()
     CONFIG_BOOL  (warn_on_v6);
     CONFIG_BOOL  (redirect_v6_windows);
     CONFIG_BOOL  (disable_v6_hacks);
-    CONFIG_FLOAT (v6_hack_max_scale);
+    CONFIG_FLOAT (graphics_max_scale);
     CONFIG_BOOL  (aspect_correction);
 
     COLOR(black,   2);
@@ -348,6 +348,7 @@ void Options::read_config()
             static const std::unordered_map<std::string, std::string> legacy_names = {
                 {"notes_editor", "editor"},
                 {"max_saves", "undo_slots"},
+                {"v6_hack_max_scale", "graphics_max_scale"},
             };
 
             const auto &newkey = legacy_names.at(key);

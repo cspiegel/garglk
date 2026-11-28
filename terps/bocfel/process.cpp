@@ -4,6 +4,7 @@
 
 #include <array>
 #include <functional>
+#include <utility>
 
 #ifdef ZTERP_GLK_TICK
 extern "C" {
@@ -28,6 +29,10 @@ extern "C" {
 
 #ifdef ZTERP_ZOOM_OPCODES
 #include "zoom.h"
+#endif
+
+#if defined(ZTERP_ZOOM_OPCODES) && !defined(ZTERP_NO_ARCTURUS)
+#error Zoom opcodes and Arcturus graphics cannot both be enabled at the same time
 #endif
 
 unsigned long pc;
@@ -292,6 +297,12 @@ void setup_opcodes()
     setup_single_opcode(6, 6, Opcount::Ext, 0x1d, zbuffer_screen);
 #endif
 
+#ifndef ZTERP_NO_ARCTURUS
+    if (is_game(Game::ArcturusImage)) {
+        setup_single_opcode(5, 5, Opcount::Ext, 0x80, zarc_image);
+    }
+#endif
+
 #ifdef ZTERP_ZOOM_OPCODES
     // Zoom extensions.
     setup_single_opcode(5, 6, Opcount::Ext, 0x80, zstart_timer);
@@ -401,8 +412,14 @@ void process_loop()
     while (true) {
         try {
             if (synthetic_call != nullptr) {
-                synthetic_call();
-                synthetic_call = nullptr;
+                // Reset both the processing level and synthetic_call
+                // before calling: no matter what level the restore came
+                // from, it must be 1 now; and if the call throws
+                // Operation::Restart, the next pass through this loop
+                // shouldn’t make the call again.
+                auto call = std::exchange(synthetic_call, nullptr);
+                processing_level = 1;
+                call();
             }
 
             processing_level = 0;
@@ -410,6 +427,8 @@ void process_loop()
         } catch (const Operation::Restart &) {
             start_story();
         } catch (const Operation::Restore &restore) {
+            screen_on_restore();
+
             switch (restore.saveopcode) {
             case SaveOpcode::None:
                 synthetic_call = nullptr;

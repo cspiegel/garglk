@@ -370,10 +370,10 @@ static pid_t launch_editor(const std::string &filename)
         "open -Wnt",
 #else
         "kwrite",
-        "kate",
+        "kate -b",
         "nedit-ng",
         "nedit",
-        "gedit",
+        "gedit -w",
 #endif
     };
 
@@ -575,7 +575,8 @@ static bool have_colors = false;
 static bool have_24bit_rgb = false;
 void zterp_os_init_term()
 {
-    if (setupterm(nullptr, STDOUT_FILENO, nullptr) != OK) {
+    int errret;
+    if (setupterm(nullptr, STDOUT_FILENO, &errret) != OK) {
         return;
     }
 
@@ -815,7 +816,6 @@ void zterp_os_edit_file(const std::string &filename)
 {
     SHELLEXECUTEINFO si{};
     si.cbSize = sizeof(SHELLEXECUTEINFO);
-    si.fMask = SEE_MASK_NOCLOSEPROCESS;
     si.hwnd = nullptr;
     si.lpVerb = "open";
     si.lpFile = filename.c_str();
@@ -828,19 +828,13 @@ void zterp_os_edit_file(const std::string &filename)
         throw std::runtime_error("unable to launch text editor");
     }
 
-#ifdef ZTERP_GLK_TICK
-    while (true) {
-        auto r = WaitForSingleObject(si.hProcess, 10);
-        if (r != WAIT_TIMEOUT) {
-            break;
-        }
-        glk_tick();
-    }
-#else
-    WaitForSingleObject(si.hProcess, INFINITE);
-#endif
-
-    CloseHandle(si.hProcess);
+    // There’s no guarantee that the program launched by “open” will
+    // block until the user saves and quits, unlike Mac’s -Wn flags. So
+    // instead of hoping, make the user indicate when he’s done. This is
+    // marginally annoying, but file editing is rare, and better to be
+    // annoyed than to lose your file.
+    screen_puts("[Press Enter when finished]");
+    screen_wait_for_enter();
 }
 #define have_zterp_os_edit_file
 

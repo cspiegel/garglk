@@ -38,9 +38,15 @@ extern "C" {
 #define winmethod_NoBorder 0
 #endif
 
-#if defined(GLK_MODULE_IMAGE) && defined(ZTERP_GLK_BLORB) && !defined(ZTERP_NO_V6)
-#define ZTERP_GLK_GRAPHICS
+#if defined(GLK_MODULE_IMAGE) && defined(ZTERP_GLK_BLORB) && !defined(ZTERP_NO_ARCTURUS)
+#define ZTERP_ARCTURUS_GRAPHICS
+#endif
 
+#if defined(GLK_MODULE_IMAGE) && defined(ZTERP_GLK_BLORB) && !defined(ZTERP_NO_V6)
+#define ZTERP_V6_GRAPHICS
+#endif
+
+#if defined(ZTERP_ARCTURUS_GRAPHICS) || defined(ZTERP_V6_GRAPHICS)
 extern "C" {
 #include <gi_blorb.h>
 }
@@ -48,7 +54,7 @@ extern "C" {
 
 // Floating text windows are only used by the V6 hacks, so an overlay
 // build is a graphics build as well.
-#if defined(ZTERP_GLK_GRAPHICS) && defined(GLK_MODULE_GARGLKOVERLAY)
+#if defined(ZTERP_V6_GRAPHICS) && defined(GLK_MODULE_GARGLKOVERLAY)
 #define ZTERP_GLK_OVERLAY
 #endif
 
@@ -272,9 +278,148 @@ enum class WindowRock : glui32 {
     ShogunMenuWin = 11,
     HintWin = 12,
     ZorkZeroEncWin = 13,
+    ArcWin = 14,
 };
 
-#ifdef ZTERP_GLK_GRAPHICS
+#if defined(ZTERP_V6_GRAPHICS) || defined(ZTERP_ARCTURUS_GRAPHICS)
+// For scaling graphics, the size of the whole display is needed. The
+// Infocom Blorbs’ Reso chunks give the standard window size as 320x200,
+// i.e. the full screen in DOS, so that’s what the scale factor is
+// measured against: the full screen.
+//
+// This width is also used by the graphics window when it’s calculating
+// scaling and centering values. It works because the graphics window is
+// the same width as the display. That should never change, since all
+// existing supported V6 games use this layout, but if it does change,
+// this can no longer be used for that purpose.
+static std::optional<glui32> full_window_width, full_window_height;
+
+static void find_window_size()
+{
+    auto gwin = glk_window_open(glk_window_get_root(), winmethod_Above | winmethod_Proportional | winmethod_NoBorder, 100, wintype_Graphics, 0);
+    if (gwin != nullptr) {
+        glui32 w, h;
+        glk_window_get_size(gwin, &w, &h);
+        full_window_width = w;
+        full_window_height = h;
+        glk_window_close(gwin, nullptr);
+    }
+}
+#endif
+
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+class ArcturusWindow {
+public:
+    void create();
+    void hide();
+    void destroy();
+    void draw(uint16_t pic, uint16_t mode);
+    void redraw();
+
+    // See forget() and recover() in GraphicsWindow for more information.
+    void forget();
+    void recover(winid_t win);
+
+    [[nodiscard]] bool is_open() const { return m_id != nullptr; }
+
+private:
+    struct ArcImage {
+        uint16_t pic;
+        uint16_t mode;
+    };
+
+    winid_t m_id = nullptr;
+    std::optional<ArcImage> m_current_image;
+};
+
+void ArcturusWindow::create()
+{
+    if (m_id == nullptr) {
+        m_id = glk_window_open(mainwin->id, winmethod_Above | winmethod_Fixed | winmethod_NoBorder, 0, wintype_Graphics, static_cast<glui32>(WindowRock::ArcWin));
+    }
+}
+
+void ArcturusWindow::hide()
+{
+    if (m_id != nullptr) {
+        glk_window_clear(m_id);
+        glk_window_set_arrangement(glk_window_get_parent(m_id), winmethod_Above | winmethod_Fixed | winmethod_NoBorder, 0, m_id);
+    }
+}
+
+void ArcturusWindow::destroy()
+{
+    hide();
+    m_current_image.reset();
+}
+
+void ArcturusWindow::draw(uint16_t pic, uint16_t mode)
+{
+    if (m_id == nullptr) {
+        return;
+    }
+
+    destroy();
+
+    // For now pin to 9 and 12 but the design of @arc_image clearly
+    // allows for arbitrary modes, each of which scales by an assumed
+    // font-height of 8. The code below handles this properly, so the
+    // only thing needed for arbitrary mode support is to remove these
+    // checks here.
+    if (pic == 0 || !glk_image_get_info(pic, nullptr, nullptr) || (mode != 9 && mode != 12)) {
+        return;
+    }
+
+    if (!full_window_height.has_value()) {
+        return;
+    }
+
+    m_current_image = ArcImage { pic, mode };
+
+    glui32 window_width;
+    glk_window_get_size(m_id, &window_width, nullptr);
+    auto ratio = std::min(window_width / 320.0, options.graphics_max_scale);
+
+    glui32 height = std::round((8UL * mode) * ratio);
+
+    // If the picture would be taller than the window, don’t show it.
+    // This isn’t perfect as, in the edge case, it _will_ wind up
+    // covering the screen, but for now we’re accepting that and not
+    // doing the work to try to ensure that the status line as well as
+    // at least one line in the main window are visible.
+    if (height > *full_window_height) {
+        return;
+    }
+
+    auto x = std::round((window_width - (ratio * 320)) / 2);
+
+    glk_window_set_arrangement(glk_window_get_parent(m_id), winmethod_Above | winmethod_Fixed | winmethod_NoBorder, height, m_id);
+
+    glk_image_draw_scaled(m_id, pic, x, 0, std::round(320 * ratio), height);
+}
+
+void ArcturusWindow::redraw()
+{
+    if (m_current_image.has_value()) {
+        draw(m_current_image->pic, m_current_image->mode);
+    }
+}
+
+void ArcturusWindow::forget()
+{
+    m_id = nullptr;
+    m_current_image.reset();
+}
+
+void ArcturusWindow::recover(winid_t win)
+{
+    m_id = win;
+}
+
+static ArcturusWindow arc_window;
+#endif
+
+#ifdef ZTERP_V6_GRAPHICS
 // Arthur uses window 2 for the larger upper window (room graphics,
 // inventory, etc). Graphics are intercepted and drawn separately with
 // GraphicsWindow (using Glk’s graphics window). For text mode, use a
@@ -283,6 +428,17 @@ enum class WindowRock : glui32 {
 // window as window 2, it just generally works, when in text mode
 // (inventory, score, room description).
 static Window *arthurwin = &windows[2];
+
+static double aspect_scale()
+{
+    return options.aspect_correction ? 1.2 : 1.0;
+}
+
+// Set when the screen is resized while Zork Zero is showing something
+// V-$REFRESH can’t redraw (the encyclopedia page or the InvisiClues
+// screen). Only that screen is redrawn then; the rest of the resize
+// handling is done once it is gone. See get_input().
+static bool zorkzero_resize_pending = false;
 
 #ifdef ZTERP_GLK_OVERLAY
 static Overlay arthur_map_text_overlay(Overlay::Transparency::Opaque);
@@ -305,6 +461,16 @@ static winid_t zorkzero_encwin;
 static Overlay zorkzero_enc_overlay(Overlay::Transparency::Transparent);
 static int zorkzero_enc_x = 0, zorkzero_enc_y = 0;
 static int zorkzero_enc_w = 0, zorkzero_enc_h = 0;
+
+// The pictures drawn on the current encyclopedia page: ENC-BORDER and
+// then the entry’s illustration. V-$REFRESH has no case for the page,
+// so these are drawn again directly when the screen is resized.
+struct ZorkZeroEncPicture {
+    glui32 pic;
+    glui32 w, h;
+    double x, y;
+};
+static std::vector<ZorkZeroEncPicture> zorkzero_enc_page;
 
 // The four minigames reserve part of a 320x200 sheet for window 0;
 // Fanucci also positions window 1 over the board.
@@ -344,11 +510,6 @@ static winid_t open_floating_window(glui32 wintype, WindowRock rock)
 }
 #endif
 
-static double aspect_scale()
-{
-    return options.aspect_correction ? 1.2 : 1.0;
-}
-
 static constexpr uint32_t be32(const unsigned char *base)
 {
     return
@@ -366,30 +527,6 @@ static constexpr uint32_t blorbid(const char (&type)[5])
 #ifdef GLK_MODULE_GARGLKTEXT
 static std::optional<glui32> default_bg;
 #endif
-
-// For scaling V6 graphics, the size of the whole display is needed. The
-// Infocom Blorbs’ Reso chunks give the standard window size as 320x200,
-// i.e. the full screen in DOS, so that’s what the scale factor is
-// measured against: the full screen.
-//
-// This width is also used by the graphics window when it’s calculating
-// scaling and centering values. It works because the graphics window is
-// the same width as the display. That should never change, since all
-// existing supported V6 games use this layout, but if it does change,
-// this can no longer be used for that purpose.
-static std::optional<glui32> full_window_width, full_window_height;
-
-static void find_window_size()
-{
-    auto gwin = glk_window_open(glk_window_get_root(), winmethod_Above | winmethod_Proportional | winmethod_NoBorder, 100, wintype_Graphics, 0);
-    if (gwin != nullptr) {
-        glui32 w, h;
-        glk_window_get_size(gwin, &w, &h);
-        full_window_width = w;
-        full_window_height = h;
-        glk_window_close(gwin, nullptr);
-    }
-}
 
 // Glk’s window/graphics model is not suitable for V6’s graphics.
 // However, since Infocom produced only 4 V6 games, it’s possible to
@@ -560,7 +697,7 @@ public:
     }
 
     bool create();
-    bool resize(Type type);
+    bool resize(Type type, bool relayout = false);
     void destroy();
     void clear();
     void draw(glui32 pic, const ImageGeometry &geom, glui32 w, glui32 h) const;
@@ -838,10 +975,14 @@ void screen_recover_glk_windows()
         win.id = nullptr;
     }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     graphics_window.forget();
     mysterious_separator.forget();
     journey_window = nullptr;
+#endif
+
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    arc_window.forget();
 #endif
 
     glui32 rock = 0;
@@ -875,22 +1016,22 @@ void screen_recover_glk_windows()
         case WindowRock::GraphicsWin:
         case WindowRock::GraphicsLeftBorder:
         case WindowRock::GraphicsRightBorder:
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
             graphics_window.recover(win, static_cast<WindowRock>(rock));
 #endif
             break;
         case WindowRock::MysteriousSeparatorWin:
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
             mysterious_separator.recover(win, static_cast<WindowRock>(rock));
 #endif
             break;
         case WindowRock::JourneyWin:
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
             journey_window = win;
 #endif
             break;
         case WindowRock::ArthurWin:
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
             arthurwin->id = win;
 #endif
             break;
@@ -907,6 +1048,11 @@ void screen_recover_glk_windows()
         case WindowRock::ZorkZeroEncWin:
 #ifdef ZTERP_GLK_OVERLAY
             zorkzero_encwin = win;
+#endif
+            break;
+        case WindowRock::ArcWin:
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+            arc_window.recover(win);
 #endif
             break;
         }
@@ -935,6 +1081,12 @@ static Window *style_window()
 static std::bitset<5> streams;
 static std::optional<IO> scriptio, transio, perstransio;
 
+// Whether the transcript has been opened this session. Only the first
+// open should truncate (if overwrite_transcript is set). With library
+// autosaves, the transcript is closed when the game turns it off, so
+// turning it back on must append, or everything before is lost.
+static bool transcript_opened = false;
+
 #ifdef ZTERP_GLK_UNIX
 
 void screen_clean_up_glk_streams()
@@ -952,6 +1104,10 @@ void screen_recover_glk_streams()
 {
     transio.reset();
     streams.reset(OSTREAM_TRANSCRIPT);
+
+    // An autorestore continues the previous session, so the transcript
+    // may already have been written to, even if it isn’t open now.
+    transcript_opened = true;
 
     glui32 rock = 0;
     for (auto str = glk_stream_iterate(nullptr, &rock); str != nullptr; str = glk_stream_iterate(str, &rock)) {
@@ -1147,7 +1303,7 @@ static glui32 gargoyle_color(const Color &color)
     return zcolor_Current;
 }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
 static void set_window_bg(winid_t win, const Color &bg)
 {
     switch (bg.mode) {
@@ -1671,7 +1827,7 @@ static void put_char_base(uint16_t c, bool unicode)
                         upperwin->x++;
                         xglk_put_char(c);
                     }
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
 #ifdef ZTERP_GLK_OVERLAY
                 } else if (hint_output_window() != nullptr) {
                     // The hint grid is addressed like the upper window,
@@ -1904,7 +2060,7 @@ void screen_message_prompt(const std::string &message)
 // Deselecting a stream is always successful.
 static bool output_stream(int16_t number, uint16_t table, bool formatted)
 {
-    ZASSERT(std::labs(number) <= (zversion >= 3 ? 4 : 2), "invalid output stream selected: %ld", static_cast<long>(number));
+    ZASSERT(std::labs(number) <= 4, "invalid output stream selected: %ld", static_cast<long>(number));
 
     if (number == 0) {
         return true;
@@ -1922,7 +2078,9 @@ static bool output_stream(int16_t number, uint16_t table, bool formatted)
             try {
                 // If autosave_librarystate, we open this as a Glk stream so
                 // that it will be part of the librarystate.
-                transio.emplace(options.transcript_name, options.overwrite_transcript ? IO::Mode::WriteOnly : IO::Mode::Append, IO::Purpose::Transcript, options.autosave_librarystate ? StreamRock::TranscriptStream : StreamRock::None);
+                auto mode = options.overwrite_transcript && !transcript_opened ? IO::Mode::WriteOnly : IO::Mode::Append;
+                transio.emplace(options.transcript_name, mode, IO::Purpose::Transcript, options.autosave_librarystate ? StreamRock::TranscriptStream : StreamRock::None);
+                transcript_opened = true;
             } catch (const IO::OpenError &) {
                 store_word(0x10, word(0x10) & ~FLAGS2_TRANSCRIPT);
                 streams.reset(OSTREAM_TRANSCRIPT);
@@ -2160,7 +2318,7 @@ static void clear_window(Window *window)
 }
 #endif
 
-static void resize_upper_window(uint32_t nlines, bool from_game)
+static void resize_upper_window(uint32_t nlines, bool allow_delay)
 {
 #ifdef ZTERP_GLK
     if (upperwin->id == nullptr) {
@@ -2169,7 +2327,7 @@ static void resize_upper_window(uint32_t nlines, bool from_game)
 
     glui32 previous_height = upper_window_height;
 
-    if (from_game) {
+    if (allow_delay) {
         delayed_window_shrink = nlines;
         if (upper_window_height <= nlines || saw_input) {
             update_delayed();
@@ -2199,11 +2357,14 @@ static void resize_upper_window(uint32_t nlines, bool from_game)
 #endif
 }
 
+// Close the upper window immediately. This bypasses the “delayed shrink” code
+// used for (mostly) quote boxes, so it should not be called unless the window
+// needs to close _right now_.
 void close_upper_window()
 {
     // The upper window is never destroyed; rather, when it’s closed, it
     // shrinks to zero height.
-    resize_upper_window(0, true);
+    resize_upper_window(0, false);
 
 #ifdef ZTERP_GLK
     delayed_window_shrink = -1;
@@ -2466,7 +2627,7 @@ void zprint_ret()
     zrtrue();
 }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
 static bool image_or_rect_size(glui32 pic, glui32 &width, glui32 &height)
 {
     glui32 w, h;
@@ -2956,13 +3117,17 @@ static void update_graphics_bg()
 }
 #endif
 
-bool GraphicsWindow::resize(Type type)
+// Normally nothing is done if the window already has the requested type.
+// If relayout is true, it is sized and its borders are opened again
+// anyway, as after a change in the screen size; overlays positioned over
+// it are moved, not hidden. The caller has to redraw the pictures.
+bool GraphicsWindow::resize(Type type, bool relayout)
 {
     if (m_id == nullptr) {
         return false;
     }
 
-    if (type == m_type) {
+    if (type == m_type && !relayout) {
         return true;
     }
 
@@ -3010,7 +3175,7 @@ bool GraphicsWindow::resize(Type type)
 
     const auto &size = layout->second.size;
 
-    m_ratio = std::min(*full_window_width / size.width, options.v6_hack_max_scale);
+    m_ratio = std::min(*full_window_width / size.width, options.graphics_max_scale);
 
     // Scaling by width alone can make a full-screen picture taller than
     // the display, causing Glk to crop it. Limit the scale by the
@@ -3282,6 +3447,8 @@ static void reset_overlays()
     shogun_menu_rows = shogun_menu_cols = shogun_menu_x = 0;
     zorkzero_enc_x = zorkzero_enc_y = 0;
     zorkzero_enc_w = zorkzero_enc_h = 0;
+    zorkzero_enc_page.clear();
+    zorkzero_resize_pending = false;
 
     // The graphics window is not destroyed here, so clear the sheet
     // state explicitly to prevent its overlay from being restored.
@@ -3642,7 +3809,7 @@ void zerase_window()
         break;
     case -1:
         close_upper_window();
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
         graphics_window.destroy();
 #endif
         [[fallthrough]];
@@ -3657,7 +3824,7 @@ void zerase_window()
     case 1:
         clear_window(upperwin);
         break;
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     case 2:
         // In Arthur, the banner/map window is 2, which is represented
         // by the graphics window.
@@ -3715,7 +3882,7 @@ void zerase_window()
 #endif
 }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
 // @erase_line in a text grid the game addresses through curwin: to the
 // end of the line for 1, otherwise the V6 count of cells. Writing to
 // the stream leaves curwin’s cursor alone, so only Glk’s needs
@@ -3737,7 +3904,7 @@ static void erase_grid_line(winid_t win)
 void zerase_line()
 {
 #ifdef ZTERP_GLK
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     // Selectively handle @erase_line for version 6 games.
     if ((hack == Hack::Journey || hack == Hack::Shogun) && curwin == upperwin && upperwin->id != nullptr && zargs[0] > 1) {
         for (glui32 i = upperwin->x; i < std::min<glui32>(upper_window_width, curwin->x + (zargs[0] - 1)); i++) {
@@ -3783,7 +3950,7 @@ static void set_cursor(uint16_t y, uint16_t x)
     // either the upper window (as normal) or window 2; window 2 is the
     // window used for text/graphics above the game, e.g. room images,
     // map, inventory, etc.
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     // Shogun positions the cursor in window 2 as well, walking its menu
     // to redraw the highlight. That window only exists when overlays
     // do, hence the second test.
@@ -3854,7 +4021,7 @@ static void set_cursor(uint16_t y, uint16_t x)
         resize_upper_window(y, true);
     }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     auto *cursorwin = (hack == Hack::Arthur && curwin == arthurwin) ? curwin : upperwin;
 #ifdef ZTERP_GLK_OVERLAY
     // Shogun’s menu window is addressed the same way: MENU-SELECT walks
@@ -3886,7 +4053,7 @@ static void set_cursor(uint16_t y, uint16_t x)
 
 void zset_cursor()
 {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     if (hack == Hack::MysteriousAdventures) {
         zargs[0] -= 180;
     }
@@ -3945,7 +4112,7 @@ void zset_colour()
 
         set_current_style();
 
-#if defined(ZTERP_GLK_GRAPHICS) && defined(GLK_MODULE_GARGLKTEXT)
+#if defined(ZTERP_V6_GRAPHICS) && defined(GLK_MODULE_GARGLKTEXT)
         update_graphics_bg();
 #endif
     }
@@ -4157,16 +4324,16 @@ void zmove_window()
 // XXX This is more complex in V6 and needs to be updated when V6 windowing is implemented.
 void zsplit_window()
 {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     if (hack == Hack::MysteriousAdventures) {
         zargs[0] = 3;
     }
 #endif
 
+    resize_upper_window(zargs[0], true);
+
     if (zargs[0] == 0) {
-        close_upper_window();
-    } else {
-        resize_upper_window(zargs[0], true);
+        set_current_window(mainwin);
     }
 }
 
@@ -4175,10 +4342,89 @@ void zset_window()
     set_current_window(find_window(zargs[0]));
 }
 
+#ifdef ZTERP_GLK_OVERLAY
+// Whether PICTURED-ENTRY’s page is up and waiting for a keypress.
+static bool zorkzero_enc_page_shown()
+{
+    return hack == Hack::ZorkZero && zorkzero_enc_overlay.active() && !zorkzero_enc_page.empty();
+}
+
+// V-$REFRESH dispatches on CURRENT-SPLIT and has no case for the
+// encyclopedia’s ENC-PIC-LOC, so it would draw the room’s status line
+// over the page and select window 0, hiding the text. Instead, draw the
+// page’s pictures again and move the text window to match. The window
+// is still floating, so its text is kept.
+//
+// PICTURED-ENTRY calls V-$REFRESH itself after the keypress, but only
+// once, and Zork Zero needs two refreshes after a resize to get the
+// status line’s width right (see window_change()). So the full resize
+// handling is deferred until the next input request.
+static void zorkzero_redraw_enc_page()
+{
+    zorkzero_resize_pending = true;
+
+    if (!graphics_window.resize(GraphicsWindow::Type::ZorkZero320)) {
+        return;
+    }
+
+    for (const auto &picture : zorkzero_enc_page) {
+        graphics_window.draw(picture.pic, ImageGeometry{picture.x - 1, picture.y - 1}, picture.w, picture.h);
+    }
+
+    zorkzero_place_enc_window(true);
+}
+#endif
+
+#ifdef ZTERP_V6_GRAPHICS
+// Whether Zork Zero’s InvisiClues screen is up. INIT-HINT-SCREEN draws
+// HINT-BORDER, which nothing else does, and LEAVE-HINT-SCREEN replaces
+// it with the room’s banner. Without the border (BORDER-ON off, or an
+// Apple II) this can’t tell, and V-$REFRESH is used as before.
+static bool zorkzero_hint_screen_shown(GraphicsWindow::Type type)
+{
+    return hack == Hack::ZorkZero && type == GraphicsWindow::Type::HintBorder;
+}
+
+// Whether Zork Zero is showing a screen V-$REFRESH would draw over.
+// INIT-HINT-SCREEN leaves CURRENT-SPLIT at TEXT-WINDOW-PIC-LOC, the
+// value for normal play, so V-$REFRESH would draw the room’s banner
+// and status line over the hint screen.
+static bool zorkzero_refresh_unsafe()
+{
+#ifdef ZTERP_GLK_OVERLAY
+    if (zorkzero_enc_page_shown()) {
+        return true;
+    }
+#endif
+
+    return zorkzero_hint_screen_shown(graphics_window.type());
+}
+#endif
+
 #ifdef ZTERP_GLK
 static void window_change()
 {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
+    // These have to be checked before the graphics window is destroyed.
+#ifdef ZTERP_GLK_OVERLAY
+    bool enc_page = zorkzero_enc_page_shown();
+#else
+    bool enc_page = false;
+#endif
+    bool hint_screen = zorkzero_hint_screen_shown(graphics_window.type());
+#endif
+
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    arc_window.hide();
+#endif
+
+#if defined(ZTERP_V6_GRAPHICS) || defined(ZTERP_ARCTURUS_GRAPHICS)
+    // This has to happen before anything below resizes a graphics
+    // window, since it updates full_window_width.
+    find_window_size();
+#endif
+
+#ifdef ZTERP_V6_GRAPHICS
     // This calls V-$REFRESH, i.e. the “refresh” or “$refresh” verb.
     auto zorkzero_refresh = [](){
         static const std::map<std::string, uint32_t> refresh_addrs = {
@@ -4193,26 +4439,54 @@ static void window_change()
             // would be good or not is immaterial: Glk doesn’t allow
             // windows to be erased when there's line input pending, and
             // most of the time, that will be the case.
+            //
+            // This is called during input, and V-$REFRESH selects
+            // windows. Switch back as handle_interrupt() does, since
+            // the pending read is attached to the current window.
+            Window *saved = curwin;
+
             internal_call((addr->second - header.routines_offset) / 4, {1});
+
+            if (curwin != saved) {
+                set_current_window(saved);
+            }
         }
     };
 
-    // This has to happen before anything below resizes a graphics
-    // window, since it updates full_window_width.
-    find_window_size();
-
     auto current_type = graphics_window.type();
 
-    graphics_window.destroy();
+    // The InvisiClues header floats over the hint border and has no rows
+    // in the layout, so destroying the window, which takes the header out
+    // of its overlay, would empty it. Lay the border out again instead.
+    bool relayout = current_type == GraphicsWindow::Type::HintBorder;
+
+    if (!relayout) {
+        graphics_window.destroy();
+    }
     close_journey_window();
     mysterious_separator.destroy();
 
+    // Zork Zero’s InvisiClues border uses the same layout as Shogun’s,
+    // but its own pictures: the strip is HINT-BORDER, and DISPLAY-BORDER
+    // puts HINT-BORDER-L and HINT-BORDER-R below it. Nothing will ask
+    // for them again, since that is only done on the way in.
+    if (hint_screen) {
+        graphics_window.resize(current_type, relayout);
+
+        glui32 w, h;
+        if (glk_image_get_info(8, &w, &h)) {
+            graphics_window.draw(8, ImageGeometry{0, 0}, w, h);
+        }
+
+        graphics_window.draw_zorkzero_border(503);
+        graphics_window.draw_zorkzero_border(504);
+
     // Shogun won’t redraw its borders on resize, so do it here.
-    if (current_type == GraphicsWindow::Type::ShogunNormal ||
-        current_type == GraphicsWindow::Type::HintBorder ||
-        current_type == GraphicsWindow::Type::ShogunMaze)
+    } else if (current_type == GraphicsWindow::Type::ShogunNormal ||
+               current_type == GraphicsWindow::Type::HintBorder ||
+               current_type == GraphicsWindow::Type::ShogunMaze)
     {
-        graphics_window.resize(current_type);
+        graphics_window.resize(current_type, relayout);
 
         // The sides are all there is to the other two, but the InvisiClues
         // border has a strip across the top as well, and nothing will ask
@@ -4233,8 +4507,22 @@ static void window_change()
     // unlike Arthur, Zork Zero doesn’t redraw on room change. To get it
     // to redraw, call V-$REFRESH.
     if (hack == Hack::ZorkZero) {
-        zorkzero_refresh();
+        if (enc_page) {
+#ifdef ZTERP_GLK_OVERLAY
+            zorkzero_redraw_enc_page();
+#endif
+        } else if (hint_screen) {
+            // The border is drawn above. As with the encyclopedia, the
+            // rest waits until the game is back to its normal screen.
+            zorkzero_resize_pending = true;
+        } else {
+            zorkzero_refresh();
+        }
     }
+#endif
+
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    arc_window.redraw();
 #endif
 
     // Track the new size of the upper window. This has to come after
@@ -4287,8 +4575,11 @@ static void window_change()
         store_word(0x10, word(0x10) | FLAGS2_REDRAW);
     }
 
-#ifdef ZTERP_GLK_GRAPHICS
-    if (hack == Hack::ZorkZero) {
+#ifdef ZTERP_V6_GRAPHICS
+    // On the encyclopedia page or the InvisiClues screen, the width
+    // measured here would be wrong, so this waits until the game is back
+    // to its normal screen. See zorkzero_redraw_enc_page().
+    if (hack == Hack::ZorkZero && !enc_page && !hint_screen) {
         // Zork Zero calls “@picture_data 383” to figure out how wide
         // the status bar is. Bocfel hijacks this call to return the
         // upper window width, which is where the status will actually
@@ -4330,6 +4621,12 @@ static void window_change()
     // Restore the hint grid after the main-window layout changes. The
     // game does not know about this window and cannot redraw it.
     place_hint_grid(hint_overlay.active());
+
+    // Gargoyle places overlays in absolute pixels, so Shogun’s menu
+    // would otherwise stay where it was, and shrinking the screen could
+    // push it out of view entirely. It is anchored to the bottom of the
+    // main window, so this has to come after the borders are redrawn.
+    shogun_place_menu_overlay(shogun_menu_overlay.active());
 #endif
 }
 #endif
@@ -4455,7 +4752,7 @@ static void request_mouse_events()
         glk_request_mouse_event(upperwin->id);
     }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     if (graphics_window.id() != nullptr) {
         glk_request_mouse_event(graphics_window.id());
     }
@@ -4693,6 +4990,17 @@ static bool get_input(uint16_t timer, uint16_t routine, Input &input)
                         ((input.type == Input::Type::Char) ||
                          (input.type == Input::Type::Line && term_mouse));
 
+#ifdef ZTERP_V6_GRAPHICS
+    // Finish handling a resize which happened on the encyclopedia page
+    // or the InvisiClues screen, now that the game has gone back to its
+    // normal screen. Both read input while they are up, so this might
+    // not be the first read since the resize.
+    if (zorkzero_resize_pending && !zorkzero_refresh_unsafe()) {
+        zorkzero_resize_pending = false;
+        window_change();
+    }
+#endif
+
     // In V6, input might be requested on an unsupported window. If so,
     // switch to the main window temporarily.
     if (curwin->id == nullptr) {
@@ -4710,7 +5018,7 @@ static bool get_input(uint16_t timer, uint16_t routine, Input &input)
         request_char();
         break;
     case Input::Type::Line:
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
         // When in borderless mode, there’s no direct way to detect when
         // the game is finished with a 320x200/Game window, so infer
         // it from line input being requested.
@@ -4897,7 +5205,7 @@ static bool get_input(uint16_t timer, uint16_t routine, Input &input)
             break;
         case evtype_MouseInput:
             if (ev.win == upperwin->id) {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
                 if (hack == Hack::ZorkZero) {
                     // Fanucci’s play menu hit-tests clicks against the
                     // upper window with WITHIN?, which is inclusive at
@@ -4911,7 +5219,7 @@ static bool get_input(uint16_t timer, uint16_t routine, Input &input)
                 }
 #endif
                 zterp_mouse_click(ev.val1 + 1, ev.val2 + 1);
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
             } else if (ev.win == graphics_window.id() && graphics_window.ratio() > 0) {
                 // The ratio is zero until the window has been sized,
                 // which is the state a Glk autorestore leaves it in:
@@ -5029,7 +5337,7 @@ static bool get_input(uint16_t timer, uint16_t routine, Input &input)
             glk_window_move_cursor(upperwin->id, upperwin->x, upperwin->y);
         }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
         if (hack == Hack::Arthur && arthurwin->id != nullptr) {
             switch (input.term) {
             // Switching to text: close the graphics window and open the
@@ -5112,6 +5420,28 @@ static bool get_input(uint16_t timer, uint16_t routine, Input &input)
 #endif
 }
 
+#ifdef ZTERP_GLK
+// These track the position of the cursor in the upper window at the
+// beginning of a @read or @read_char call so that the cursor can be
+// replaced in case of a meta-command. They are also stored in the Scrn
+// chunk of any meta-saves and autosaves. They are in Z-machine
+// coordinate format, not Glk, which means they are 1-based.
+static long starting_x, starting_y;
+#endif
+
+static void prepare_for_input(SaveOpcode saveopcode)
+{
+#ifdef ZTERP_GLK
+    starting_x = upperwin->x + 1;
+    starting_y = upperwin->y + 1;
+#endif
+
+    if (options.autosave && !in_interrupt()) {
+        SaveType savetype = options.autosave_librarystate ? SaveType::AutosaveLib : SaveType::Autosave;
+        do_save(savetype, saveopcode);
+    }
+}
+
 void zread_char()
 {
     uint16_t timer = zarg_or(1, 0);
@@ -5120,10 +5450,7 @@ void zread_char()
 
     input.type = Input::Type::Char;
 
-    if (options.autosave && !in_interrupt()) {
-        SaveType savetype = options.autosave_librarystate ? SaveType::AutosaveLib : SaveType::Autosave;
-        do_save(savetype, SaveOpcode::ReadChar);
-    }
+    prepare_for_input(SaveOpcode::ReadChar);
 
     if (!get_input(timer, routine, input)) {
         store(0);
@@ -5229,15 +5556,6 @@ void zshow_status()
 #endif
 }
 
-#ifdef ZTERP_GLK
-// These track the position of the cursor in the upper window at the
-// beginning of a @read call so that the cursor can be replaced in case
-// of a meta-command. They are also stored in the Scrn chunk of any
-// meta-saves. They are in Z-machine coordinate format, not Glk, which
-// means they are 1-based.
-static long starting_x, starting_y;
-#endif
-
 // Attempt to read and parse a line of input. On success, return true.
 // Otherwise, return false to indicate that input should be requested
 // again.
@@ -5254,15 +5572,7 @@ static bool read_handler()
     uint16_t timer = zarg_or(2, 0);
     uint16_t routine = zarg_or(3, 0);
 
-    if (options.autosave && !in_interrupt()) {
-        SaveType savetype = options.autosave_librarystate ? SaveType::AutosaveLib : SaveType::Autosave;
-        do_save(savetype, SaveOpcode::Read);
-    }
-
-#ifdef ZTERP_GLK
-    starting_x = upperwin->x + 1;
-    starting_y = upperwin->y + 1;
-#endif
+    prepare_for_input(SaveOpcode::Read);
 
     if (zversion <= 3) {
         zshow_status();
@@ -5570,7 +5880,7 @@ void zcheck_unicode()
     store(res);
 }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
 static uint16_t blorb_reln;
 
 struct ScaleInfo {
@@ -5589,7 +5899,7 @@ static std::map<uint32_t, ScaleInfo> picture_scale;
 // their original resolution if scale data can’t be loaded.
 void screen_load_scale_info()
 {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     auto *map = giblorb_get_resource_map();
     if (map == nullptr) {
         return;
@@ -5651,7 +5961,7 @@ void screen_load_scale_info()
 }
 #endif
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
 static std::optional<ImageGeometry> arthur_geom(glui32 pic, int x, int y)
 {
     switch (pic) {
@@ -5964,6 +6274,13 @@ static bool draw_zorkzero(glui32 pic, glui32 w, glui32 h, double x, double y)
 #endif
     }
 
+#ifdef ZTERP_GLK_OVERLAY
+    // Any new layout ends the encyclopedia page, if one was up.
+    if (type != GraphicsWindow::Type::None) {
+        zorkzero_enc_page.clear();
+    }
+#endif
+
     if (type != GraphicsWindow::Type::None && !graphics_window.resize(type)) {
         return false;
     }
@@ -5974,6 +6291,13 @@ static bool draw_zorkzero(glui32 pic, glui32 w, glui32 h, double x, double y)
     // and if 320/game mode, assume the game’s got its geometry correct,
     // and plot the pictures just as they’re requested.
     if (graphics_window.is_zorkzero_fullscreen()) {
+#ifdef ZTERP_GLK_OVERLAY
+        // ENC-BORDER (25) starts the page, and the illustration follows.
+        if (pic == 25 || !zorkzero_enc_page.empty()) {
+            zorkzero_enc_page.push_back({pic, w, h, x, y});
+        }
+#endif
+
         ImageGeometry geom{x - 1, y - 1};
         graphics_window.draw(pic, geom, w, h);
         return true;
@@ -6028,7 +6352,7 @@ static uint16_t scale_picture(uint32_t num, uint16_t val)
 #ifndef ZTERP_NO_V6
 void zdraw_picture()
 {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     uint16_t pic = zargs[0];
     uint16_t x = zargs[2];
     uint16_t y = zargs[1];
@@ -6102,7 +6426,7 @@ void zpicture_data()
     auto pic = zargs[0];
     auto array = zargs[1];
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     auto *map = giblorb_get_resource_map();
 
     if (map == nullptr || !glk_gestalt(gestalt_Graphics, 0)) {
@@ -6276,7 +6600,7 @@ void zget_wind_prop()
     uint8_t font_width = 1, font_height = 1;
     uint16_t val;
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     if (hack == Hack::Shogun && zargs[0] == 0 && zargs[1] == 4) {
         // Check if this is the start of LEAVE-MAZE. This maybe should
         // occur instead during SETUP-TEXT-AND-STATUS but that would
@@ -6397,7 +6721,7 @@ void zget_wind_prop()
         }
 #endif
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
         // Shogun’s borders narrow the upper window, and the width at
         // 0x22 is only measured at startup and on a resize, against
         // whichever border is up at the time. The InvisiClues frame is
@@ -6415,7 +6739,7 @@ void zget_wind_prop()
         break;
     case 4:  // y cursor
 #ifdef ZTERP_GLK
-        val = curwin->y + 1;
+        val = win->y + 1;
 #ifdef ZTERP_GLK_OVERLAY
         // A Glk text buffer has no cursor to report, so this would
         // answer “line 1” however much has been printed. Shogun asks
@@ -6436,7 +6760,7 @@ void zget_wind_prop()
         break;
     case 5:  // x cursor
 #ifdef ZTERP_GLK
-        val = curwin->x + 1;
+        val = win->x + 1;
 #else
         val = 1;
 #endif
@@ -6525,7 +6849,7 @@ void zbuffer_screen()
 
 void zjourney_dial()
 {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     if (journey_window == nullptr) {
         return;
     }
@@ -6674,6 +6998,19 @@ void zshogun_flush_old_picture()
 }
 #endif
 
+#ifndef ZTERP_NO_ARCTURUS
+void zarc_image()
+{
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    if (znargs != 2) {
+        return;
+    }
+
+    arc_window.draw(zargs[0], zargs[1]);
+#endif
+}
+#endif
+
 #ifdef GLK_MODULE_GARGLKTEXT
 // Glk does not guarantee great control over how various styles are
 // going to look, but Gargoyle does. Abusing the Glk “style hints”
@@ -6729,7 +7066,7 @@ bool create_mainwin()
     glk_stylehint_set(wintype_AllTypes, GStyleBoldItalicFixed, stylehint_Proportional, 0);
 #endif
 
-#ifdef ZTERP_GLK_GRAPHICS
+#if defined(ZTERP_V6_GRAPHICS) || defined(ZTERP_ARCTURUS_GRAPHICS)
     find_window_size();
 #endif
 
@@ -6739,7 +7076,7 @@ bool create_mainwin()
     }
     glk_set_window(mainwin->id);
 
-#if defined(ZTERP_GLK_GRAPHICS) && defined(GLK_MODULE_GARGLKTEXT)
+#if defined(ZTERP_V6_GRAPHICS) && defined(GLK_MODULE_GARGLKTEXT)
     glui32 bg;
     if (glk_style_measure(mainwin->id, style_Normal, stylehint_BackColor, &bg)) {
         default_bg = bg;
@@ -6801,7 +7138,7 @@ void create_upperwin()
         }
     }
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     // For the “bordered” graphics games (Arthur, Zork Zero, and
     // Shogun), resize the graphics window before starting: the games
     // request the upper window size early on and store it, meaning the
@@ -6969,7 +7306,7 @@ void screen_read_scrn(IO &io, uint32_t size)
 
     set_current_style();
 
-#if defined(ZTERP_GLK_GRAPHICS) && defined(GLK_MODULE_GARGLKTEXT)
+#if defined(ZTERP_V6_GRAPHICS) && defined(GLK_MODULE_GARGLKTEXT)
     update_graphics_bg();
 #endif
 }
@@ -7341,6 +7678,16 @@ void screen_show_persistent_transcript()
     }
 }
 
+void screen_wait_for_enter()
+{
+    Input input;
+    input.type = Input::Type::Char;
+
+    do {
+        get_input(0, 0, input);
+    } while (input.key != ZSCII_NEWLINE);
+}
+
 // The DEFINE command in Zork Zero uses cursor positioning in the main
 // window, which doesn’t work with Glk. This is a replacement function
 // which approximates the original.
@@ -7553,9 +7900,13 @@ void zzork0_define()
     }
 }
 
-void create_graphicswin()
+void create_v6_graphicswin()
 {
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
+    if (options.disable_v6_hacks) {
+        return;
+    }
+
     graphics_window.destroy();
     if (glk_gestalt(gestalt_DrawImage, wintype_Graphics)) {
         if ((is_game(Game::Arthur) ||
@@ -7595,6 +7946,28 @@ void create_graphicswin()
     if (hack != Hack::None) {
         options.redirect_v6_windows = false;
     }
+#endif
+}
+
+void create_arc_graphicswin()
+{
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    if (!is_game(Game::ArcturusImage)) {
+        return;
+    }
+
+    if (zversion == 5 && glk_gestalt(gestalt_Graphics, 0) && glk_gestalt(gestalt_DrawImage, wintype_Graphics)) {
+        arc_window.create();
+    }
+#endif
+}
+
+bool have_arc_graphicswin()
+{
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    return arc_window.is_open();
+#else
+    return false;
 #endif
 }
 
@@ -7643,7 +8016,7 @@ void init_screen(bool first_run)
 
     stop_timer();
 
-#ifdef ZTERP_GLK_GRAPHICS
+#ifdef ZTERP_V6_GRAPHICS
     current_palette.reset();
 
     if (first_run) {
@@ -7653,6 +8026,10 @@ void init_screen(bool first_run)
 #ifdef GLK_MODULE_GARGLKTEXT
     update_graphics_bg();
 #endif
+#endif
+
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    arc_window.destroy();
 #endif
 
 #else
@@ -7677,4 +8054,11 @@ void init_screen(bool first_run)
     stream_tables.clear();
 
     set_current_window(mainwin);
+}
+
+void screen_on_restore()
+{
+#ifdef ZTERP_ARCTURUS_GRAPHICS
+    arc_window.destroy();
+#endif
 }

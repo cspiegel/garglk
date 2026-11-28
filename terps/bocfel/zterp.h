@@ -24,7 +24,7 @@ private:
 
 extern std::string game_file;
 
-#define ZTERP_VERSION	"2.6"
+#define ZTERP_VERSION	"2.7"
 
 // v3
 constexpr uint8_t FLAGS1_STATUSTYPE  = 1U << 1;
@@ -64,7 +64,7 @@ struct Header {
     uint16_t objects;
     uint16_t globals;
     uint16_t static_start;
-    uint16_t static_end;
+    uint32_t static_end;
     uint16_t abbr;
     uint32_t file_length;
     uint8_t  serial[6];
@@ -94,9 +94,14 @@ enum class Game {
     ZorkZero,
     ZorkZeroDOS,
     MysteriousAdventures,
+    ArcturusImage,
 };
 
 bool is_game(Game game);
+
+#ifdef ZTERP_GLK_BLORB
+void zterp_check_arc_image();
+#endif
 
 void write_header();
 void start_story();

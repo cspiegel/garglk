@@ -186,7 +186,7 @@ endif()
 
 # ------------------------------------------------------------------------------
 #
-# Bocfel 2.6
+# Bocfel 2.7
 #
 if(WITH_BOCFEL)
     set(BOCFEL_MACROS ZTERP_GLK ZTERP_GLK_BLORB ZTERP_GLK_UNIX "ZTERP_STATIC_PATCH_FILE=\"static-patches.h\"")
