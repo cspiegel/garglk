@@ -332,83 +332,33 @@ will fail on most other Macs (which do not have those repos installed).
 
 ### MacOS code signing and notarization
 
-For a fully accessible build on MacOS 10.15 (Catalina), you need to both sign
-and notarize the app before packaging it up. (Unsigned builds still run on
-10.15, but you have to right-click and select "Open". The user warnings for just
-launching the app normally are more derisive than before.)
+Release builds must be signed and notarized, or Gatekeeper will refuse to open
+them without the user overriding it in System Settings. `release.sh` does all
+of this:
 
-To do this:
+    ./release.sh -mn
 
-First, obviously, you need an Apple developer account.
+`-m` builds Gargoyle for both x86_64 (using Homebrew in `/usr/local`) and arm64
+(using Homebrew in `/opt/homebrew`), combines them into a universal app, signs
+it, and creates `Gargoyle-<version>.dmg`. `-n` additionally submits the app to
+Apple for notarization, waits for the result, and staples the ticket to the app
+before the DMG is created.
 
-Create an app-specific password with the name "altool". Copy the password down
-once it's created. (You can't re-download it from Apple, you can only delete it
-and create a new one.) The instructions on this are here:
+This requires an Apple developer account and the following environment
+variables:
 
-https://support.apple.com/en-us/HT204397 "Using app-specific passwords"
+* `APPLE_CERT_NAME`: the name of your Developer ID Application certificate in
+  Keychain Access, e.g. "Developer ID Application: Your Name (TEAMID)".
+* `APPLE_ID`: your developer account's Apple ID.
+* `APPLE_TEAM_ID`: your team ID (the parenthesized part of the certificate
+  name).
 
-Verify that this password works:
+`notarytool` will prompt for a password. Use an app-specific password, created
+at https://account.apple.com/ under "Sign-In and Security".
 
-    xcrun altool --list-providers -u "$APPLE_ID"
+If notarization fails, check the log:
 
-`APPLE_ID` is the account name (probably an email address) for your developer
-account. This will ask for a password. Use the altool password that you just
-created above. The response will look something like:
-
-    ProviderName   ProviderShortname      WWDRTeamID
-    -------------- ---------------------- ----------
-    Andrew Plotkin AndrewPlotkin176400769 BK75QRDQ9E
-
-Build Gargoyle.app using the `gargoyle_osx.sh`. But delete the .dmg file; we're
-going to create a new one later.
-
-Code-sign the app: (The "-o runtime" argument specifies that you want a
-"hardened" app, which is a requirement.)
-
-    codesign -o runtime --deep --sign "$CERT_NAME" Gargoyle.app
-
-The `CERT_NAME` is the name of your Developer ID Application certificate in
-Keychain-Access. For me, this is:
-
-"Developer ID Application: Andrew Plotkin (BK75QRDQ9E)".
-
-Zip up the signed app for notarization:
-
-    ditto -c -k --keepParent Gargoyle.app Gargoyle.zip
-
-Send it off to be notarized:
-
-    xcrun altool --notarize-app --primary-bundle-id 'com.googlecode.garglk.Launcher' --username "$APPLE_ID" --asc-provider "$PROV_SHORT_NAME" --file Gargoyle.zip
-
-This will also ask for the altool password. `PROV_SHORT_NAME` is the
-ProviderShortname you saw above. For me, it's AndrewPlotkin176400769.
-
-If this succeeds, you'll see something like:
-
-    No errors uploading 'Gargoyle.zip'.
-    RequestUUID = 4745e9e4-87c2-4509-89cf-d08d84181234
-
-Wait for Apple to send you email about this request. It's supposed to take "up
-to an hour"; I got a response within a few minutes.
-
-Now look at the response details:
-
-    xcrun altool --notarization-info "$REQ_UUID" -u "$APPLE_ID"
-
-This will give a success/failure message, plus a LogFileURL for more info. Look
-at the log file to make sure there are neither errors nor warnings.
-
-If it all looks good, update the app with the notarization info:
-
-    xcrun stapler staple Gargoyle.app
-
-(This doesn't need any extra arguments because Apple maintains a public database
-of all successful notarizations. The stapler tool looks up all necessary info
-online.)
-
-Finally, re-run the command to create the DMG file:
-
-    hdiutil create -fs "HFS+J" -ov -srcfolder Gargoyle.app/ gargoyle-2026.1-mac.dmg
+    xcrun notarytool log <submission-id> --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID"
 
 ## Building for Windows
 
