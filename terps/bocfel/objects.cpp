@@ -418,7 +418,10 @@ void print_object(uint16_t obj, void (*outc)(uint8_t))
         return;
     }
 
-    print_handler(property_address(obj) + 1, outc);
+    auto propaddr = property_address(obj);
+    if (user_byte(propaddr) != 0) {
+        print_handler(propaddr + 1, outc);
+    }
 }
 
 void zprint_obj()

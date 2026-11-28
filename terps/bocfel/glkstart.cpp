@@ -194,6 +194,7 @@ static void load_resources()
         if (file != nullptr) {
             if (giblorb_set_resource_map(file) == giblorb_err_None) {
                 screen_load_scale_info();
+                zterp_check_arc_image();
 
                 return true;
             }

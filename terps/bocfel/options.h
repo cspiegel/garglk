@@ -61,7 +61,7 @@ struct Options {
     bool warn_on_v6 = true;
     bool redirect_v6_windows = true;
     bool disable_v6_hacks = false;
-    double v6_hack_max_scale = 4.0;
+    double graphics_max_scale = 4.0;
     bool aspect_correction = false;
 
     Options();

@@ -49,7 +49,9 @@ struct Color {
 void init_screen(bool first_run);
 
 bool create_mainwin();
-void create_graphicswin();
+void create_v6_graphicswin();
+void create_arc_graphicswin();
+bool have_arc_graphicswin();
 void create_statuswin();
 bool have_statuswin();
 void create_upperwin();
@@ -78,6 +80,7 @@ void screen_printf(const char *fmt, ...);
 void screen_puts(const std::string &s);
 void screen_message_prompt(const std::string &message);
 void screen_flush();
+void screen_wait_for_enter();
 
 // Whether text windows can float over pictures; see the V6 patches.
 bool screen_has_overlays();
@@ -132,6 +135,8 @@ void screen_show_persistent_transcript();
 
 bool screen_toggle_force_fixed();
 
+void screen_on_restore();
+
 void zoutput_stream();
 void zinput_stream();
 void zprint();
@@ -172,5 +177,7 @@ void zjourney_dial();
 void zshogun_menu();
 void zshogun_flush_old_picture();
 void zzork0_define();
+
+void zarc_image();
 
 #endif
