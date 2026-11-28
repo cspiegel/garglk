@@ -45,15 +45,17 @@
 #endif
 
 /* timegm() is non-standard (neither C nor POSIX), so unconditionally
-   use a replacement.
+   use a replacement. Not the NO_TIMEGM_AVAIL one, though: it changes TZ
+   around mktime(), which races with other threads, and on Windows the CRT
+   doesn't see the change at all. Gargoyle's own is at the end of this file.
 */
-#define NO_TIMEGM_AVAIL
 
 /* ... but due to the mess that is C++ and POSIX, give it a
    different name, since Unix environments tend to expose everything to
    C++, standard or otherwise, unconditionally.
  */
 #define timegm cg_timegm
+static time_t timegm(struct tm *tm);
 
 /* bzero() is deprecated */
 #undef bzero
@@ -63,7 +65,7 @@
 #ifdef GLK_MODULE_DATETIME
 
 #ifdef NO_TIMEGM_AVAIL
-static time_t timegm(struct tm *tm);
+extern time_t timegm(struct tm *tm);
 #endif /* NO_TIMEGM_AVAIL */
 
 #ifdef WIN32
@@ -74,20 +76,6 @@ extern time_t timegm(struct tm *tm);
 extern time_t gli_mktime(struct tm *timeptr);
 static struct tm *gmtime_r(const time_t *timer, struct tm *result);
 static struct tm *localtime_r(const time_t *timer, struct tm *result);
-
-#ifdef GARGLK
-/* These functions are POSIX but aren't supplied by MinGW. */
-static int setenv(const char *name, const char *value, int overwrite)
-{
-    SetEnvironmentVariableA(name, value);
-    return 0;
-}
-static int unsetenv(const char *name)
-{
-    SetEnvironmentVariableA(name, NULL);
-    return 0;
-}
-#endif
 #endif /* WIN32 */
 
 
@@ -495,5 +483,34 @@ static struct tm * localtime_r(const time_t *timer, struct tm *result)
     return result;
 }
 #endif /* WIN32 */
+
+#ifdef GARGLK
+/* Like timegm(), this allows out-of-range fields. */
+static time_t timegm(struct tm *tm)
+{
+    /* Days since 1970-01-01 in the proleptic Gregorian calendar, using a
+       year that starts in March, so that the leap day comes last. */
+    int64_t year = (int64_t)tm->tm_year + 1900;
+    int64_t month = tm->tm_mon;
+
+    year += month / 12;
+    month %= 12;
+    if (month < 0) {
+        month += 12;
+        year -= 1;
+    }
+    if (month < 2) {
+        year -= 1;
+    }
+
+    int64_t era = (year >= 0 ? year : year - 399) / 400;
+    int64_t year_of_era = year - era * 400;
+    int64_t day_of_year = (153 * (month < 2 ? month + 10 : month - 2) + 2) / 5;
+    int64_t day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    int64_t days = era * 146097 + day_of_era - 719468 + (tm->tm_mday - 1);
+
+    return days * 86400 + (int64_t)tm->tm_hour * 3600 + (int64_t)tm->tm_min * 60 + tm->tm_sec;
+}
+#endif
 
 #endif /* GLK_MODULE_DATETIME */
